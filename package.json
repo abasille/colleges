@@ -1,0 +1,43 @@
+{
+  "name": "colleges",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Carte des collèges de Paris 5e, 6e, 13e, 14e, Ivry-sur-Seine et Vitry-sur-Seine",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "data": "tsx scripts/data/build.ts",
+    "watch-pages": "tsx scripts/watch-pages.ts"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-leaflet": "^5.0.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/adm-zip": "^0.5.8",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^26.6.4",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "adm-zip": "^0.6.1",
+    "fast-xml-parser": "^5.11.2",
+    "papaparse": "^5.7.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  }
+}

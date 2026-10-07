@@ -1,0 +1,13 @@
+{
+  "zones": [
+    { "code": "75105", "libelle": "Paris 5e", "academie": "Paris" },
+    { "code": "75106", "libelle": "Paris 6e", "academie": "Paris" },
+    { "code": "75113", "libelle": "Paris 13e", "academie": "Paris" },
+    { "code": "75114", "libelle": "Paris 14e", "academie": "Paris" },
+    { "code": "94041", "libelle": "Ivry-sur-Seine", "academie": "Créteil" },
+    { "code": "94081", "libelle": "Vitry-sur-Seine", "academie": "Créteil" }
+  ],
+  "codesNature": [340, 352],
+  "exclure": ["0752799K", "0755367B", "0753845X", "0753146M", "0755084U"],
+  "saisonCourante": "2026-27"
+}
