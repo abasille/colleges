@@ -15,7 +15,7 @@ export function Header() {
   return (
     <header className="border-b border-zinc-200 bg-white">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
-        <h1 className="text-base font-semibold tracking-tight">
+        <h1 className="text-sm font-semibold tracking-tight md:text-base">
           Collèges <span className="font-normal text-zinc-500">Paris 5·6·13·14 · Ivry · Vitry</span>
         </h1>
         <div className="order-3 flex w-full min-w-0 md:order-none md:w-auto md:flex-1">
@@ -45,7 +45,7 @@ function UpcomingBanner() {
   const next = upcomingForFavoris(events.events, events.saisonCourante, new Set(favoris), today);
   if (favoris.length === 0) {
     return (
-      <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1 text-xs text-zinc-500">
+      <div className="hidden border-t border-zinc-100 bg-zinc-50 px-3 py-1 text-xs text-zinc-500 md:block">
         Ajoutez des collèges en favoris ☆ pour suivre ici leurs prochaines portes ouvertes et dates d’inscription.
       </div>
     );
@@ -95,7 +95,13 @@ function ShareButton() {
       title="Copier un lien qui importe vos favoris et vos notes sur un autre appareil"
       className="rounded-md border border-zinc-300 px-2.5 py-1 text-sm hover:bg-zinc-50 disabled:opacity-40"
     >
-      {copied ? 'Lien copié ✓' : `Partager mes favoris (${favoris.length})`}
+      {copied ? (
+        'Lien copié ✓'
+      ) : (
+        <>
+          Partager<span className="hidden sm:inline"> mes favoris</span> ({favoris.length})
+        </>
+      )}
     </button>
   );
 }

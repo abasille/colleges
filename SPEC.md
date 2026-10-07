@@ -21,7 +21,7 @@ Application web statique pour choisir un collège à Paris 5e, 6e, 13e, 14e, Ivr
 
 ## 3. Architecture
 
-- **Front** : Vite + React + TypeScript, Leaflet (react-leaflet), fond CARTO clair. Site 100 % statique.
+- **Front** : Vite + React + TypeScript, Leaflet (react-leaflet), fond Plan IGN (Géoplateforme, sans clé). Site 100 % statique.
 - **Données** : `npm run data` (scripts TypeScript dans `scripts/data/`) télécharge les sources (cache local ignoré par git), fusionne sur l'UAI, applique les corrections manuelles (`data/overrides/`), calcule les indicateurs et la note, puis écrit `public/data/*.json` (versionnés) et un rapport d'anomalies `data/report.md`. Mise à jour lancée à la main, une fois par an pour les indicateurs.
 - **Contrat de données** : `src/types.ts` décrit le format de `public/data/colleges.json`. Le script et le front s'y conforment.
 - **Tests** (Vitest) : jointures, valeurs manquantes, calcul de la note, logique des filtres et tris.

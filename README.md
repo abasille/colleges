@@ -42,7 +42,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 | Affectation en 2nde GT 2026 (lycées de secteur) | Académie de Paris | — |
 | Contours des communes et arrondissements | [geo.api.gouv.fr](https://geo.api.gouv.fr) | Licence Ouverte 2.0 |
 | Géocodage des adresses | Géoplateforme (IGN) | Licence Ouverte 2.0 |
-| Fond de carte | © OpenStreetMap, © CARTO | ODbL / CARTO |
+| Fond de carte | Plan IGN, Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Dates de portes ouvertes et d'inscription | Sites des établissements, relevés à la main (source citée pour chaque date) | — |
 
 Les classements de presse ne sont pas repris, car leurs conditions d'utilisation interdisent la reproduction. La note maison est calculée à partir des mêmes données publiques.

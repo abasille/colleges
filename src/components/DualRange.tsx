@@ -13,7 +13,9 @@ interface Props {
 /** Curseur à deux poignées ; la valeur n'est transmise qu'au relâchement pour éviter de recalculer à chaque pixel. */
 export function DualRange({ min, max, step, value, onChange, format, label }: Props) {
   const [local, setLocal] = useState(value);
-  useEffect(() => setLocal(value), [value]);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
   const pct = (v: number) => (max === min ? 0 : ((v - min) / (max - min)) * 100);
   const commit = () => {
     if (local[0] !== value[0] || local[1] !== value[1]) onChange(local);

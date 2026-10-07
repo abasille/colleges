@@ -1,5 +1,5 @@
 import type { CarteScolaireRow, SecteurParisProps } from '../types';
-import { pointInGeometry, type AreaGeometry } from './geo';
+import { distanceToGeometryM, pointInGeometry, type AreaGeometry } from './geo';
 import { normalizeVoie } from './normalize';
 
 export interface SecteurFeature {
@@ -27,8 +27,26 @@ export interface SecteurResult {
   message: string | null;
 }
 
+/** Au-delà, une adresse hors de tout îlot n'est pas rattachée au secteur le plus proche. */
+export const SECTEUR_TOLERANCE_M = 60;
+
+/**
+ * Les secteurs parisiens sont des unions d'îlots : une adresse géocodée tombe souvent dans la rue,
+ * juste à côté de tout polygone. On retient alors le secteur le plus proche, dans la limite de la tolérance.
+ */
 export function findSecteurParis(adresse: Pick<Adresse, 'lat' | 'lon'>, features: SecteurFeature[]): SecteurFeature | null {
-  return features.find((f) => pointInGeometry(adresse.lon, adresse.lat, f.geometry)) ?? null;
+  const inside = features.find((f) => pointInGeometry(adresse.lon, adresse.lat, f.geometry));
+  if (inside) return inside;
+  let best: SecteurFeature | null = null;
+  let bestD = SECTEUR_TOLERANCE_M;
+  for (const f of features) {
+    const d = distanceToGeometryM(adresse.lon, adresse.lat, f.geometry);
+    if (d < bestD) {
+      bestD = d;
+      best = f;
+    }
+  }
+  return best;
 }
 
 export function parseNumero(housenumber: string | null): number | null {

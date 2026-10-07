@@ -17,7 +17,9 @@ export function CollegeDetail({ onClose }: { onClose: () => void }) {
   const selected = useStore((s) => s.selected);
   const scroller = useRef<HTMLDivElement>(null);
   const c = selected ? byUai.get(selected) : undefined;
-  useEffect(() => scroller.current?.scrollTo({ top: 0 }), [selected]);
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [selected]);
   if (!c) return null;
   const distance = distances?.get(c.uai) ?? null;
   return (
@@ -355,7 +357,9 @@ function Notes({ uai }: { uai: string }) {
   const note = useStore((s) => s.notes[uai] ?? '');
   const setNote = useStore((s) => s.setNote);
   const [draft, setDraft] = useState(note);
-  useEffect(() => setDraft(note), [uai, note]);
+  useEffect(() => {
+    setDraft(note);
+  }, [uai, note]);
   useEffect(() => {
     if (draft === note) return;
     const t = setTimeout(() => setNote(uai, draft), 400);

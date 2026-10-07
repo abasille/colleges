@@ -30,8 +30,7 @@ export function About() {
             </li>
           ))}
           <li>
-            Fond de carte © <ExternalLink href="https://www.openstreetmap.org/copyright">OpenStreetMap</ExternalLink>, ©{' '}
-            <ExternalLink href="https://carto.com/attributions">CARTO</ExternalLink> · Géocodage : Géoplateforme (IGN)
+            Fond de carte Plan IGN et géocodage : <ExternalLink href="https://geoservices.ign.fr/">Géoplateforme (IGN)</ExternalLink>, Licence Ouverte 2.0
           </li>
         </ul>
         <p className="mt-2 text-xs text-zinc-600">

@@ -3,7 +3,7 @@ import type { College, CollegeEvent, EventsFile } from '../types';
 import { applyFilters, DEFAULT_FILTERS, sortColleges, type Filters } from './filters';
 import { parseUrlState, serializeUrlState } from './url';
 import { haversineKm, pointInGeometry } from './geo';
-import { findSecteur94, parseNumero } from './secteur';
+import { findSecteur94, findSecteurParis, parseNumero } from './secteur';
 import { buildIcs, foldLine } from './ics';
 import { decodeShare, encodeShare, mergeShare } from './share';
 import { calendarEvents, isUrgent, statutInscriptions, upcomingForFavoris } from './events';
@@ -274,5 +274,24 @@ describe('formats', () => {
   it('raccourcit les noms', () => {
     expect(nomCourt('Collège privé Sévigné')).toBe('Sévigné');
     expect(nomCourt('Collège Claude Monet')).toBe('Claude Monet');
+  });
+});
+
+describe('secteur parisien le plus proche', () => {
+  const carre = (x: number, uai: string) => ({
+    type: 'Feature' as const,
+    geometry: { type: 'Polygon' as const, coordinates: [[[x, 48.8], [x + 0.001, 48.8], [x + 0.001, 48.801], [x, 48.801], [x, 48.8]]] as [number, number][][] },
+    properties: { libelle: uai, uais: [uai], noms: [uai] },
+  });
+  const features = [carre(2.35, 'A'), carre(2.36, 'B')];
+  it('retient le polygone qui contient l’adresse', () => {
+    expect(findSecteurParis({ lon: 2.3605, lat: 48.8005 }, features)?.properties.libelle).toBe('B');
+  });
+  it('se rabat sur le polygone le plus proche dans la rue', () => {
+    // 0,0002° de longitude ≈ 15 m à l'est du carré A
+    expect(findSecteurParis({ lon: 2.3512, lat: 48.8005 }, features)?.properties.libelle).toBe('A');
+  });
+  it('ne rattache pas une adresse trop éloignée', () => {
+    expect(findSecteurParis({ lon: 2.3555, lat: 48.8005 }, features)).toBeNull();
   });
 });

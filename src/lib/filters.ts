@@ -1,4 +1,5 @@
 import type { College, IndicateurKey, Statut, ZoneCode } from '../types';
+import { nomCourt } from './format';
 
 export type ValueKey = IndicateurKey | 'distance';
 export type SortKey = ValueKey | 'nom';
@@ -99,7 +100,7 @@ const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true })
 
 /** Tri stable ; les valeurs manquantes sont toujours en dernier, quel que soit le sens. */
 export function sortColleges(colleges: College[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): College[] {
-  const byName = (a: College, b: College) => collator.compare(a.nom, b.nom);
+  const byName = (a: College, b: College) => collator.compare(nomCourt(a.nom), nomCourt(b.nom));
   const out = [...colleges];
   if (sort.key === 'nom') {
     out.sort((a, b) => (sort.dir === 'asc' ? byName(a, b) : byName(b, a)));

@@ -129,3 +129,8 @@ body {
 .scroll-thin {
   scrollbar-width: thin;
 }
+
+/* Fond de carte légèrement atténué pour faire ressortir les points */
+.map-tiles {
+  filter: saturate(0.55) brightness(1.04);
+}

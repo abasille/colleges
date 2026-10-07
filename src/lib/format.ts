@@ -19,7 +19,8 @@ export function formatIndicateur(key: IndicateurKey, v: number | null | undefine
   const signe = (key === 'vaTaux' || key === 'vaNote') && v > 0 ? '+' : '';
   const s = signe + formatNombre(v, m.decimales);
   if (!avecUnite || !m.unite) return s;
-  return m.unite === '%' ? `${s} %` : `${s} ${m.unite}`;
+  if (m.unite.startsWith('/')) return `${s}${m.unite}`;
+  return `${s} ${m.unite}`;
 }
 
 export function formatDistance(km: number): string {

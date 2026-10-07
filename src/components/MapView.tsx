@@ -91,10 +91,10 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
     <div className="relative h-full w-full">
       <MapContainer center={[48.82, 2.37]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl>
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          subdomains="abcd"
-          maxZoom={19}
+          url="https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
+          attribution='&copy; <a href="https://www.ign.fr/">IGN</a> – Plan IGN (Géoplateforme)'
+          maxZoom={18}
+          className="map-tiles"
         />
         <ZoomControl />
         <InvalidateOnResize />
@@ -111,7 +111,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
           <GeoJSON
             key={secteur.feature.properties.libelle}
             data={secteur.feature as unknown as GeoJSON.Feature}
-            style={{ color: '#16a34a', weight: 2, fillColor: '#22c55e', fillOpacity: 0.12, interactive: false } as L.PathOptions}
+            style={{ stroke: false, fillColor: '#16a34a', fillOpacity: 0.28, interactive: false } as L.PathOptions}
           />
         )}
         {adresse && (
