@@ -1,0 +1,89 @@
+name: Surveillance des pages de portes ouvertes
+
+# Chaque lundi : empreinte du texte des pages listées dans data/overrides/watch.json
+# (robots.txt respecté), ticket « portes-ouvertes » si des pages ont changé, état versionné.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # lundi 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: watch-pages
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LABEL: portes-ouvertes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Texte extrait au passage précédent : permet de citer les lignes ajoutées dans le ticket.
+      - name: Restaurer le cache des pages
+        uses: actions/cache/restore@v4
+        with:
+          path: .watch-cache
+          key: watch-cache-${{ github.run_id }}
+          restore-keys: watch-cache-
+
+      - name: Vérifier les pages
+        id: watch
+        run: npm run watch-pages -- --summary summary.md
+
+      - name: Enregistrer le cache des pages
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .watch-cache
+          key: watch-cache-${{ github.run_id }}
+
+      - name: Ouvrir ou compléter le ticket
+        if: steps.watch.outputs.changed != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu # sans pipefail : `head -c` peut couper un résumé trop long
+          today=$(date -u +%F)
+          title="Pages de portes ouvertes modifiées (${today})"
+          gh label create "$LABEL" --color FBCA04 \
+            --description "Pages de portes ouvertes ou d'inscription modifiées" --force
+          {
+            cat summary.md
+            echo
+            echo '---'
+            echo 'Pour mettre à jour le calendrier : lancer `/maj-portes-ouvertes` dans Claude Code.'
+            echo 'Fermer ce ticket une fois `data/overrides/events.json` mis à jour et commité.'
+          } | head -c 60000 | iconv -c -f utf-8 -t utf-8 > body.md
+          number=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --title "$title"
+            gh issue comment "$number" --body-file body.md
+            echo "Ticket #${number} complété."
+          else
+            gh issue create --title "$title" --label "$LABEL" --body-file body.md
+          fi
+
+      - name: Versionner l'état
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/watch-state.json
+          if git diff --cached --quiet; then
+            echo "data/watch-state.json inchangé."
+            exit 0
+          fi
+          git commit -m "Surveillance des pages de portes ouvertes ($(date -u +%F)) [skip ci]"
+          git push

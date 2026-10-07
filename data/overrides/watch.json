@@ -1,0 +1,605 @@
+{
+  "discovery": [
+    {
+      "label": "pia.ac-paris.fr : recherche « portes ouvertes » + CM2/6e (tous les collèges parisiens)",
+      "url": "https://pia.ac-paris.fr/serail/jcms/s1_1582095/fr/portail-des-etablissements-scolaires-parisiens?text=%2B%22portes+ouvertes%22+%2B(CM2+OR+CM1+OR+sixi%C3%A8me+OR+6e+OR+6%C3%A8me+OR+6eme+OR+coll%C3%A8ge)&searchedAllFields=true&mode=advanced&jsp=front%2Fquery.jsp&sort=cdate&reverse=false&start=0&pageSize=20",
+      "note": "Recherche plein texte de la plateforme des sites d'établissements parisiens, triée par date de création (les plus récents d'abord, 20 par page). Repère les articles de portes ouvertes publiés par les collèges (une cinquantaine par an). Ne pas suivre les liens /serail/upload/ (interdits par robots.txt)."
+    },
+    {
+      "label": "pia.ac-paris.fr : recherche CM2 / futurs 6e + accueil, visite, réunion",
+      "url": "https://pia.ac-paris.fr/serail/jcms/s1_1582095/fr/portail-des-etablissements-scolaires-parisiens?text=%2B(CM2+OR+%22futurs+6e%22+OR+%22futurs+sixi%C3%A8mes%22+OR+%22futurs+%C3%A9l%C3%A8ves%22)+%2B(accueil+OR+visite+OR+r%C3%A9union+OR+d%C3%A9couverte+OR+immersion+OR+pr%C3%A9sentation)&searchedAllFields=true&mode=advanced&jsp=front%2Fquery.jsp&sort=cdate&reverse=false&start=0&pageSize=20",
+      "note": "Même plateforme : réunions d'information CM2, visites et journées découverte pour les futurs élèves de 6e. Beaucoup de bruit (vie des classes de 6e) : lire les titres."
+    },
+    {
+      "label": "Flux RSS des actualités : Adolphe Chérioux (Vitry)",
+      "url": "https://adolphe-cherioux.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Danielle Casanova (Vitry)",
+      "url": "https://danielle-casanova.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : François Rabelais (Vitry)",
+      "url": "https://francois-rabelais-vitry-sur-seine.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Gisèle Halimi (Ivry)",
+      "url": "https://gisele-halimi.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Gustave Monod (Vitry)",
+      "url": "https://gustave-monod.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Joseph Lakanal (Vitry)",
+      "url": "https://joseph-lakanal.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Josette et Maurice Audin (Vitry)",
+      "url": "https://josette-et-maurice-audin.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Molière (Ivry)",
+      "url": "https://moliere-ivry-sur-seine.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    },
+    {
+      "label": "Flux RSS des actualités : Romain Rolland (Ivry)",
+      "url": "https://romain-rolland.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206",
+      "note": "Skolengo (ENT du Val-de-Marne), modèle https://<collège>.moncollege.valdemarne.fr/sg.do?PROC=RSS_BLOG&ACTION=CONSULTER_RSS_BLOG&ID_RUBRIQUE=206 (rubrique « Actualités » de premier niveau ; vide ou absente pour certains collèges). robots.txt : Crawl-delay 5."
+    }
+  ],
+  "colleges": {
+    "0750407K": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1591899/fr/ecole-des-enfants-du-spectacle-college-rognoni-et-ecole-cardinal-lemoine",
+        "label": "Rognoni — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_141319/fr/recrutement-2026",
+        "label": "Rognoni — recrutement (portes ouvertes, candidatures)"
+      }
+    ],
+    "0750445B": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2276954/fr/college-alberto-giacometti",
+        "label": "Giacometti — accueil"
+      }
+    ],
+    "0750525N": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1811740/fr/college-moulin-des-pres",
+        "label": "Moulin des Prés — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/ser2_318776/fr/evenements",
+        "label": "Moulin des Prés — événements"
+      }
+    ],
+    "0750611G": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_110600/fr/accueil",
+        "label": "Jean Moulin — accueil"
+      }
+    ],
+    "0751705W": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1927773/fr/college-alphonse-daudet",
+        "label": "Alphonse Daudet — accueil"
+      }
+    ],
+    "0751790N": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1605464/fr/college-pierre-alviset",
+        "label": "Pierre Alviset — accueil"
+      }
+    ],
+    "0752186U": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_2039134/fr/college-raymond-queneau",
+        "label": "Raymond Queneau — accueil"
+      }
+    ],
+    "0752187V": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2037102/fr/college-jacques-prevert",
+        "label": "Jacques Prévert — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2923028/fr/inscriptions",
+        "label": "Jacques Prévert — inscriptions"
+      }
+    ],
+    "0752316K": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2031988/fr/college-george-sand",
+        "label": "George Sand — accueil (date des portes ouvertes)"
+      }
+    ],
+    "0752385K": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1500148/fr/college-elsa-triolet",
+        "label": "Elsa Triolet — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_3104042/fr/evenements",
+        "label": "Elsa Triolet — événements"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_3074568/fr/agenda",
+        "label": "Elsa Triolet — agenda"
+      }
+    ],
+    "0752526N": [
+      {
+        "url": "https://lycee-henri4.com/college/",
+        "label": "Henri-IV — collège"
+      },
+      {
+        "url": "https://lycee-henri4.com/admission/",
+        "label": "Henri-IV — admission"
+      }
+    ],
+    "0752527P": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_2056026/fr/lycee-college-montaigne",
+        "label": "Montaigne — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_4021160/fr/modalites-de-recrutement-et-d-inscription",
+        "label": "Montaigne — recrutement et inscription"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2629587/fr/integrer-une-section-internationale-s-i-britannique-/-polonais-/-portugais-2026/2027",
+        "label": "Montaigne — sections internationales"
+      }
+    ],
+    "0752531U": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1814192/fr/college-lycee-lavoisier",
+        "label": "Lavoisier — accueil"
+      }
+    ],
+    "0752538B": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_111988/fr/accueil",
+        "label": "Rodin — accueil"
+      }
+    ],
+    "0752539C": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2042278/fr/cite-scolaire-claude-monet",
+        "label": "Claude Monet — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_526813/fr/actualites",
+        "label": "Claude Monet — actualités"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1087546/fr/inscriptions",
+        "label": "Claude Monet — inscriptions"
+      }
+    ],
+    "0752540D": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_717812/fr/accueil",
+        "label": "Gabriel Fauré — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_2796814/fr/portes-ouvertes-samedi-11-avril",
+        "label": "Gabriel Fauré — portes ouvertes"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_2791347/fr/documents-pour-inscriptions-en-sic-en-6eme",
+        "label": "Gabriel Fauré — section internationale chinoise"
+      }
+    ],
+    "0752543G": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1773774/fr/accueil",
+        "label": "Paul Bert — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1901387/fr/portes-ouvertes",
+        "label": "Paul Bert — portes ouvertes"
+      }
+    ],
+    "0752544H": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_3523197/fr/cite-scolaire-francois-villon",
+        "label": "François Villon — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_3635932/fr/cham-chase",
+        "label": "François Villon — CHAM / CHASE"
+      }
+    ],
+    "0752694W": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1942481/fr/college-camille-claudel-75013",
+        "label": "Camille Claudel — accueil"
+      }
+    ],
+    "0752874S": [
+      {
+        "url": "https://www.ecole-alsacienne.org/",
+        "label": "École alsacienne — accueil (site hors service le 2026-10-07)"
+      }
+    ],
+    "0752896R": [
+      {
+        "url": "https://www.notredamedefranceparis.fr/",
+        "label": "Notre-Dame de France — accueil"
+      },
+      {
+        "url": "https://www.notredamedefranceparis.fr/inscriptionsixi%C3%A8me",
+        "label": "Notre-Dame de France — inscription en 6e"
+      },
+      {
+        "url": "https://www.notredamedefranceparis.fr/blog",
+        "label": "Notre-Dame de France — blog"
+      }
+    ],
+    "0752900V": [
+      {
+        "url": "https://www.stanislas.fr/unite-pedagogique/college/inscriptions/",
+        "label": "Stanislas — inscriptions au collège"
+      }
+    ],
+    "0752913J": [
+      {
+        "url": "https://www.collegesevigne.org/inscription/",
+        "label": "Sévigné — pré-inscriptions, réunion et portes ouvertes"
+      },
+      {
+        "url": "https://www.collegesevigne.org/",
+        "label": "Sévigné — accueil"
+      }
+    ],
+    "0752916M": [
+      {
+        "url": "https://www.clgmorvan.org/",
+        "label": "Morvan — accueil (annonce des portes ouvertes)"
+      }
+    ],
+    "0752924W": [
+      {
+        "url": "https://www.st-sulpice.fr/inscription/",
+        "label": "Saint-Sulpice — inscriptions"
+      },
+      {
+        "url": "https://www.st-sulpice.fr/",
+        "label": "Saint-Sulpice — accueil"
+      }
+    ],
+    "0752925X": [
+      {
+        "url": "https://isg6.paris/groupe-scolaire/inscriptions",
+        "label": "Sainte-Geneviève — inscriptions (commun avec Saint-Sulpice)"
+      },
+      {
+        "url": "https://isg6.paris/groupe-scolaire/le-calendrier-annuel-de-letablissement",
+        "label": "Sainte-Geneviève — calendrier annuel"
+      },
+      {
+        "url": "https://isg6.paris/",
+        "label": "Sainte-Geneviève — accueil"
+      }
+    ],
+    "0752957G": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_2033503/fr/college-georges-braque",
+        "label": "Georges Braque — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2445956/fr/accueil-des-futurs-eleves-de-sixieme",
+        "label": "Georges Braque — accueil des futurs élèves de 6e"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2446115/fr/section-sportive-rugby-mixte",
+        "label": "Georges Braque — section sportive rugby"
+      }
+    ],
+    "0753518S": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1712765/fr/college-gustave-flaubert",
+        "label": "Gustave Flaubert — accueil"
+      }
+    ],
+    "0753908R": [
+      {
+        "url": "https://labruyeresainteisabelle.fr/inscriptions/",
+        "label": "La Bruyère Sainte-Isabelle — inscriptions"
+      },
+      {
+        "url": "https://labruyeresainteisabelle.fr/",
+        "label": "La Bruyère Sainte-Isabelle — accueil"
+      }
+    ],
+    "0753937X": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_1563317/fr/college-evariste-galois",
+        "label": "Évariste Galois — accueil"
+      }
+    ],
+    "0753967E": [
+      {
+        "url": "https://rosalie-marillac.com/admission-inscription/",
+        "label": "Sœur Rosalie — admission et inscription"
+      },
+      {
+        "url": "https://rosalie-marillac.com/",
+        "label": "Sœur Rosalie — accueil (actualités)"
+      }
+    ],
+    "0753982W": [
+      {
+        "url": "https://www.lasallendgsja.com/",
+        "label": "La Salle Notre-Dame de la Gare — accueil (portes ouvertes)"
+      },
+      {
+        "url": "https://www.lasallendgsja.com/inscriptions/",
+        "label": "La Salle Notre-Dame de la Gare — inscriptions"
+      }
+    ],
+    "0753985Z": [
+      {
+        "url": "https://gs-svp.com/",
+        "label": "Saint-Vincent-de-Paul — accueil (bloc « Rentrée 2027-2028 »)"
+      },
+      {
+        "url": "https://gs-svp.com/inscriptions/",
+        "label": "Saint-Vincent-de-Paul — inscriptions"
+      }
+    ],
+    "0754008Z": [
+      {
+        "url": "https://lyceesaintnicolas.com/portes-ouvertes/",
+        "label": "Saint-Louis — portes ouvertes (ensemble Saint-Nicolas)"
+      },
+      {
+        "url": "https://lyceesaintnicolas.com/inscriptions/",
+        "label": "Saint-Louis — inscriptions (ensemble Saint-Nicolas)"
+      },
+      {
+        "url": "https://lyceesaintnicolas.com/college-saint-louis/",
+        "label": "Saint-Louis — présentation du collège"
+      }
+    ],
+    "0754253R": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_1874204/fr/college-saint-exupery",
+        "label": "Saint-Exupéry — accueil"
+      }
+    ],
+    "0754757N": [
+      {
+        "url": "https://www.sion-paris.fr/les-preinscriptions/",
+        "label": "Notre-Dame de Sion — pré-inscriptions"
+      },
+      {
+        "url": "https://www.sion-paris.fr/actualites/",
+        "label": "Notre-Dame de Sion — actualités"
+      }
+    ],
+    "0754861B": [
+      {
+        "url": "https://www.tournesol75.fr/index.php?id_menu=30",
+        "label": "Regain Tournesol — inscriptions"
+      },
+      {
+        "url": "https://www.tournesol75.fr/index.php?id_menu=26",
+        "label": "Regain Tournesol — portes ouvertes"
+      }
+    ],
+    "0755000C": [
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s2_2847115/fr/college-thomas-mann",
+        "label": "Thomas Mann — accueil"
+      },
+      {
+        "url": "https://pia.ac-paris.fr/serail/jcms/s1_3886851/fr/internat-2026-2027",
+        "label": "Thomas Mann — internat"
+      }
+    ],
+    "0755496S": [
+      {
+        "url": "https://e-g-g.fr/journee-portes-ouvertes/",
+        "label": "Georges Gusdorf — journée portes ouvertes"
+      },
+      {
+        "url": "https://e-g-g.fr/reunions-dinformation/",
+        "label": "Georges Gusdorf — réunions d'information"
+      },
+      {
+        "url": "https://e-g-g.fr/inscriptions/",
+        "label": "Georges Gusdorf — inscriptions"
+      }
+    ],
+    "0755840R": [
+      {
+        "url": "https://www.saintecatherinelaboure.com/",
+        "label": "Catherine Labouré — accueil (bandeau des portes ouvertes)"
+      },
+      {
+        "url": "https://www.saintecatherinelaboure.com/college",
+        "label": "Catherine Labouré — collège (pré-inscriptions)"
+      }
+    ],
+    "0755925H": [
+      {
+        "url": "https://www.collegediago.fr/admissions",
+        "label": "Diago — admissions"
+      },
+      {
+        "url": "https://www.collegediago.fr/",
+        "label": "Diago — accueil"
+      }
+    ],
+    "0940042K": [
+      {
+        "url": "https://adolphe-cherioux.moncollege.valdemarne.fr/",
+        "label": "Adolphe Chérioux — accueil"
+      },
+      {
+        "url": "https://adolphe-cherioux.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Adolphe Chérioux — actualités"
+      },
+      {
+        "url": "https://adolphe-cherioux.moncollege.valdemarne.fr/classe-cham/",
+        "label": "Adolphe Chérioux — classe CHAM"
+      }
+    ],
+    "0940794C": [
+      {
+        "url": "https://gustave-monod.moncollege.valdemarne.fr/",
+        "label": "Gustave Monod — accueil"
+      },
+      {
+        "url": "https://gustave-monod.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Gustave Monod — actualités"
+      }
+    ],
+    "0940874P": [
+      {
+        "url": "https://epin.fr/epin/admissions/",
+        "label": "EPIN — admissions"
+      },
+      {
+        "url": "https://epin.fr/inscription-sixieme/",
+        "label": "EPIN — inscription en 6e"
+      },
+      {
+        "url": "https://epin.fr/actualites/",
+        "label": "EPIN — actualités"
+      }
+    ],
+    "0941025D": [
+      {
+        "url": "https://assia-djebar.moncollege.valdemarne.fr/",
+        "label": "Assia Djebar — accueil"
+      },
+      {
+        "url": "https://assia-djebar.moncollege.valdemarne.fr/l-etablissement/actualites-du-college-assia-djebar/",
+        "label": "Assia Djebar — actualités"
+      }
+    ],
+    "0941026E": [
+      {
+        "url": "https://moliere-ivry-sur-seine.moncollege.valdemarne.fr/",
+        "label": "Molière — accueil"
+      },
+      {
+        "url": "https://moliere-ivry-sur-seine.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Molière — actualités"
+      }
+    ],
+    "0941029H": [
+      {
+        "url": "https://jules-valles-vitry-sur-seine.moncollege.valdemarne.fr/",
+        "label": "Jules Vallès — accueil"
+      },
+      {
+        "url": "https://jules-valles-vitry-sur-seine.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Jules Vallès — actualités"
+      },
+      {
+        "url": "https://jules-valles-vitry-sur-seine.moncollege.valdemarne.fr/section-sportive-rugby/",
+        "label": "Jules Vallès — section sportive rugby"
+      }
+    ],
+    "0941032L": [
+      {
+        "url": "https://danielle-casanova.moncollege.valdemarne.fr/",
+        "label": "Danielle Casanova — accueil"
+      },
+      {
+        "url": "https://danielle-casanova.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Danielle Casanova — actualités"
+      }
+    ],
+    "0941033M": [
+      {
+        "url": "https://jean-perrin-vitry-sur-seine.moncollege.valdemarne.fr/",
+        "label": "Jean Perrin — accueil"
+      },
+      {
+        "url": "https://jean-perrin-vitry-sur-seine.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Jean Perrin — actualités"
+      }
+    ],
+    "0941034N": [
+      {
+        "url": "https://joseph-lakanal.moncollege.valdemarne.fr/",
+        "label": "Joseph Lakanal — accueil"
+      },
+      {
+        "url": "https://joseph-lakanal.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Joseph Lakanal — actualités"
+      }
+    ],
+    "0941224V": [
+      {
+        "url": "https://francois-rabelais-vitry-sur-seine.moncollege.valdemarne.fr/",
+        "label": "François Rabelais — accueil"
+      },
+      {
+        "url": "https://francois-rabelais-vitry-sur-seine.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "François Rabelais — actualités"
+      }
+    ],
+    "0941601E": [
+      {
+        "url": "https://romain-rolland.moncollege.valdemarne.fr/",
+        "label": "Romain Rolland — accueil"
+      },
+      {
+        "url": "https://romain-rolland.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Romain Rolland — actualités"
+      }
+    ],
+    "0941781A": [
+      {
+        "url": "https://henri-wallon.moncollege.valdemarne.fr/",
+        "label": "Henri Wallon — accueil"
+      },
+      {
+        "url": "https://henri-wallon.moncollege.valdemarne.fr/actualites/",
+        "label": "Henri Wallon — actualités"
+      }
+    ],
+    "0942434K": [
+      {
+        "url": "https://josette-et-maurice-audin.moncollege.valdemarne.fr/",
+        "label": "Josette et Maurice Audin — accueil"
+      },
+      {
+        "url": "https://josette-et-maurice-audin.moncollege.valdemarne.fr/vie-de-l-etablissement/actualites/",
+        "label": "Josette et Maurice Audin — actualités"
+      }
+    ],
+    "0942532S": [
+      {
+        "url": "https://gisele-halimi.moncollege.valdemarne.fr/",
+        "label": "Gisèle Halimi — accueil"
+      },
+      {
+        "url": "https://gisele-halimi.moncollege.valdemarne.fr/l-etablissement/actualites/",
+        "label": "Gisèle Halimi — actualités"
+      }
+    ],
+    "0942626U": [
+      {
+        "url": "https://10sur10.org/",
+        "label": "Dix sur Dix — accueil"
+      }
+    ]
+  }
+}
