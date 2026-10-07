@@ -1,0 +1,215 @@
+{
+  "$comment": "Continuité jusqu'au bac (SPEC §5). Le lien collège -> lycée est détecté automatiquement (cité scolaire, SIREN commun, même adresse) ; ce fichier fixe le passage (garanti / sous_reserve / non_garanti / inconnu), la formulation affichée et ses sources, et corrige le lien ou le lycée quand la détection ne peut pas fonctionner. Champs : lien, lyceeUai, lycee {nom, adresse, voies}, secondeGtSurPlace, passage, passageTexte, sources, note (note de recherche, non exportée). Sans entrée : textes génériques du script. Recherches du 2026-10-07.",
+  "colleges": {
+    "0752526N": {
+      "passage": "non_garanti",
+      "passageTexte": "Admission via Affelnet, sans priorité pour les élèves du collège (le lycée Henri-IV recrute par Affelnet depuis 2022)",
+      "sources": [
+        "https://lycee-henri4.com/admission-2/",
+        "https://www.ac-paris.fr/affectation-en-seconde-gt-pour-un-eleve-scolarise-dans-un-etablissement-public-a-paris-122617",
+        "https://www.ipp.eu/wp-content/uploads/2025/05/89_Note_IPP_89.pdf"
+      ],
+      "note": "Avant 2022 : recrutement sur dossier, « fortement biaisé en faveur des élèves originaires du collège du même nom » (IPP). Site du lycée (2026) : « pas de procédure particulière, la candidature se fait directement dans le cadre de la procédure AFFELNET ». Henri-IV est en secteur 1 pour tous les élèves parisiens."
+    },
+    "0752531U": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Barème Affelnet Paris 2026 : aucun bonus « cité scolaire ». Le lycée figure en secteur 1 du collège, mais le secteur dépend du collège de secteur (adresse), pas du collège fréquenté."
+    },
+    "0752527P": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Cité scolaire publique, aucune priorité dans le barème Affelnet 2026."
+    },
+    "0752538B": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Cité scolaire publique, aucune priorité dans le barème Affelnet 2026."
+    },
+    "0752539C": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Cité scolaire publique, aucune priorité dans le barème Affelnet 2026."
+    },
+    "0752540D": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Cité scolaire publique, aucune priorité dans le barème Affelnet 2026."
+    },
+    "0752543G": {
+      "sources": ["https://www.ac-paris.fr/precisions-concernant-les-regles-de-determination-des-affectations-en-2nde-gt-126145"],
+      "note": "Cité scolaire publique, aucune priorité dans le barème Affelnet 2026."
+    },
+    "0752544H": {
+      "lycee": {
+        "voies": [
+          "technologique (ST2S, entrée en 1re)",
+          "professionnelle (bac pro ASSP, AEPA)",
+          "structures de raccrochage (pôle innovant lycéen, micro-lycée)"
+        ]
+      },
+      "secondeGtSurPlace": false,
+      "passage": "non_garanti",
+      "passageTexte": "Le lycée de la cité n'a plus de 2nde générale et technologique : admission en 2nde GT dans un autre lycée via Affelnet (poursuite sur place seulement en voie professionnelle)",
+      "sources": [
+        "https://data.education.gouv.fr/explore/dataset/fr-en-lycee_gt-effectifs-niveau-sexe-lv/",
+        "https://pia.ac-paris.fr/serail/jcms/s1_3523197/fr/cite-scolaire-francois-villon",
+        "https://cdn.paris.fr/paris/2023/03/01/v14-2023-02-voeu-majo-devenir-de-la-cite-scolaire-francois-villon-jlt7.pdf"
+      ],
+      "note": "0 élève en 2nde GT en 2024 et 2025 (effectifs DEPP), absent de la carte Affelnet 2026. Restructuration 2024 (fusion Villon / Jacques Monod / partie de Rabelais)."
+    },
+    "0941601E": {
+      "passageTexte": "Pas de cité scolaire : le lycée Romain-Rolland voisin est un établissement distinct ; affectation en 2nde via Affelnet, selon l'adresse",
+      "sources": ["https://orientation.ac-creteil.fr/wp-content/uploads/2026/04/8.-Affelnet-Lycee_au-8avril.pdf"],
+      "note": "Collège (36 rue J.-B. Renoult) et lycée Romain-Rolland 0940115P (17 rue Lucien Nadaire) à ~230 m, absents de fr-en-cites_scolaires."
+    },
+    "0940042K": {
+      "passageTexte": "Pas de cité scolaire : le lycée Adolphe-Chérioux voisin est un établissement distinct ; affectation en 2nde via Affelnet, selon l'adresse",
+      "sources": ["https://orientation.ac-creteil.fr/wp-content/uploads/2026/04/8.-Affelnet-Lycee_au-8avril.pdf"],
+      "note": "Collège (247 rue É. Tremblay) et lycée polyvalent Adolphe-Chérioux 0941294W (195 rue Julian Grimau) partagent le domaine Chérioux mais sont distincts."
+    },
+    "0752874S": {
+      "passage": "garanti",
+      "passageTexte": "Si le passage en 2nde est accordé : « tous les élèves de 3e qui obtiennent leur passage en seconde générale ont leur place à l'École alsacienne (sauf dans de très rares cas, notamment en raison de problèmes de comportement…) »",
+      "sources": [
+        "https://www.ecole-alsacienne.org/les-inscriptions/foire-aux-questions-faq/",
+        "https://web.archive.org/web/20260518071604/https://www.ecole-alsacienne.org/les-inscriptions/foire-aux-questions-faq/"
+      ],
+      "note": "« nous n'effectuons pas de sélection parmi nos propres élèves » ; ~30 places externes en 2nde. Domaine hors service le 2026-10-07, citation lue sur la copie Wayback du 2026-05-18."
+    },
+    "0752913J": {
+      "passage": "garanti",
+      "passageTexte": "Si le passage en 2nde est accordé : « Au Collège Sévigné, après la 3e, les élèves suivent la Seconde Générale et Technologique et préparent le Bac Général »",
+      "sources": [
+        "https://www.collegesevigne.org/college/orientation/lorientation-post-3eme/",
+        "https://www.collegesevigne.org/letablissement/presentation-du-college-sevigne/",
+        "https://www.collegesevigne.org/content/uploads/2026/01/Brochure-secondaire_2026.pdf"
+      ],
+      "note": "« aucun élève n'est exclu pour des raisons scolaires et personne n'est orienté par défaut ». Les candidats externes passent dossier + tests."
+    },
+    "0752916M": {
+      "lycee": {
+        "voies": ["générale (établissement spécialisé : élèves sourds ou avec troubles spécifiques du langage)"]
+      },
+      "passage": "garanti",
+      "passageTexte": "Si le passage en 2nde est accordé : « Après la 3ème, les élèves poursuivent au Lycée Morvan s'ils souhaitent préparer le baccalauréat »",
+      "sources": ["https://www.clgmorvan.org/orientation", "https://www.clgmorvan.org/rejoindre-l-ecole"],
+      "note": "Formulation de l'école, pas un droit formel. Admission sur décision MDPH."
+    },
+    "0755840R": {
+      "passage": "sous_reserve",
+      "passageTexte": "Collège et lycée sous un même contrat et règlement : le conseil de classe « décide aussi du passage de l'élève dans la classe supérieure » ; réinscription pouvant être refusée (discipline, impayés…)",
+      "sources": [
+        "https://www.saintecatherinelaboure.com/reglement",
+        "https://cdn.prod.website-files.com/6113c65158fdfa06c0c7f762/6ac4e7e7a7d6e68cd26b9c69_2026_2027_-_Contrat_de_scolarisation_d%C3%A9mat%C3%A9rialis%C3%A9_anonyme_maj_droit_image_10_26.pdf"
+      ],
+      "note": "Déduit des règles générales (règlement intérieur, contrat art. 6-2), pas d'un texte spécifique 3e -> 2nde."
+    },
+    "0753985Z": {
+      "passage": "sous_reserve",
+      "passageTexte": "Réinscription annuelle dans le groupe scolaire « sous réserve de l'avis de passage en fin d'année scolaire »",
+      "sources": [
+        "https://gs-svp.com/college/",
+        "https://gs-svp.com/lycee-general-et-technologique/",
+        "https://gs-svp.com/wp-content/uploads/2026/08/OGEC-Saint-Vincent-de-Paul-Reglement-Financier-2026_2027.pdf"
+      ],
+      "note": "« au sein d'un ensemble scolaire qui assure une continuité éducative de l'école au lycée ». Déduit des règles générales de réinscription."
+    },
+    "0752906B": {
+      "sources": ["https://yabne.org/inscription"],
+      "note": "« L'École Yabné accueille vos enfants de la sixième à la terminale » ; rien d'explicite sur le passage 3e -> 2nde."
+    },
+    "0752896R": {
+      "sources": [
+        "https://www.notredamedefranceparis.fr/lycée-1",
+        "https://www.notredamedefranceparis.fr/_files/ugd/c7feef_cc17d6eed1884843bccf88fbcc170ba7.pdf"
+      ],
+      "note": "Groupe scolaire de la maternelle à la terminale ; le règlement traite la poursuite comme une réinscription pouvant être « remise en cause » (discipline)."
+    },
+    "0940874P": {
+      "sources": ["https://epin.fr/", "https://epin.fr/epin/admissions/lycee/"],
+      "note": "« accueille des élèves de la 6ème à la Terminale » ; la brochure 2nde ne décrit que la procédure des candidats externes."
+    },
+    "0753967E": {
+      "sources": ["https://rosalie-marillac.com/le-college-orientation/", "https://rosalie-marillac.com/admission-inscription/"],
+      "note": "Groupe Sœur Rosalie – Louise-de-Marillac. « Notre objectif est que chaque collégien, à l'issue de la classe de 3ème ait trouvé le lycée qui lui corresponde le mieux » : poursuite sur place non présentée comme automatique."
+    },
+    "0754757N": {
+      "passage": "inconnu",
+      "passageTexte": "À vérifier auprès de l'établissement (site non consulté)",
+      "sources": ["https://www.sion-paris.fr/les-preinscriptions/", "https://www.sion-paris.fr/presentation-du-lycee/"],
+      "note": "robots.txt bloque ClaudeBot."
+    },
+    "0752924W": {
+      "sources": ["https://www.st-sulpice.fr/inscription/", "https://isg6.paris/groupe-scolaire/inscriptions/presentation-du-nouveau-college-2027"],
+      "note": "Rien d'explicite. Fusion avec Sainte-Geneviève à la rentrée 2027 (Ensemble Adélaïde de Cicé)."
+    },
+    "0752925X": {
+      "sources": ["https://isg6.paris/groupe-scolaire/inscriptions"],
+      "note": "Institut Sainte-Geneviève (primaire, collège, lycée). Rien d'explicite. Fusion avec Saint-Sulpice en 2027."
+    },
+    "0752900V": {
+      "sources": ["https://www.stanislas.fr/unite-pedagogique/college/", "https://www.stanislas.fr/unite-pedagogique/lycee/inscriptions/"],
+      "note": "Continuité implicite mais aucune règle publiée ; l'inscription au lycée demande « le bulletin du troisième trimestre comportant l'avis de passage »."
+    },
+    "0754008Z": {
+      "passage": "non_garanti",
+      "passageTexte": "Collège de réadaptation (passage temporaire) : la poursuite au lycée Saint-Nicolas n'est pas présentée comme le parcours habituel",
+      "sources": ["https://lyceesaintnicolas.com/college-saint-louis/", "https://lyceesaintnicolas.com/inscriptions/"],
+      "note": "Même organisme que le lycée Saint-Nicolas (SIREN commun). « Saint-Louis est un lieu de passage… lorsque les résultats et l'attitude face au travail rendent possible le retour vers un collège classique »."
+    },
+    "0753982W": {
+      "passageTexte": "Pas de lycée dans l'établissement ; lycées privés partenaires du réseau, sans priorité formelle",
+      "sources": ["https://www.lasallendgsja.com/college/les-cycles/", "https://www.lasallendgsja.com/etablissements-partenaires/"],
+      "note": "École + collège (« De la petite section à la Troisième »)."
+    },
+    "0753908R": {
+      "passageTexte": "Pas de lycée dans l'établissement ; lycées privés « partenaires », sans priorité formelle",
+      "sources": ["https://labruyeresainteisabelle.fr/les-atouts-du-college/"]
+    },
+    "0754861B": {
+      "passageTexte": "Pas de lycée : collège spécialisé, poursuite dans des structures adaptées ou professionnelles (SEGPA, EREA, lycée professionnel, CFA…)",
+      "sources": ["https://www.tournesol75.fr/"]
+    },
+    "0756203K": {
+      "lien": "meme_etablissement_prive",
+      "lyceeUai": "0755367B",
+      "lycee": { "voies": ["générale", "technologique (STMG)"] },
+      "secondeGtSurPlace": true,
+      "sources": ["https://www.ecolediagonale.com/", "https://www.ecolediagonale.com/ecole/apres-bac"],
+      "note": "Même école que « Cours Diagonale » 0755367B (même adresse, téléphone ; SIREN 379597966). Lycée 2nde–Tle hors contrat. Passage interne non documenté."
+    },
+    "0756278S": {
+      "lien": "meme_etablissement_prive",
+      "lyceeUai": "0753845X",
+      "lycee": { "voies": ["générale", "technologique (STD2A, STMG)"] },
+      "secondeGtSurPlace": true,
+      "sources": ["https://www.coursmontaignedeparis.com/", "https://www.coursmontaignedeparis.com/4eme-3eme-seconde/"],
+      "note": "Même école que « Cours Montaigne (École secondaire privée) » 0753845X (même adresse, courriel, téléphone). Collège = une classe de 3e."
+    },
+    "0755496S": {
+      "lycee": { "voies": ["générale"] },
+      "secondeGtSurPlace": true,
+      "sources": ["https://e-g-g.fr/le-college/", "https://e-g-g.fr/le-lycee/"],
+      "note": "École Georges Gusdorf, hors contrat, du CP à la terminale ; lycée 0755589T (même adresse et SIREN)."
+    },
+    "0755925H": {
+      "passageTexte": "Pas de lycée ; la plupart des élèves poursuivent au lycée hors contrat Cours Diagonale, sans garantie",
+      "sources": ["https://www.collegediago.fr/"],
+      "note": "« la majorité de nos élèves poursuit sa scolarité au sein du lycée Diagonale » ; société indépendante (SIREN 834575243)."
+    },
+    "0756057B": {
+      "lien": "groupe_scolaire_autre_site",
+      "lyceeUai": "0942439R",
+      "lycee": {
+        "nom": "Lycée privé Paris FC Academy (hors contrat)",
+        "adresse": "16 bis rue du Docteur Calmette, 94310 Orly",
+        "voies": ["générale et technologique (hors contrat)", "professionnelle (hors contrat)"]
+      },
+      "secondeGtSurPlace": false,
+      "passage": "non_garanti",
+      "passageTexte": "Suite au centre de formation du Paris FC à Orly (lycée privé hors contrat), sur sélection sportive du club",
+      "sources": ["https://parisfc.fr/formation-homme/"],
+      "note": "Préformation U14–U15 (Cité internationale) ; la suite U16–U20 est au centre de formation d'Orly. LP privé associé : 0942438P."
+    },
+    "0942626U": {
+      "sources": ["https://10sur10.org/"],
+      "note": "École + collège (« Passerelle Cycle 3 / 5e / 4e / 3e / Classe pré-pro »)."
+    }
+  }
+}

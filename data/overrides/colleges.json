@@ -1,0 +1,69 @@
+{
+  "$comment": "Corrections manuelles par UAI, appliquées par scripts/data/build.ts après la fusion des sources. Champs exportés : nom, recrutementParticulier, niveaux, remarques, web, demiPension. Les sites des hors contrat (absents de l'annuaire) ont été relevés le 2026-10-07. Le champ « aVerifier » est une note pour les mainteneurs, reprise dans data/report.md mais pas dans l'application.",
+  "colleges": {
+    "0750407K": {
+      "nom": "Collège Rognoni – École des enfants du spectacle",
+      "recrutementParticulier": "École des enfants du spectacle (recrutement sur dossier)"
+    },
+    "0752874S": {
+      "aVerifier": "Le domaine ecole-alsacienne.org ne répondait plus le 2026-10-07 (site conservé dans la fiche)."
+    },
+    "0752916M": {
+      "recrutementParticulier": "Collège spécialisé (élèves sourds ou avec troubles du langage)"
+    },
+    "0752924W": {
+      "remarques": [
+        "Fusion avec le collège Sainte-Geneviève en septembre 2027 : « Ensemble Adélaïde de Cicé », un seul collège au 64 rue d'Assas."
+      ]
+    },
+    "0752925X": {
+      "remarques": [
+        "Fusion avec le collège Saint-Sulpice en septembre 2027 : « Ensemble Adélaïde de Cicé », un seul collège au 64 rue d'Assas."
+      ]
+    },
+    "0753967E": {
+      "nom": "Collège privé Sœur Rosalie"
+    },
+    "0753982W": {
+      "nom": "Collège privé La Salle – Notre-Dame de la Gare"
+    },
+    "0754008Z": {
+      "recrutementParticulier": "Collège de réadaptation scolaire (passage temporaire)",
+      "aVerifier": "Le domaine college-st-louis.org indiqué par l'annuaire est parqué ; la page du collège est hébergée par lyceesaintnicolas.com/college-saint-louis/."
+    },
+    "0754757N": {
+      "aVerifier": "robots.txt de sion-paris.fr bloque ClaudeBot : passage au lycée et inscriptions à vérifier à la main."
+    },
+    "0754861B": {
+      "recrutementParticulier": "Collège spécialisé"
+    },
+    "0755496S": {
+      "web": "https://e-g-g.fr/"
+    },
+    "0755925H": {
+      "web": "https://www.collegediago.fr/"
+    },
+    "0756057B": {
+      "nom": "Collège privé Paris FC",
+      "recrutementParticulier": "Lié au centre de formation du Paris FC",
+      "niveaux": ["4e", "3e"],
+      "web": "https://parisfc.fr/formation-homme/"
+    },
+    "0756203K": {
+      "nom": "Collège privé École Diagonale",
+      "niveaux": ["4e", "3e"],
+      "web": "https://www.ecolediagonale.com/"
+    },
+    "0756278S": {
+      "niveaux": ["3e"],
+      "web": "https://www.coursmontaignedeparis.com/"
+    },
+    "0940874P": {
+      "nom": "Collège privé Epin"
+    },
+    "0942626U": {
+      "nom": "Collège privé Dix sur Dix",
+      "web": "https://10sur10.org/"
+    }
+  }
+}
