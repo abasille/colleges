@@ -30,7 +30,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 
 - **Indicateurs** (une fois par an, après la publication des résultats du brevet et de l'IPS) : lancer `npm run data`, relire `data/report.md`, puis committer `public/data/`.
 - **Corrections manuelles** : le dossier `data/overrides/` contient les étiquettes, la continuité vers le lycée, les événements et les pages surveillées. Ces fichiers l'emportent sur les sources.
-- **Portes ouvertes** : une GitHub Action hebdomadaire (`watch-pages.yml`) ouvre un ticket quand une page surveillée change. Il faut alors lancer `/maj-portes-ouvertes` dans Claude Code, qui propose les nouvelles dates à relire avant de les committer.
+- **Portes ouvertes** : une GitHub Action hebdomadaire (`watch-pages.yml`) ouvre un ticket quand une page surveillée change. Il faut alors lancer `/maj-portes-ouvertes` dans Claude Code, qui propose les nouvelles dates à relire avant de les committer. Les sites des collèges publics (pia.ac-paris.fr, Skolengo) refusent les connexions venant de GitHub : l'Action ne surveille en pratique que les sites du privé, et `npm run watch-pages` lancé en local couvre tout.
 
 ## Sources
 

@@ -11,6 +11,7 @@ Périmètre : $ARGUMENTS (vide = tous les collèges de `data/overrides/watch.jso
 
 - Lire SPEC.md §7, `src/types.ts` (`CollegeEvent`, `EventsFile`), `data/overrides/events.json`, `data/overrides/watch.json`, `data/config.json` (`saisonCourante`, `exclure`).
 - `gh issue list --label portes-ouvertes --state open`, puis `gh issue view <n> --comments` : les pages signalées par la surveillance hebdomadaire passent en premier.
+- Lancer d'abord `npm run watch-pages` en local : depuis GitHub Actions, pia.ac-paris.fr et les sites Skolengo (moncollege.valdemarne.fr) coupent la connexion (ECONNRESET), donc seule une exécution locale couvre les collèges publics. Committer ensuite `data/watch-state.json` avec le reste.
 - `npm run watch-pages -- --dry-run --only <UAI>` montre l'état d'une page sans rien écrire.
 
 ## 2. Collecte
