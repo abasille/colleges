@@ -112,7 +112,7 @@ export async function loadOnisep(uais: string[]): Promise<Onisep> {
   let m: RegExpExecArray | null;
   while ((m = reFormation.exec(xml))) {
     const block = m[1];
-    if (!uais.some((u) => block.includes(u))) continue;
+    if (![...block.matchAll(/<code-UAI>([^<]+)<\/code-UAI>/g)].some((x) => set.has(x[1].trim()))) continue;
     const intitule = decodeXml(/<intitule-formation>([\s\S]*?)<\/intitule-formation>/.exec(block)?.[1] ?? '');
     const enseignements = [...block.matchAll(/<libelle-enseignement>([\s\S]*?)<\/libelle-enseignement>/g)].map((x) => decodeXml(x[1]));
     for (const lieu of block.matchAll(/<lieu-de-formation\b[\s\S]*?<\/lieu-de-formation>/g)) {

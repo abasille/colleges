@@ -16,7 +16,7 @@ export function Header() {
     <header className="border-b border-zinc-200 bg-white">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
         <h1 className="text-sm font-semibold tracking-tight md:text-base">
-          Collèges <span className="font-normal text-zinc-500">Paris 5·6·13·14 · Ivry · Vitry</span>
+          Collèges <span className="font-normal text-zinc-500">d’Île-de-France</span>
         </h1>
         <div className="order-3 flex w-full min-w-0 md:order-none md:w-auto md:flex-1">
           <AddressSearch />

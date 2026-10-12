@@ -1,6 +1,7 @@
 import type { CollegeEvent } from '../types';
 import { EVENT_LABELS } from './indicateurs';
 import { parseISODate, toISODate } from './format';
+import { libelleTerritoire } from './territoires';
 
 function escapeText(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -48,7 +49,7 @@ export function buildIcs(events: CollegeEvent[], nomDe: (uai: string) => string,
     'X-WR-CALNAME:Collèges – portes ouvertes et inscriptions',
   ];
   for (const e of events) {
-    const qui = e.uai ? nomDe(e.uai) : `Académie de ${e.academie ?? ''}`.trim();
+    const qui = e.uai ? nomDe(e.uai) : e.territoire ? libelleTerritoire(e.territoire) : '';
     lines.push('BEGIN:VEVENT', `UID:${e.id}@abasille.github.io`, `DTSTAMP:${stamp}`);
     if (e.heureDebut && !e.dateFin) {
       lines.push(`DTSTART;TZID=Europe/Paris:${compact(e.date)}T${compactTime(e.heureDebut)}`);

@@ -4,7 +4,7 @@
     {
       "id": "0752187V-2025-11-15-portes_ouvertes",
       "uai": "0752187V",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2025-11-15",
       "dateFin": null,
@@ -20,7 +20,7 @@
     {
       "id": "paris-2026-01-12-officiel-cha",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-01-12",
       "dateFin": "2026-04-03",
@@ -36,7 +36,7 @@
     {
       "id": "paris-2026-01-12-officiel-chase",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-01-12",
       "dateFin": "2026-04-28",
@@ -52,7 +52,7 @@
     {
       "id": "paris-2026-01-12-officiel-si",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-01-12",
       "dateFin": "2026-03-10",
@@ -68,7 +68,7 @@
     {
       "id": "paris-2026-01-14-officiel",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-01-14",
       "dateFin": "2026-02-20",
@@ -84,7 +84,7 @@
     {
       "id": "0752385K-2026-01-17-portes_ouvertes",
       "uai": "0752385K",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-01-17",
       "dateFin": null,
@@ -100,7 +100,7 @@
     {
       "id": "0750407K-2026-01-24-portes_ouvertes",
       "uai": "0750407K",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-01-24",
       "dateFin": null,
@@ -116,7 +116,7 @@
     {
       "id": "0752916M-2026-01-31-portes_ouvertes",
       "uai": "0752916M",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-01-31",
       "dateFin": null,
@@ -132,7 +132,7 @@
     {
       "id": "0752316K-2026-02-07-portes_ouvertes",
       "uai": "0752316K",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-02-07",
       "dateFin": null,
@@ -148,7 +148,7 @@
     {
       "id": "0752925X-2026-02-07-portes_ouvertes",
       "uai": "0752925X",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-02-07",
       "dateFin": null,
@@ -164,7 +164,7 @@
     {
       "id": "paris-2026-03-09-officiel",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-03-09",
       "dateFin": "2026-03-12",
@@ -180,7 +180,7 @@
     {
       "id": "0752187V-2026-03-10-date_limite",
       "uai": "0752187V",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-03-10",
       "dateFin": null,
@@ -196,7 +196,7 @@
     {
       "id": "0752527P-2026-03-10-date_limite",
       "uai": "0752527P",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-03-10",
       "dateFin": null,
@@ -212,7 +212,7 @@
     {
       "id": "0752540D-2026-03-10-date_limite",
       "uai": "0752540D",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-03-10",
       "dateFin": null,
@@ -228,7 +228,7 @@
     {
       "id": "paris-2026-03-16-officiel",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-03-16",
       "dateFin": "2026-04-03",
@@ -244,7 +244,7 @@
     {
       "id": "0751705W-2026-03-18-inscription",
       "uai": "0751705W",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-03-18",
       "dateFin": null,
@@ -260,7 +260,7 @@
     {
       "id": "0752538B-2026-03-21-portes_ouvertes",
       "uai": "0752538B",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-03-21",
       "dateFin": null,
@@ -276,7 +276,7 @@
     {
       "id": "0751705W-2026-03-25-inscription",
       "uai": "0751705W",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-03-25",
       "dateFin": null,
@@ -292,7 +292,7 @@
     {
       "id": "0752316K-2026-03-27-date_limite",
       "uai": "0752316K",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-03-27",
       "dateFin": null,
@@ -308,7 +308,7 @@
     {
       "id": "creteil-2026-03-27-officiel",
       "uai": null,
-      "academie": "Créteil",
+      "territoire": "94",
       "type": "officiel",
       "date": "2026-03-27",
       "dateFin": null,
@@ -324,7 +324,7 @@
     {
       "id": "0751705W-2026-03-28-portes_ouvertes",
       "uai": "0751705W",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-03-28",
       "dateFin": null,
@@ -340,7 +340,7 @@
     {
       "id": "0752957G-2026-03-31-date_limite",
       "uai": "0752957G",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-03-31",
       "dateFin": null,
@@ -356,7 +356,7 @@
     {
       "id": "0941224V-2026-04-02-portes_ouvertes",
       "uai": "0941224V",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-04-02",
       "dateFin": null,
@@ -372,7 +372,7 @@
     {
       "id": "0750407K-2026-04-03-date_limite",
       "uai": "0750407K",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-04-03",
       "dateFin": null,
@@ -388,7 +388,7 @@
     {
       "id": "0752540D-2026-04-11-portes_ouvertes",
       "uai": "0752540D",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-04-11",
       "dateFin": null,
@@ -404,7 +404,7 @@
     {
       "id": "0755496S-2026-04-11-portes_ouvertes",
       "uai": "0755496S",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-04-11",
       "dateFin": null,
@@ -420,7 +420,7 @@
     {
       "id": "0755000C-2026-04-30-date_limite",
       "uai": "0755000C",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-04-30",
       "dateFin": null,
@@ -436,7 +436,7 @@
     {
       "id": "0752957G-2026-05-13-date_limite",
       "uai": "0752957G",
-      "academie": null,
+      "territoire": null,
       "type": "date_limite",
       "date": "2026-05-13",
       "dateFin": null,
@@ -452,7 +452,7 @@
     {
       "id": "creteil-2026-05-13-officiel",
       "uai": null,
-      "academie": "Créteil",
+      "territoire": "94",
       "type": "officiel",
       "date": "2026-05-13",
       "dateFin": null,
@@ -468,7 +468,7 @@
     {
       "id": "creteil-2026-06-05-officiel",
       "uai": null,
-      "academie": "Créteil",
+      "territoire": "94",
       "type": "officiel",
       "date": "2026-06-05",
       "dateFin": null,
@@ -484,7 +484,7 @@
     {
       "id": "0752543G-2026-06-15-inscription",
       "uai": "0752543G",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-06-15",
       "dateFin": null,
@@ -500,7 +500,7 @@
     {
       "id": "paris-2026-06-15-officiel",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-06-15",
       "dateFin": null,
@@ -516,7 +516,7 @@
     {
       "id": "0750611G-2026-06-16-inscription",
       "uai": "0750611G",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-06-16",
       "dateFin": "2026-06-19",
@@ -532,7 +532,7 @@
     {
       "id": "paris-2026-06-16-officiel",
       "uai": null,
-      "academie": "Paris",
+      "territoire": "Paris",
       "type": "officiel",
       "date": "2026-06-16",
       "dateFin": "2026-06-22",
@@ -548,7 +548,7 @@
     {
       "id": "0752385K-2026-06-17-inscription",
       "uai": "0752385K",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-06-17",
       "dateFin": null,
@@ -564,7 +564,7 @@
     {
       "id": "0752543G-2026-06-17-inscription",
       "uai": "0752543G",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-06-17",
       "dateFin": null,
@@ -580,7 +580,7 @@
     {
       "id": "0752540D-2026-06-20-inscription",
       "uai": "0752540D",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-06-20",
       "dateFin": null,
@@ -596,7 +596,7 @@
     {
       "id": "0752924W-2026-09-24-inscription",
       "uai": "0752924W",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-09-24",
       "dateFin": null,
@@ -612,7 +612,7 @@
     {
       "id": "0752925X-2026-09-24-inscription",
       "uai": "0752925X",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-09-24",
       "dateFin": null,
@@ -628,7 +628,7 @@
     {
       "id": "0753908R-2026-10-01-inscription",
       "uai": "0753908R",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-10-01",
       "dateFin": null,
@@ -644,7 +644,7 @@
     {
       "id": "0753985Z-2026-10-01-inscription",
       "uai": "0753985Z",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-10-01",
       "dateFin": null,
@@ -660,7 +660,7 @@
     {
       "id": "0753982W-2026-10-03-portes_ouvertes",
       "uai": "0753982W",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-10-03",
       "dateFin": null,
@@ -676,7 +676,7 @@
     {
       "id": "0753985Z-2026-10-08-reunion_information",
       "uai": "0753985Z",
-      "academie": null,
+      "territoire": null,
       "type": "reunion_information",
       "date": "2026-10-08",
       "dateFin": null,
@@ -692,7 +692,7 @@
     {
       "id": "0755840R-2026-10-10-portes_ouvertes",
       "uai": "0755840R",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-10-10",
       "dateFin": null,
@@ -708,7 +708,7 @@
     {
       "id": "0753985Z-2026-10-15-reunion_information",
       "uai": "0753985Z",
-      "academie": null,
+      "territoire": null,
       "type": "reunion_information",
       "date": "2026-10-15",
       "dateFin": null,
@@ -724,7 +724,7 @@
     {
       "id": "0940874P-2026-10-15-inscription",
       "uai": "0940874P",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-10-15",
       "dateFin": "2026-11-30",
@@ -740,7 +740,7 @@
     {
       "id": "0754008Z-2026-11-01-inscription",
       "uai": "0754008Z",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-11-01",
       "dateFin": null,
@@ -756,7 +756,7 @@
     {
       "id": "0752913J-2026-11-03-inscription",
       "uai": "0752913J",
-      "academie": null,
+      "territoire": null,
       "type": "inscription",
       "date": "2026-11-03",
       "dateFin": null,
@@ -772,7 +772,7 @@
     {
       "id": "0752913J-2026-11-05-reunion_information",
       "uai": "0752913J",
-      "academie": null,
+      "territoire": null,
       "type": "reunion_information",
       "date": "2026-11-05",
       "dateFin": null,
@@ -788,7 +788,7 @@
     {
       "id": "0753967E-2026-11-14-portes_ouvertes",
       "uai": "0753967E",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-11-14",
       "dateFin": null,
@@ -804,7 +804,7 @@
     {
       "id": "0752913J-2026-11-21-portes_ouvertes",
       "uai": "0752913J",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-11-21",
       "dateFin": null,
@@ -820,7 +820,7 @@
     {
       "id": "0752913J-2026-12-05-portes_ouvertes",
       "uai": "0752913J",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2026-12-05",
       "dateFin": null,
@@ -836,7 +836,7 @@
     {
       "id": "0754008Z-2027-03-19-portes_ouvertes",
       "uai": "0754008Z",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2027-03-19",
       "dateFin": null,
@@ -852,7 +852,7 @@
     {
       "id": "0754008Z-2027-03-20-portes_ouvertes",
       "uai": "0754008Z",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2027-03-20",
       "dateFin": null,
@@ -868,7 +868,7 @@
     {
       "id": "0754008Z-2027-05-21-portes_ouvertes",
       "uai": "0754008Z",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2027-05-21",
       "dateFin": null,
@@ -884,7 +884,7 @@
     {
       "id": "0754008Z-2027-06-09-portes_ouvertes",
       "uai": "0754008Z",
-      "academie": null,
+      "territoire": null,
       "type": "portes_ouvertes",
       "date": "2027-06-09",
       "dateFin": null,

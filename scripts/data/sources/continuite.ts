@@ -5,10 +5,11 @@
 //  2. passage garanti : saisi à la main dans data/overrides/continuite.json.
 import type { College, Continuite, LienLycee, Lycee, Passage, Statut } from '../../../src/types';
 import { normalizeVoie } from '../../../src/lib/normalize';
-import { odsExport, odsList } from '../lib/fetch';
-import { annee, num, uniq } from '../lib/util';
+import { inseeAParis } from '../../../src/lib/territoires';
+import { odsExport, odsExportParLots, odsList } from '../lib/fetch';
+import { annee, groupBy, num, uniq } from '../lib/util';
 import { NATURES_LYCEE } from '../lib/config';
-import type { AnnuaireRow } from './annuaire';
+import { departementAnnuaire, type AnnuaireRow } from './annuaire';
 
 export const CITES_ID = 'fr-en-cites_scolaires';
 export const LYCEE_GT_ID = 'fr-en-lycee_gt-effectifs-niveau-sexe-lv';
@@ -40,10 +41,11 @@ export interface CiteRow {
   appellation_officielle: string | null;
 }
 
-export async function loadCites(): Promise<CiteRow[]> {
+/** Cités scolaires des départements donnés (« 75 », « 92 »…). */
+export async function loadCites(departements: string[]): Promise<CiteRow[]> {
   return odsExport<CiteRow>(CITES_ID, {
     select: 'code_cite_scolaire,uai,code_nature,appellation_officielle',
-    where: 'code_departement in ("075","094")',
+    where: `code_departement in ${odsList(departements.map(departementAnnuaire))}`,
   });
 }
 
@@ -62,8 +64,48 @@ export interface Candidat {
   regles: string[];
 }
 
+/** Lycées et cités scolaires indexés pour la détection (évite de comparer chaque collège à chaque lycée). */
+export interface IndexLycees {
+  /** Cité scolaire de chaque établissement membre. */
+  citeParUai: Map<string, string>;
+  /** Lycées (natures NATURES_LYCEE) de chaque cité scolaire. */
+  lyceesParCite: Map<string, string[]>;
+  /** Lycées par SIREN (9 premiers caractères du SIRET). */
+  parSiren: Map<string, string[]>;
+  /** Lycées par commune et adresse normalisée (`<code commune>|<adresse>`). */
+  parAdresse: Map<string, string[]>;
+  natureParUai: Map<string, number>;
+}
+
+const cleAdresse = (r: AnnuaireRow) => {
+  const adr = normAdresse(r.adresse_1);
+  return adr ? `${r.code_commune ?? ''}|${adr}` : null;
+};
+
+export function indexerLycees(lycees: AnnuaireRow[], cites: CiteRow[]): IndexLycees {
+  const push = (m: Map<string, string[]>, k: string, v: string) => {
+    const l = m.get(k);
+    if (l) l.push(v);
+    else m.set(k, [v]);
+  };
+  const index: IndexLycees = { citeParUai: new Map(), lyceesParCite: new Map(), parSiren: new Map(), parAdresse: new Map(), natureParUai: new Map() };
+  for (const c of cites) {
+    if (!index.citeParUai.has(c.uai)) index.citeParUai.set(c.uai, c.code_cite_scolaire);
+    if (NATURES_LYCEE.includes(Number(c.code_nature))) push(index.lyceesParCite, c.code_cite_scolaire, c.uai);
+  }
+  for (const l of lycees) {
+    const lu = l.identifiant_de_l_etablissement;
+    const siren = (l.siren_siret ?? '').slice(0, 9);
+    if (siren.length === 9) push(index.parSiren, siren, lu);
+    const adr = cleAdresse(l);
+    if (adr) push(index.parAdresse, adr, lu);
+    if (!index.natureParUai.has(lu)) index.natureParUai.set(lu, l.code_nature);
+  }
+  return index;
+}
+
 /** Lycées candidats pour un collège, du plus probable au moins probable. */
-export function detecterCandidats(college: AnnuaireRow, lycees: AnnuaireRow[], cites: CiteRow[]): Candidat[] {
+export function detecterCandidats(college: AnnuaireRow, index: IndexLycees): Candidat[] {
   const uai = college.identifiant_de_l_etablissement;
   const prive = college.statut_public_prive !== 'Public';
   const cands = new Map<string, Set<string>>();
@@ -73,23 +115,16 @@ export function detecterCandidats(college: AnnuaireRow, lycees: AnnuaireRow[], c
     s.add(r);
     cands.set(u, s);
   };
-  const cite = cites.find((c) => c.uai === uai);
-  if (cite) {
-    for (const m of cites) {
-      if (m.code_cite_scolaire === cite.code_cite_scolaire && NATURES_LYCEE.includes(Number(m.code_nature))) {
-        add(m.uai, `R1_cite_scolaire:${cite.code_cite_scolaire}`);
-      }
-    }
+  const cite = index.citeParUai.get(uai);
+  if (cite !== undefined) {
+    for (const lu of index.lyceesParCite.get(cite) ?? []) add(lu, `R1_cite_scolaire:${cite}`);
   }
   const siren = (college.siren_siret ?? '').slice(0, 9);
-  const adr = normAdresse(college.adresse_1);
-  for (const l of lycees) {
-    const lu = l.identifiant_de_l_etablissement;
-    if (prive && siren.length === 9 && (l.siren_siret ?? '').slice(0, 9) === siren) add(lu, 'R2_siren');
-    if (adr && normAdresse(l.adresse_1) === adr && l.code_commune === college.code_commune) add(lu, 'R3_adresse');
-  }
+  if (prive && siren.length === 9) for (const lu of index.parSiren.get(siren) ?? []) add(lu, 'R2_siren');
+  const adr = cleAdresse(college);
+  if (adr) for (const lu of index.parAdresse.get(adr) ?? []) add(lu, 'R3_adresse');
   const naturePref = (u: string) => {
-    const n = lycees.find((l) => l.identifiant_de_l_etablissement === u)?.code_nature;
+    const n = index.natureParUai.get(u);
     return n === 300 || n === 302 || n === 306 ? 0 : 1;
   };
   return [...cands.entries()]
@@ -138,13 +173,10 @@ const SERIES_TECHNO = ['sti2d', 'stl', 'stmg', 'st2s', 'std2a', 'sthr', 'tmd'];
 export async function loadVoiesLycees(uais: string[]): Promise<Map<string, VoiesLycee>> {
   const out = new Map<string, VoiesLycee>();
   if (uais.length === 0) return out;
-  const where = `numero_lycee in ${odsList(uais)}`;
-  const gt = await odsExport<Record<string, unknown>>(LYCEE_GT_ID, { where });
-  const pro = await odsExport<Record<string, unknown>>(LYCEE_PRO_ID, { where });
-  const latest = (rows: Record<string, unknown>[], uai: string) =>
-    rows
-      .filter((r) => r.numero_lycee === uai)
-      .sort((a, b) => (annee(b.rentree_scolaire) ?? 0) - (annee(a.rentree_scolaire) ?? 0))[0];
+  const gt = groupBy(await odsExportParLots(LYCEE_GT_ID, 'numero_lycee', uais), (r) => String(r.numero_lycee));
+  const pro = groupBy(await odsExportParLots(LYCEE_PRO_ID, 'numero_lycee', uais), (r) => String(r.numero_lycee));
+  const latest = (rows: Map<string, Record<string, unknown>[]>, uai: string) =>
+    (rows.get(uai) ?? []).slice().sort((a, b) => (annee(b.rentree_scolaire) ?? 0) - (annee(a.rentree_scolaire) ?? 0))[0];
   for (const uai of uais) {
     const g = latest(gt, uai);
     const p = latest(pro, uai);
@@ -182,7 +214,7 @@ export function voiesLibelles(v: VoiesLycee | undefined, row: AnnuaireRow | unde
 
 export function adresseLycee(r: AnnuaireRow | undefined): string | null {
   if (!r?.adresse_1) return null;
-  const commune = r.code_commune?.startsWith('751') ? 'Paris' : (r.nom_commune ?? '');
+  const commune = inseeAParis(r.code_commune ?? '') ? 'Paris' : (r.nom_commune ?? '');
   return `${r.adresse_1}, ${r.code_postal ?? ''} ${commune}`.replace(/\s+/g, ' ').trim();
 }
 
@@ -238,7 +270,9 @@ export function construireContinuite(i: ContinuiteInput): College['continuite'] 
     };
   }
   const v = lyceeUai ? i.voies.get(lyceeUai) : undefined;
-  const secondeGtSurPlace = o.secondeGtSurPlace ?? (lien === 'cite_scolaire' || lien === 'meme_etablissement_prive' ? (v?.secondeGt ?? 0) > 0 : false);
+  // Sans lycée lié, pas de 2nde GT sur place : le filtre « lycée général sur place » ne lit que ce booléen.
+  const secondeGtSurPlace =
+    lien !== 'aucun' && (o.secondeGtSurPlace ?? (lien === 'cite_scolaire' || lien === 'meme_etablissement_prive' ? (v?.secondeGt ?? 0) > 0 : false));
   const def = continuiteParDefaut(lien, i.statut);
   const sources = uniq([
     ...(o.sources ?? []),

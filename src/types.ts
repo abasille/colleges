@@ -1,13 +1,20 @@
 // Contrat de données entre le script `npm run data` (scripts/data) et l'application.
 // Fichiers produits dans public/data/ :
-//   colleges.json            -> Dataset
+//   colleges.json            -> Dataset (fichier léger, JSON minifié, chargé au démarrage)
+//   colleges-<dép>.json      -> DetailDepartement (un par département, chargé à l'ouverture
+//                               de la première fiche du département ; ex. colleges-75.json)
 //   events.json              -> EventsFile
-//   contours.geojson         -> FeatureCollection, properties: { code: ZoneCode, libelle: string }
-//   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
-//   carte-scolaire-94.json   -> CarteScolaireRow[]
+//   contours-<dép>.geojson   -> FeatureCollection, properties: ContourCommuneProps (un par département,
+//                               chargé quand une commune du département est choisie dans le filtre)
+//   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps (chargé après
+//                               la saisie d'une adresse à Paris, voir sourceSecteur)
+//   carte-scolaire-<dép>.json -> CarteScolaireDepartement (un par département hors Paris, chargé
+//                               après la saisie d'une adresse dans ce département ; ex. carte-scolaire-94.json)
 
-export type ZoneCode = '75105' | '75106' | '75113' | '75114' | '94041' | '94081';
-export type Academie = 'Paris' | 'Créteil';
+export type Academie = 'Paris' | 'Créteil' | 'Versailles';
+export type Departement = '75' | '77' | '78' | '91' | '92' | '93' | '94' | '95';
+/** Académie ou département auquel s'applique une date officielle, selon qui la publie (rectorat ou direction départementale). */
+export type Territoire = Academie | Departement;
 export type Statut = 'public' | 'prive_sous_contrat' | 'hors_contrat';
 export type Niveau = '6e' | '5e' | '4e' | '3e';
 
@@ -65,7 +72,7 @@ export type Passage = 'garanti' | 'sous_reserve' | 'non_garanti' | 'inconnu';
 export interface Continuite {
   lien: LienLycee;
   lycee: Lycee | null;
-  /** Vrai seulement si le lycée lié accueille des élèves en 2nde générale et technologique. */
+  /** Vrai seulement si un lycée est lié (lien autre que « aucun ») et accueille des élèves en 2nde générale et technologique. */
   secondeGtSurPlace: boolean;
   passage: Passage;
   /** Formulation affichée (citation de l'établissement ou texte générique). */
@@ -76,7 +83,7 @@ export interface Continuite {
 export interface ScoreMaison {
   note: number; // /20, 1 décimale
   lettre: 'A' | 'B' | 'C' | 'D' | 'E';
-  rang: number; // rang dans la zone parmi les collèges notés
+  rang: number; // rang parmi tous les collèges notés du périmètre
   sur: number;
   partielle: boolean; // une composante manque
   composantes: { brevet: number | null; noteEcrit: number | null; va: number | null }; // /20 chacune
@@ -87,14 +94,17 @@ export interface LibelleValeur {
   valeur: string;
 }
 
+/** Collège complet, tel qu'affiché dans la fiche : publié en deux parties, CollegeResume et CollegeDetail. */
 export interface College {
   uai: string;
   nom: string; // ex. « Collège Claude Monet »
   statut: Statut;
   contrat: 'association' | 'simple' | null;
-  zone: ZoneCode;
-  zoneLibelle: string; // « Paris 13e », « Ivry-sur-Seine »
-  academie: Academie;
+  /** Code INSEE de la commune ; à Paris, celui de l'arrondissement (« 75113 »). */
+  commune: string;
+  communeLibelle: string; // « Paris 13e », « Ivry-sur-Seine »
+  departement: Departement;
+  academie: Academie; // lue dans l'annuaire
   adresse: string;
   codePostal: string;
   lat: number;
@@ -110,6 +120,8 @@ export interface College {
   accueilSixieme: boolean;
   remarques: string[];
   demiPension: boolean | null;
+  /** Collège suivi : portes ouvertes, inscriptions, passage au lycée et étiquettes relevés à la main (ADR 0001). */
+  suivi: boolean;
 
   indicateurs: Indicateurs;
   /** Raison de l'absence d'un indicateur (« hors contrat : non publié », « effectif trop faible »…). */
@@ -155,6 +167,52 @@ export interface College {
   pix: LibelleValeur[];
 }
 
+/** Champs du collège publiés dans le fichier léger (liste, carte, filtres, tris, couleurs). */
+export type ChampResume =
+  | 'uai'
+  | 'nom'
+  | 'statut'
+  | 'contrat'
+  | 'commune'
+  | 'communeLibelle'
+  | 'departement'
+  | 'academie'
+  | 'lat'
+  | 'lon'
+  | 'rep'
+  | 'recrutementParticulier'
+  | 'niveaux'
+  | 'accueilSixieme'
+  | 'suivi'
+  | 'indicateurs'
+  | 'optionTags';
+
+/** Collège dans le fichier léger : sans historiques ni détail de la fiche. */
+export type CollegeResume = Pick<College, ChampResume> & {
+  score: Omit<ScoreMaison, 'composantes'> | null;
+  /** Catégorie de lycée sur place et de passage (filtres « lycée général », « passage garanti »). */
+  continuite: Pick<Continuite, 'secondeGtSurPlace' | 'passage'>;
+};
+
+/** Collège dans le fichier de son département : le reste de la fiche. */
+export type CollegeDetail = { uai: string } & Omit<College, ChampResume | 'score'> & {
+    /** Composantes de la note maison, null si le collège n'est pas noté. */
+    composantes: ScoreMaison['composantes'] | null;
+  };
+
+/** colleges-<dép>.json : détail des collèges d'un département, triés par UAI. */
+export interface DetailDepartement {
+  departement: Departement;
+  colleges: CollegeDetail[];
+}
+
+/** contours-<dép>.geojson : une entité par commune présente (à Paris, par arrondissement). */
+export interface ContourCommuneProps {
+  /** Code INSEE, celui de `College.commune`. */
+  code: string;
+  libelle: string;
+}
+
 export interface Source {
   id: string;
   label: string;
@@ -163,10 +221,17 @@ export interface Source {
   millesime: string;
 }
 
+export interface CommunePresente {
+  code: string;
+  libelle: string;
+  departement: Departement;
+}
+
 export interface Dataset {
   generatedAt: string; // ISO
   sessions: { brevet: number[]; ips: number; effectifs: number };
-  zones: { code: ZoneCode; libelle: string; academie: Academie }[];
+  /** Communes où se trouve au moins un collège publié, triées par code. */
+  communes: CommunePresente[];
   /** Moyennes de référence pour les comparaisons de la fiche. */
   references: {
     france: Partial<Record<IndicateurKey, number>>;
@@ -174,7 +239,7 @@ export interface Dataset {
   };
   optionLabels: Record<string, { label: string; groupe: string }>;
   sources: Source[];
-  colleges: College[];
+  colleges: CollegeResume[];
 }
 
 // --- Événements (portes ouvertes, inscriptions, dates officielles) ---
@@ -189,9 +254,9 @@ export type EventType =
 
 export interface CollegeEvent {
   id: string;
-  /** UAI du collège ; null pour une date officielle d'académie. */
+  /** UAI du collège ; null pour une date officielle. */
   uai: string | null;
-  academie: Academie | null; // renseigné pour type 'officiel'
+  territoire: Territoire | null; // renseigné pour type 'officiel', null sinon
   type: EventType;
   date: string; // YYYY-MM-DD
   dateFin: string | null; // période (ex. inscriptions du 3 au 28 novembre)
@@ -218,17 +283,24 @@ export interface EventsFile {
 
 export interface SecteurParisProps {
   libelle: string;
-  /** UAI des collèges du secteur présents dans le périmètre (peut être vide). */
+  /** UAI des collèges publics parisiens du secteur (vide si aucun nom publié n'a été reconnu). */
   uais: string[];
-  /** Noms des collèges du secteur tels que publiés (y compris hors périmètre). */
+  /** Noms des collèges du secteur tels que publiés par la Ville. */
   noms: string[];
 }
 
-export interface CarteScolaireRow {
-  insee: string; // commune de l'adresse
-  voie: string; // libellé normalisé (majuscules, sans accents, abréviations développées)
-  debut: number | null;
-  fin: number | null;
-  parite: 'P' | 'I' | 'PI';
-  uai: string;
+export type PariteCarteScolaire = 'P' | 'I' | 'PI';
+
+/**
+ * Plage d'adresses de la carte scolaire nationale : [voie normalisée, premier numéro, dernier numéro,
+ * parité, UAI]. Voie normalisée par normalizeVoie (majuscules, sans accents, abréviations développées) ;
+ * voie vide = ligne « secteur unique » (toute la commune, ou le reste de la commune s'il y a aussi des voies) ;
+ * bornes publiées telles quelles (9999 = jusqu'au bout de la voie), null si absentes.
+ */
+export type PlageCarteScolaire = [voie: string, debut: number | null, fin: number | null, parite: PariteCarteScolaire, uai: string];
+
+/** Carte scolaire compacte d'un département : plages d'adresses par code INSEE de commune. */
+export interface CarteScolaireDepartement {
+  departement: Departement;
+  communes: Record<string, PlageCarteScolaire[]>;
 }

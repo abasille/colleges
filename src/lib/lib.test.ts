@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { College, CollegeEvent, EventsFile } from '../types';
+import type { CarteScolaireDepartement, College, CollegeEvent, CollegeResume, CommunePresente, EventsFile } from '../types';
 import { applyFilters, DEFAULT_FILTERS, sortColleges, type Filters } from './filters';
 import { parseUrlState, serializeUrlState } from './url';
 import { haversineKm, pointInGeometry } from './geo';
-import { findSecteur94, findSecteurParis, parseNumero } from './secteur';
+import { findSecteur, parseNumero, sourceSecteur, type Adresse, type DonneesSecteur } from './secteur';
 import { buildIcs, foldLine } from './ics';
 import { decodeShare, encodeShare, mergeShare } from './share';
-import { calendarEvents, isUrgent, statutInscriptions, upcomingForFavoris } from './events';
+import { calendarEvents, isUrgent, statutInscriptions, territoiresPresents, upcomingForFavoris } from './events';
+import { libelleTerritoire } from './territoires';
 import { formatIndicateur, nomCourt } from './format';
+import { lieuxChoisis, rechercherLieux } from './lieux';
 
 function college(uai: string, over: Partial<College> = {}, ind: Partial<College['indicateurs']> = {}): College {
   return {
@@ -15,8 +17,9 @@ function college(uai: string, over: Partial<College> = {}, ind: Partial<College[
     nom: `Collège ${uai}`,
     statut: 'public',
     contrat: null,
-    zone: '75113',
-    zoneLibelle: 'Paris 13e',
+    commune: '75113',
+    communeLibelle: 'Paris 13e',
+    departement: '75',
     academie: 'Paris',
     adresse: '',
     codePostal: '75013',
@@ -32,6 +35,7 @@ function college(uai: string, over: Partial<College> = {}, ind: Partial<College[
     accueilSixieme: true,
     remarques: [],
     demiPension: true,
+    suivi: false,
     indicateurs: {
       note: null, brevet: null, brevetDernier: null, noteEcrit: null, vaTaux: null, vaNote: null, mentionsTB: null,
       mentions: null, accesSixiemeTroisieme: null, ips: null, effectif: null, elevesParClasse: null,
@@ -62,13 +66,19 @@ const f = (over: Partial<Filters>): Filters => ({ ...DEFAULT_FILTERS, ...over })
 describe('filtres', () => {
   const cs = [
     college('0000001A', { nom: 'Collège Claude Monet', statut: 'public', optionTags: ['latin', 'lv:allemand'] }, { brevet: 95, ips: 120 }),
-    college('0000002B', { nom: 'Collège privé Sévigné', statut: 'prive_sous_contrat', zone: '75105', optionTags: ['latin'] }, { brevet: 99 }),
+    college('0000002B', { nom: 'Collège privé Sévigné', statut: 'prive_sous_contrat', commune: '75105', communeLibelle: 'Paris 5e', optionTags: ['latin'] }, { brevet: 99 }),
     college('0000003C', { nom: 'Collège Diagonale', statut: 'hors_contrat', accueilSixieme: false }),
-    college('0000004D', { nom: 'Collège Molière', zone: '94041', rep: 'REP' }, { brevet: 80, ips: 85 }),
+    college('0000004D', { nom: 'Collège Molière', commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94', academie: 'Créteil', rep: 'REP' }, { brevet: 80, ips: 85 }),
   ];
 
   it('masque par défaut les collèges sans entrée en 6e', () => {
     expect(applyFilters(cs, DEFAULT_FILTERS, ctx).map((c) => c.uai)).not.toContain('0000003C');
+  });
+
+  it('écarte le recrutement particulier quand la case est cochée', () => {
+    const rp = [college('0000001A'), college('0000002B', { recrutementParticulier: 'sans secteur : recrutement sur dossier' })];
+    expect(applyFilters(rp, f({ masquerRecrutementParticulier: true }), ctx).map((c) => c.uai)).toEqual(['0000001A']);
+    expect(applyFilters(rp, DEFAULT_FILTERS, ctx)).toHaveLength(2);
   });
 
   it('cherche sans tenir compte des accents ni de la casse', () => {
@@ -87,10 +97,43 @@ describe('filtres', () => {
     expect(avec).toEqual(['0000001A', '0000002B']);
   });
 
-  it('filtre REP, statut et zone', () => {
+  it('filtre REP, statut et commune', () => {
     expect(applyFilters(cs, f({ rep: 'rep' }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
     expect(applyFilters(cs, f({ statuts: ['prive_sous_contrat'] }), ctx)).toHaveLength(1);
-    expect(applyFilters(cs, f({ zones: ['94041', '75105'] }), ctx)).toHaveLength(2);
+    expect(applyFilters(cs, f({ communes: ['94041', '75105'] }), ctx).map((c) => c.uai)).toEqual(['0000002B', '0000004D']);
+  });
+
+  it('n’affiche que les collèges suivis quand la case est cochée', () => {
+    const suivis = [college('0000001A', { suivi: true }), college('0000002B'), college('0000003C', { suivi: true })];
+    expect(applyFilters(suivis, f({ suivis: true }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000003C']);
+    expect(applyFilters(suivis, f({ suivis: false }), ctx)).toHaveLength(3);
+  });
+
+  it('ne compte pas un collège non suivi comme « passage garanti » : son passage au lycée n’est pas renseigné', () => {
+    const garanti: College['continuite'] = { lien: 'meme_etablissement_prive', lycee: null, secondeGtSurPlace: true, passage: 'garanti', passageTexte: '', sources: [] };
+    const cs2 = [college('0000001A', { suivi: true, continuite: garanti }), college('0000002B', { continuite: garanti }), college('0000003C', { suivi: true })];
+    expect(applyFilters(cs2, f({ passageGaranti: true }), ctx).map((c) => c.uai)).toEqual(['0000001A']);
+  });
+
+  it('ignore un code de commune inconnu', () => {
+    expect(applyFilters(cs, f({ communes: ['94041', '99999'] }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ communes: ['99999'] }), ctx)).toEqual(applyFilters(cs, DEFAULT_FILTERS, ctx));
+  });
+
+  it('filtre par département', () => {
+    expect(applyFilters(cs, f({ departements: ['94'] }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ departements: ['75'] }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000002B']);
+  });
+
+  it('réunit les communes et les départements choisis', () => {
+    expect(applyFilters(cs, f({ communes: ['75105'], departements: ['94'] }), ctx).map((c) => c.uai)).toEqual(['0000002B', '0000004D']);
+    // Une commune déjà couverte par son département ne restreint rien.
+    expect(applyFilters(cs, f({ communes: ['75105'], departements: ['75'] }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000002B']);
+  });
+
+  it('trouve un collège par le nom de sa commune', () => {
+    expect(applyFilters(cs, f({ q: 'ivry' }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ q: 'paris 5e' }), ctx).map((c) => c.uai)).toEqual(['0000002B']);
   });
 
   it('trie en laissant les valeurs manquantes en dernier dans les deux sens', () => {
@@ -110,13 +153,20 @@ describe('filtres', () => {
 describe('état dans l’URL', () => {
   it('fait un aller-retour sans perte', () => {
     const state = {
-      filters: f({ q: 'monet', statuts: ['public'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
+      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], departements: ['94', '78'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true, suivis: true }),
       sort: { key: 'brevet' as const, dir: 'desc' as const },
       selected: '0752539C',
       vue: 'calendrier' as const,
       colorBy: 'ips' as const,
     };
     expect(parseUrlState(serializeUrlState(state))).toEqual(state);
+  });
+
+  it('garde la case « collèges suivis » dans l’URL', () => {
+    const { filters } = parseUrlState('?sv=1');
+    expect(filters.suivis).toBe(true);
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?sv=1');
+    expect(parseUrlState('').filters.suivis).toBe(false);
   });
 
   it('produit une URL vide pour l’état par défaut', () => {
@@ -129,6 +179,76 @@ describe('état dans l’URL', () => {
     expect(s.filters.ranges).toEqual({});
     expect(s.sort.key).toBe('nom');
     expect(s.colorBy).toBe('statut');
+  });
+
+  it('un ancien lien filtré par commune donne la même sélection', () => {
+    const cs = [college('0000001A'), college('0000002B', { commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94' })];
+    const { filters } = parseUrlState('?z=75113');
+    expect(filters.communes).toEqual(['75113']);
+    expect(applyFilters(cs, filters, ctx).map((c) => c.uai)).toEqual(['0000001A']);
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?z=75113');
+  });
+
+  it('accepte tout code de commune bien formé et écarte les autres sans erreur', () => {
+    expect(parseUrlState('?z=92012,2A004,bidon,123').filters.communes).toEqual(['92012', '2A004']);
+  });
+
+  it('enregistre les départements dans leur propre paramètre', () => {
+    const filters = f({ communes: ['92012'], departements: ['94'] });
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?z=92012&d=94');
+  });
+
+  it('ignore sans erreur un code inconnu, de commune ou de département', () => {
+    const cs = [college('0000001A'), college('0000002B', { commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94' })];
+    const { filters } = parseUrlState('?z=99999&d=94,13,2A,bidon');
+    expect(filters.departements).toEqual(['94']);
+    expect(applyFilters(cs, filters, ctx).map((c) => c.uai)).toEqual(['0000002B']);
+    // Rien de connu : toute l'Île-de-France.
+    expect(applyFilters(cs, parseUrlState('?z=99999&d=13').filters, ctx)).toHaveLength(2);
+  });
+});
+
+describe('commune ou département', () => {
+  const communes: CommunePresente[] = [
+    { code: '75101', libelle: 'Paris 1er', departement: '75' },
+    { code: '75113', libelle: 'Paris 13e', departement: '75' },
+    { code: '91228', libelle: 'Évry-Courcouronnes', departement: '91' },
+    { code: '94041', libelle: 'Ivry-sur-Seine', departement: '94' },
+    { code: '94068', libelle: 'Saint-Maur-des-Fossés', departement: '94' },
+    { code: '94081', libelle: 'Vitry-sur-Seine', departement: '94' },
+    { code: '95018', libelle: 'Argenteuil', departement: '95' },
+  ];
+  const libelles = (q: string, choix?: Parameters<typeof rechercherLieux>[2]) => rechercherLieux(q, communes, choix).map((l) => l.libelle);
+
+  it('trouve une commune sans tenir compte des accents ni de la casse', () => {
+    expect(libelles('evry')).toEqual(['Évry-Courcouronnes']);
+    expect(libelles('VITRY')).toEqual(['Vitry-sur-Seine']);
+    expect(libelles('saint maur')).toEqual(['Saint-Maur-des-Fossés']);
+  });
+
+  it('trouve un arrondissement de Paris comme une commune', () => {
+    expect(rechercherLieux('Paris 13e', communes)).toEqual([{ type: 'commune', code: '75113', libelle: 'Paris 13e', departement: '75' }]);
+  });
+
+  it('propose aussi les départements, en tête', () => {
+    expect(libelles('paris')).toEqual(['Paris', 'Paris 1er', 'Paris 13e']);
+    expect(rechercherLieux('val de marne', communes)).toEqual([{ type: 'departement', code: '94', libelle: 'Val-de-Marne' }]);
+    expect(libelles('val d’oise')).toEqual(['Val-d’Oise']);
+    expect(libelles("val d'oise")).toEqual(['Val-d’Oise']);
+    expect(libelles('94')).toEqual(['Val-de-Marne']);
+  });
+
+  it('ne propose pas ce qui est déjà choisi', () => {
+    expect(libelles('paris', { communes: ['75113'], departements: ['75'] })).toEqual(['Paris 1er']);
+  });
+
+  it('liste les choix connus pour les pastilles, sans les codes inconnus', () => {
+    const choix = lieuxChoisis({ communes: ['94041', '99999', '75113'], departements: ['95'] }, communes);
+    expect(choix.map((l) => `${l.type} ${l.code} ${l.libelle}`)).toEqual(['departement 95 Val-d’Oise', 'commune 94041 Ivry-sur-Seine', 'commune 75113 Paris 13e']);
+  });
+
+  it('ne propose rien pour une saisie vide', () => {
+    expect(rechercherLieux('  ', communes)).toEqual([]);
   });
 });
 
@@ -153,18 +273,95 @@ describe('géographie', () => {
   });
 });
 
-describe('carte scolaire 94', () => {
-  const rows = [
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 1, fin: 99, parite: 'I' as const, uai: 'A' },
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 2, fin: 100, parite: 'P' as const, uai: 'B' },
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 101, fin: null, parite: 'PI' as const, uai: 'C' },
-  ];
-  it('respecte la parité et les bornes', () => {
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '13' }, rows)).toEqual(['A']);
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '14bis' }, rows)).toEqual(['B']);
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '250' }, rows)).toEqual(['C']);
-    expect(findSecteur94({ citycode: '94081', street: 'Rue de la République', housenumber: '13' }, rows)).toEqual([]);
+describe('collège de secteur hors Paris (carte scolaire nationale)', () => {
+  const carte = (communes: CarteScolaireDepartement['communes']): DonneesSecteur => ({ type: 'carte', carte: { departement: '77', communes } });
+  const adresse = (citycode: string, street: string | null, housenumber: string | null = null): Adresse => ({
+    label: `${housenumber ?? ''} ${street ?? ''} ${citycode}`,
+    lat: 48.7,
+    lon: 2.5,
+    citycode,
+    street,
+    housenumber,
   });
+  const chelles = carte({
+    '77108': [
+      ['RUE DE LA REPUBLIQUE', 1, 99, 'I', '0770001A'],
+      ['RUE DE LA REPUBLIQUE', 2, 100, 'P', '0770002B'],
+      ['RUE DE LA REPUBLIQUE', 101, 9999, 'PI', '0770003C'],
+    ],
+  });
+
+  it('compare la voie normalisée et le numéro, avec les bornes et la parité', () => {
+    expect(findSecteur(adresse('77108', 'Rue de la République', '13'), chelles, [])).toMatchObject({ uais: ['0770001A'], methode: 'adresse', feature: null });
+    expect(findSecteur(adresse('77108', 'Rue de la République', '14bis'), chelles, []).uais).toEqual(['0770002B']);
+    expect(findSecteur(adresse('77108', 'Rue de la République', '250'), chelles, []).uais).toEqual(['0770003C']);
+  });
+
+  it('une commune à secteur unique donne son collège même si la rue n’est pas reconnue', () => {
+    const andelu = carte({ '78013': [['', null, null, 'PI', '0780709X']] });
+    expect(findSecteur(adresse('78013', 'Chemin inconnu des services', '3'), andelu, [])).toMatchObject({ uais: ['0780709X'], methode: 'commune_entiere', message: null });
+    expect(findSecteur(adresse('78013', null), andelu, []).uais).toEqual(['0780709X']);
+  });
+
+  it('un tronçon qui relève de plusieurs collèges les renvoie tous (secteur partagé)', () => {
+    const partage = carte({
+      '91432': [
+        ['AVENUE DE LA REPUBLIQUE', 1, 9999, 'PI', '0912539R'],
+        ['AVENUE DE LA REPUBLIQUE', 1, 9999, 'PI', '0910041A'],
+      ],
+    });
+    expect(findSecteur(adresse('91432', 'Av. de la République', '8'), partage, [])).toMatchObject({ uais: ['0910041A', '0912539R'], methode: 'adresse' });
+  });
+
+  it('hors des voies listées, la ligne sans voie donne le collège du reste de la commune', () => {
+    const morangis = carte({
+      '91432': [
+        ['RUE DE LA GARE', 1, 9999, 'PI', '0912539R'],
+        ['', null, null, 'PI', '0910041A'],
+      ],
+    });
+    expect(findSecteur(adresse('91432', 'Rue de la Gare', '4'), morangis, []).uais).toEqual(['0912539R']);
+    expect(findSecteur(adresse('91432', 'Rue des Lilas', '4'), morangis, [])).toMatchObject({ uais: ['0910041A'], methode: 'commune_entiere' });
+  });
+
+  it('une rue introuvable dans une commune à plusieurs secteurs donne un message explicite', () => {
+    const r = findSecteur(adresse('77108', 'Rue des Lilas', '4'), chelles, []);
+    expect(r).toMatchObject({ uais: [], methode: null, feature: null });
+    expect(r.message).toMatch(/rue introuvable/i);
+  });
+
+  const lilas = (statut: CollegeResume['statut'], uai: string, commune = '93045') => ({ uai, commune, statut });
+  const seineSaintDenis: DonneesSecteur = { type: 'carte', carte: { departement: '93', communes: { '93048': [['', null, null, 'PI', '0930001A']] } } };
+
+  it('une commune absente de la carte avec un seul collège public donne ce collège, « déduit »', () => {
+    const colleges = [lilas('public', '0931234A'), lilas('prive_sous_contrat', '0935678B'), lilas('public', '0939999Z', '93048')];
+    const r = findSecteur(adresse('93045', 'Rue de Paris', '10'), seineSaintDenis, colleges);
+    expect(r).toMatchObject({ uais: ['0931234A'], methode: 'deduit' });
+    expect(r.message).toContain('déduit : seul collège public de la commune');
+  });
+
+  it('une commune absente de la carte sans collège public unique (Coubron) : secteur inconnu', () => {
+    const r = findSecteur(adresse('93015', 'Rue de Paris', '10'), seineSaintDenis, [lilas('prive_sous_contrat', '0935678B', '93015')]);
+    expect(r).toMatchObject({ uais: [], methode: null });
+    expect(r.message).toMatch(/secteur inconnu pour cette commune/i);
+  });
+
+  it('une adresse hors d’Île-de-France n’a pas de collège de secteur ni de fichier à télécharger', () => {
+    const orleans = adresse('45234', 'Rue de la République', '1');
+    expect(sourceSecteur(orleans)).toBeNull();
+    const r = findSecteur(orleans, null, [lilas('public', '0931234A')]);
+    expect(r).toMatchObject({ uais: [], methode: null });
+    expect(r.message).toMatch(/hors Île-de-France/);
+  });
+
+  it('seul le fichier du département de l’adresse est téléchargé', () => {
+    expect(sourceSecteur({ citycode: '77108' })).toEqual({ fichier: 'carte-scolaire-77.json', type: 'carte' });
+    expect(sourceSecteur({ citycode: '94041' })?.fichier).toBe('carte-scolaire-94.json');
+    expect(sourceSecteur({ citycode: '95127' })?.fichier).toBe('carte-scolaire-95.json');
+  });
+});
+
+describe('numéros et noms', () => {
   it('lit les numéros avec suffixe', () => {
     expect(parseNumero('12bis')).toBe(12);
     expect(parseNumero(null)).toBeNull();
@@ -175,7 +372,7 @@ function ev(over: Partial<CollegeEvent>): CollegeEvent {
   return {
     id: over.id ?? Math.random().toString(36),
     uai: '0000001A',
-    academie: null,
+    territoire: null,
     type: 'portes_ouvertes',
     date: '2026-11-21',
     dateFin: null,
@@ -196,18 +393,54 @@ describe('événements', () => {
     ev({ id: 'a', date: '2026-11-21' }),
     ev({ id: 'b', date: '2026-10-20', type: 'inscription', dateFin: '2026-10-25' }),
     ev({ id: 'c', date: '2026-01-17', saison: '2025-26' }),
-    ev({ id: 'd', uai: null, academie: 'Paris', type: 'officiel', date: '2027-03-10' }),
+    ev({ id: 'd', uai: null, territoire: 'Paris', type: 'officiel', date: '2027-03-10' }),
     ev({ id: 'e', uai: '0000009Z', date: '2026-12-01' }),
+    ev({ id: 'f', uai: null, territoire: '94', type: 'officiel', date: '2027-03-27' }),
   ];
 
-  it('ne garde que la saison courante, les collèges filtrés et les académies cochées', () => {
+  it('ne garde que la saison courante, les collèges filtrés et les territoires cochés', () => {
     const out = calendarEvents(events, {
       saison: '2026-27',
       types: new Set(['portes_ouvertes', 'inscription', 'officiel']),
-      academies: new Set(['Paris']),
+      territoiresMasques: new Set(['94']),
       colleges: new Set(['0000001A']),
     });
     expect(out.map((e) => e.id)).toEqual(['b', 'a', 'd']);
+  });
+
+  it('montre les dates de tous les territoires quand aucun n’est décoché', () => {
+    const out = calendarEvents(events, { saison: '2026-27', types: new Set(['officiel']), territoiresMasques: new Set(), colleges: new Set() });
+    expect(out.map((e) => e.id)).toEqual(['d', 'f']);
+  });
+
+  it('ignore un territoire décoché inconnu (ancien réglage « Créteil » pour le Val-de-Marne)', () => {
+    const out = calendarEvents(events, {
+      saison: '2026-27',
+      types: new Set(['officiel']),
+      territoiresMasques: new Set(['Créteil']),
+      colleges: new Set(),
+    });
+    expect(out.map((e) => e.id)).toEqual(['d', 'f']);
+  });
+
+  it('liste les territoires présents dans les données : académies puis départements, sans doublon', () => {
+    const t = territoiresPresents([
+      ev({ uai: null, territoire: '94', type: 'officiel' }),
+      ev({ uai: null, territoire: 'Paris', type: 'officiel', saison: '2025-26' }),
+      ev({ uai: null, territoire: '94', type: 'officiel' }),
+      ev({ uai: null, territoire: '78', type: 'officiel' }),
+      ev({ uai: null, territoire: 'Versailles', type: 'officiel' }),
+      ev({}),
+    ]);
+    expect(t).toEqual(['Paris', 'Versailles', '78', '94']);
+    expect(territoiresPresents([ev({})])).toEqual([]);
+  });
+
+  it('nomme les territoires', () => {
+    expect(libelleTerritoire('Paris')).toBe('Académie de Paris');
+    expect(libelleTerritoire('Créteil')).toBe('Académie de Créteil');
+    expect(libelleTerritoire('94')).toBe('Val-de-Marne');
+    expect(libelleTerritoire('95')).toBe('Val-d’Oise');
   });
 
   it('met en tête les échéances urgentes des favoris', () => {
@@ -227,6 +460,12 @@ describe('événements', () => {
     expect(statutInscriptions(file, '0000001A', '2026-10-22')?.statut).toBe('ouvertes');
     expect(statutInscriptions(file, '0000001A', '2026-11-02')?.statut).toBe('closes');
     expect(statutInscriptions(file, '0000009Z', '2026-11-02')).toBeNull();
+  });
+
+  it('nomme le territoire d’une date officielle dans le .ics', () => {
+    const ics = buildIcs([events[5]], () => 'Collège Test', new Date('2026-10-08T10:00:00Z'));
+    expect(ics).toContain('SUMMARY:Portes ouvertes – Val-de-Marne');
+    expect(ics).not.toContain('Académie');
   });
 
   it('produit un .ics valide', () => {
@@ -277,21 +516,40 @@ describe('formats', () => {
   });
 });
 
-describe('secteur parisien le plus proche', () => {
-  const carre = (x: number, uai: string) => ({
+describe('collège de secteur à Paris', () => {
+  const carre = (x: number, libelle: string, uais: string[]) => ({
     type: 'Feature' as const,
-    geometry: { type: 'Polygon' as const, coordinates: [[[x, 48.8], [x + 0.001, 48.8], [x + 0.001, 48.801], [x, 48.801], [x, 48.8]]] as [number, number][][] },
-    properties: { libelle: uai, uais: [uai], noms: [uai] },
+    geometry: { type: 'Polygon' as const, coordinates: [[[x, 48.86], [x + 0.001, 48.86], [x + 0.001, 48.861], [x, 48.861], [x, 48.86]]] as [number, number][][] },
+    properties: { libelle, uais, noms: [libelle] },
   });
-  const features = [carre(2.35, 'A'), carre(2.36, 'B')];
-  it('retient le polygone qui contient l’adresse', () => {
-    expect(findSecteurParis({ lon: 2.3605, lat: 48.8005 }, features)?.properties.libelle).toBe('B');
+  const polygones: DonneesSecteur = { type: 'polygones', features: [carre(2.39, 'DOISNEAU', ['0750001A']), carre(2.4, 'COLETTE BESSON', ['0750002B'])] };
+  const adresse = (lon: number): Adresse => ({ label: 'Paris 20e', lat: 48.8605, lon, citycode: '75120', street: 'Rue des Pyrénées', housenumber: '300' });
+
+  it('donne le collège du polygone qui contient l’adresse, avec le polygone et la méthode « polygone »', () => {
+    const r = findSecteur(adresse(2.4005), polygones, []);
+    expect(r).toMatchObject({ uais: ['0750002B'], methode: 'polygone', message: null });
+    expect(r.feature?.properties.libelle).toBe('COLETTE BESSON');
   });
-  it('se rabat sur le polygone le plus proche dans la rue', () => {
-    // 0,0002° de longitude ≈ 15 m à l'est du carré A
-    expect(findSecteurParis({ lon: 2.3512, lat: 48.8005 }, features)?.properties.libelle).toBe('A');
+
+  it('dans la rue, retient le polygone le plus proche à moins de 60 m', () => {
+    // 0,0002° de longitude ≈ 15 m à l'est du premier carré
+    const r = findSecteur(adresse(2.3912), polygones, []);
+    expect(r).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
+    expect(r.feature?.properties.libelle).toBe('DOISNEAU');
   });
-  it('ne rattache pas une adresse trop éloignée', () => {
-    expect(findSecteurParis({ lon: 2.3555, lat: 48.8005 }, features)).toBeNull();
+
+  it('au-delà de 60 m de tout polygone, le secteur est introuvable', () => {
+    // À cette latitude, 0,0001° de longitude ≈ 7,3 m : ≈ 51 m du premier carré, retenu ; ≈ 66 m, non
+    expect(findSecteur(adresse(2.3917), polygones, [])).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
+    const loin = findSecteur(adresse(2.3919), polygones, []);
+    expect(loin).toMatchObject({ uais: [], methode: null, feature: null });
+    expect(loin.message).toBeTruthy();
+  });
+
+  it('les polygones ne sont téléchargés que pour une adresse à Paris', () => {
+    expect(sourceSecteur({ citycode: '75120' })).toEqual({ fichier: 'secteurs-paris.geojson', type: 'polygones' });
+    expect(sourceSecteur({ citycode: '75105' })?.fichier).toBe('secteurs-paris.geojson');
+    expect(sourceSecteur({ citycode: '92012' })?.fichier).not.toBe('secteurs-paris.geojson');
+    expect(sourceSecteur({ citycode: '94041' })?.fichier).not.toBe('secteurs-paris.geojson');
   });
 });

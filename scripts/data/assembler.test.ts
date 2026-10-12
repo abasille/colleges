@@ -1,0 +1,626 @@
+import { describe, expect, it } from 'vitest';
+import { assemblerDataset, etablissementsAGeocoder, uaisDuPerimetre } from './assembler';
+import { entree, etab, ligneCarte, ligneEffectifs, ligneIvac } from './fabriques';
+
+describe('assemblerDataset : coordonnées', () => {
+  it('sans coordonnées dans l’annuaire, publie celles du géocodage de l’adresse', () => {
+    const e = entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A' }),
+        etab({
+          identifiant_de_l_etablissement: '0756898R',
+          statut_public_prive: 'Privé',
+          type_contrat_prive: 'HORS CONTRAT',
+          adresse_1: '12 rue Charles Pouillet',
+          code_postal: '75017',
+          latitude: null,
+          longitude: null,
+        }),
+      ],
+      sources: { geocodage: new Map([['0756898R', { lat: 48.8851234, lon: 2.3123456, label: '12 Rue Charles Pouillet 75017 Paris', score: 0.97 }]]) },
+    });
+    expect(etablissementsAGeocoder(e.config, e.sources.annuaire).map((r) => r.identifiant_de_l_etablissement)).toEqual(['0756898R']);
+    const c = assemblerDataset(e).publication.dataset.colleges.find((x) => x.uai === '0756898R')!;
+    expect([c.lat, c.lon]).toEqual([48.885123, 2.312346]);
+  });
+});
+
+describe('assemblerDataset : sélection des collèges', () => {
+  it('garde les collèges ouverts des départements configurés, de nature 340 ou 352', () => {
+    const e = entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A' }),
+        etab({ identifiant_de_l_etablissement: '0920002B', code_commune: '92012', code_departement: '092', libelle_academie: 'Versailles', code_nature: 352 }),
+        etab({ identifiant_de_l_etablissement: '0600003C', code_commune: '60057', code_departement: '060', libelle_academie: 'Amiens' }),
+        etab({ identifiant_de_l_etablissement: '0750004D', code_nature: 300 }),
+        etab({ identifiant_de_l_etablissement: '0750005E', etat: 'A FERMER' }),
+      ],
+      config: { departements: ['75', '92'] },
+    });
+    expect(assemblerDataset(e).publication.dataset.colleges.map((c) => c.uai)).toEqual(['0750001A', '0920002B']);
+    expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0750001A', '0920002B']);
+  });
+
+  it('garde les collèges de l’annuaire, triés par UAI, sauf les exclusions manuelles', () => {
+    const e = entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0940002B', code_commune: '94041', nom_etablissement: 'Collège Politzer' }),
+        etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Rodin' }),
+        etab({ identifiant_de_l_etablissement: '0750003C', nom_etablissement: 'Annexe fermée' }),
+      ],
+      config: { exclure: ['0750003C'] },
+    });
+    const a = assemblerDataset(e);
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.commune])).toEqual([
+      ['0750001A', 'Collège Rodin', '75105'],
+      ['0940002B', 'Collège Politzer', '94041'],
+    ]);
+    expect(a.rapport.exclus.map((r) => r.identifiant_de_l_etablissement)).toEqual(['0750003C']);
+    // Même sélection pour le plan de chargement des sources interrogées par UAI.
+    expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0750001A', '0940002B']);
+  });
+});
+
+describe('assemblerDataset : doublons d’UAI', () => {
+  it('fusionne les lignes d’un même UAI en gardant le site principal, pas l’annexe', () => {
+    const site = { identifiant_de_l_etablissement: '0951509Z', code_commune: '95585', code_departement: '095', libelle_academie: 'Versailles' };
+    const e = entree({
+      colleges: [
+        etab({ ...site, nom_etablissement: 'Annexe Oscar Romero du collège La Salle - Saint-Rosaire de Sarcelles', nom_commune: 'Garges-lès-Gonesse', adresse_1: '5 rue Gambetta' }),
+        etab({ ...site, nom_etablissement: 'Collège La Salle - Saint-Rosaire', nom_commune: 'Sarcelles', adresse_1: '53 rue Pierre Brossolette' }),
+      ],
+    });
+    const a = assemblerDataset(e);
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.communeLibelle])).toEqual([['0951509Z', 'Collège La Salle - Saint-Rosaire', 'Sarcelles']]);
+    expect(a.publication.details.flatMap((d) => d.colleges.map((c) => c.adresse))).toEqual(['53 rue Pierre Brossolette']);
+    expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0951509Z']);
+  });
+});
+
+describe('assemblerDataset : commune, département, académie', () => {
+  it('lit la commune, le département et l’académie dans l’annuaire, Versailles comprise', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', code_commune: '75113', nom_commune: 'Paris 13e  Arrondissement' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', code_commune: '75101', nom_commune: 'Paris' }),
+          etab({
+            identifiant_de_l_etablissement: '0920003C',
+            code_commune: '92012',
+            nom_commune: 'Boulogne-Billancourt',
+            code_departement: '092',
+            libelle_academie: 'Versailles',
+          }),
+          etab({
+            identifiant_de_l_etablissement: '0940004D',
+            code_commune: '94041',
+            nom_commune: 'Ivry-sur-Seine',
+            code_departement: '094',
+            libelle_academie: 'Créteil',
+          }),
+        ],
+      }),
+    );
+    const d = a.publication.dataset;
+    expect(d.colleges.map((c) => [c.uai, c.commune, c.communeLibelle, c.departement, c.academie])).toEqual([
+      ['0750001A', '75113', 'Paris 13e', '75', 'Paris'],
+      ['0750002B', '75101', 'Paris 1er', '75', 'Paris'],
+      ['0920003C', '92012', 'Boulogne-Billancourt', '92', 'Versailles'],
+      ['0940004D', '94041', 'Ivry-sur-Seine', '94', 'Créteil'],
+    ]);
+    // Les données publiées listent les communes présentes, triées par code.
+    expect(d.communes).toEqual([
+      { code: '75101', libelle: 'Paris 1er', departement: '75' },
+      { code: '75113', libelle: 'Paris 13e', departement: '75' },
+      { code: '92012', libelle: 'Boulogne-Billancourt', departement: '92' },
+      { code: '94041', libelle: 'Ivry-sur-Seine', departement: '94' },
+    ]);
+  });
+});
+
+describe('assemblerDataset : lycée sur place', () => {
+  it('détecte le lycée sur place hors de Paris : cité scolaire publique et même établissement privé', () => {
+    const versailles = { code_departement: '092', libelle_academie: 'Versailles' };
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ ...versailles, identifiant_de_l_etablissement: '0920001A', code_commune: '92012', adresse_1: '1 rue A' }),
+          etab({
+            ...versailles,
+            identifiant_de_l_etablissement: '0920002B',
+            code_commune: '92040',
+            statut_public_prive: 'Privé',
+            type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES",
+            adresse_1: '2 rue B',
+            siren_siret: '77568540300029',
+          }),
+          etab({ ...versailles, identifiant_de_l_etablissement: '0920003C', code_commune: '92050', adresse_1: '3 rue C' }),
+        ],
+        sources: {
+          annuaire: {
+            colleges: [],
+            complements: [],
+            lycees: [
+              etab({ ...versailles, identifiant_de_l_etablissement: '0920101A', code_nature: 300, code_commune: '92012', nom_etablissement: 'Lycée A' }),
+              etab({
+                ...versailles,
+                identifiant_de_l_etablissement: '0920102B',
+                code_nature: 300,
+                code_commune: '92040',
+                statut_public_prive: 'Privé',
+                siren_siret: '77568540300011',
+                nom_etablissement: 'Lycée B',
+              }),
+              etab({ ...versailles, identifiant_de_l_etablissement: '0920103C', code_nature: 300, code_commune: '92050', adresse_1: '3 rue C' }),
+            ],
+          },
+          cites: [
+            { code_cite_scolaire: '09201', uai: '0920001A', code_nature: '340', appellation_officielle: null },
+            { code_cite_scolaire: '09201', uai: '0920101A', code_nature: '300', appellation_officielle: null },
+          ],
+        },
+      }),
+    );
+    expect(a.publication.details.flatMap((d) => d.colleges.map((c) => [c.uai, c.continuite.lien, c.continuite.lycee?.nom ?? null]))).toEqual([
+      ['0920001A', 'cite_scolaire', 'Lycée A'],
+      ['0920002B', 'meme_etablissement_prive', 'Lycée B'],
+      ['0920003C', 'aucun', null], // public à la même adresse qu'un lycée, sans cité scolaire
+    ]);
+  });
+});
+
+describe('assemblerDataset : rang', () => {
+  it('classe les collèges notés de tout le périmètre entre eux, toutes académies confondues ; un collège hors périmètre ne compte pas', () => {
+    const resultats = (uai: string, taux: number, noteEcrit: number) => ligneIvac({ uai, candidats: 100, taux, noteEcrit });
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A' }),
+          etab({ identifiant_de_l_etablissement: '0950002B', code_commune: '95585', code_departement: '095', libelle_academie: 'Versailles' }),
+          etab({ identifiant_de_l_etablissement: '0750003C' }),
+        ],
+        sources: {
+          ivac: [
+            resultats('0750001A', 95, 14),
+            resultats('0950002B', 70, 9),
+            resultats('0920009Z', 99, 16), // hors périmètre : distribution nationale seulement
+          ],
+        },
+      }),
+    );
+    const scores = Object.fromEntries(a.publication.dataset.colleges.map((c) => [c.uai, c.score && { rang: c.score.rang, sur: c.score.sur }]));
+    expect(scores).toEqual({
+      '0750001A': { rang: 1, sur: 2 },
+      '0750003C': null, // aucun résultat : pas de note
+      '0950002B': { rang: 2, sur: 2 },
+    });
+  });
+});
+
+describe('assemblerDataset : références', () => {
+  it('moyennes France et par académie, pondérées par les candidats, sur toutes les lignes nationales', () => {
+    const ips = (uai: string, academie: string, academique: number) => ({
+      annee: 2025,
+      uai,
+      nom: null,
+      academie,
+      ips: 100,
+      ecartType: null,
+      national: 103.2,
+      academique,
+      departemental: null,
+      source: 'test',
+    });
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })],
+        sources: {
+          ivac: [
+            ligneIvac({ uai: '0750001A', academie: 'PARIS', candidats: 100, taux: 90 }),
+            ligneIvac({ uai: '0940002B', academie: 'CRÉTEIL', candidats: 100, taux: 70 }),
+            ligneIvac({ uai: '0780003C', academie: 'VERSAILLES', candidats: 200, taux: 80 }),
+          ],
+          ips: [ips('0750001A', 'PARIS', 110.4), ips('0940002B', 'CRETEIL', 95.1), ips('0780003C', 'VERSAILLES', 104.7)],
+        },
+      }),
+    );
+    const { france, academies } = a.publication.dataset.references;
+    expect(france.brevet).toBe(80); // (90×100 + 70×100 + 80×200) / 400
+    expect(academies.Paris.brevet).toBe(90);
+    expect(academies['Créteil'].brevet).toBe(70);
+    expect(academies.Versailles.brevet).toBe(80);
+    expect(france.ips).toBe(103.2);
+    expect(academies.Paris.ips).toBe(110.4);
+    expect(academies['Créteil'].ips).toBe(95.1);
+    expect(academies.Versailles.ips).toBe(104.7);
+  });
+});
+
+describe('assemblerDataset : corrections manuelles', () => {
+  it('une correction l’emporte sur la valeur calculée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'COLLEGE RODIN', restauration: 1 })],
+        sources: { hebergement: [{ annee: 2025, uai: '0750001A', eleves: 500, demiPensionnaires: 0, internes: 0 }] },
+        corrections: {
+          colleges: { '0750001A': { nom: 'Collège Auguste-Rodin', demiPension: true, niveaux: ['5e', '4e', '3e'] } },
+        },
+      }),
+    );
+    const c = a.publication.dataset.colleges[0];
+    expect(c.nom).toBe('Collège Auguste-Rodin');
+    expect(a.publication.details[0].colleges[0].demiPension).toBe(true); // 0 demi-pensionnaire selon la source
+    expect(c.niveaux).toEqual(['5e', '4e', '3e']);
+    expect(c.accueilSixieme).toBe(false);
+  });
+
+  it('sans correction, la valeur calculée est publiée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'COLLEGE RODIN' })],
+        sources: { hebergement: [{ annee: 2025, uai: '0750001A', eleves: 500, demiPensionnaires: 0, internes: 0 }] },
+      }),
+    );
+    const c = a.publication.dataset.colleges[0];
+    const demiPension = a.publication.details[0].colleges[0].demiPension;
+    expect([c.nom, demiPension, c.niveaux, c.accueilSixieme]).toEqual(['COLLEGE RODIN', false, ['6e', '5e', '4e', '3e'], true]);
+  });
+});
+
+describe('assemblerDataset : accueil en 6e', () => {
+  const prive = { statut_public_prive: 'Privé', type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES" };
+  const sans6e = { '6e': 0, '5e': 0, '4e': 0, '3e': 0 };
+
+  it('n’accueille pas en 6e sans élève de 6e à la dernière rentrée connue, public comme privé sous contrat', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', ...prive }),
+          etab({ identifiant_de_l_etablissement: '0750003C' }),
+        ],
+        sources: {
+          effectifs: [
+            ligneEffectifs({ uai: '0750001A', annee: 2024 }),
+            ligneEffectifs({ uai: '0750001A', annee: 2025, parNiveau: { '6e': 0, '5e': 0, '4e': 0, '3e': 80 } }),
+            ligneEffectifs({ uai: '0750002B', annee: 2025, total: 0, parNiveau: sans6e }),
+            ligneEffectifs({ uai: '0750003C', annee: 2024, parNiveau: { ...sans6e, '3e': 50 } }),
+            ligneEffectifs({ uai: '0750003C', annee: 2025 }),
+          ],
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.accueilSixieme])).toEqual([
+      ['0750001A', false],
+      ['0750002B', false],
+      ['0750003C', true],
+    ]);
+  });
+
+  it('accueille en 6e quand la donnée manque : hors contrat sans effectifs, ou 6e masquée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', statut_public_prive: 'Privé', type_contrat_prive: 'HORS CONTRAT' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', ...prive }),
+        ],
+        sources: { effectifs: [ligneEffectifs({ uai: '0750002B', parNiveau: { '6e': null, '5e': 12, '4e': 9, '3e': 10 } })] },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.statut, c.accueilSixieme])).toEqual([
+      ['0750001A', 'hors_contrat', true],
+      ['0750002B', 'prive_sous_contrat', true],
+    ]);
+  });
+
+  it('une correction manuelle des niveaux l’emporte sur les effectifs', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A' }), etab({ identifiant_de_l_etablissement: '0750002B' })],
+        sources: {
+          effectifs: [
+            ligneEffectifs({ uai: '0750001A', parNiveau: { ...sans6e, '3e': 40 } }),
+            ligneEffectifs({ uai: '0750002B' }),
+          ],
+        },
+        corrections: {
+          colleges: { '0750001A': { niveaux: ['6e', '5e', '4e', '3e'] }, '0750002B': { niveaux: ['4e', '3e'] } },
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.niveaux, c.accueilSixieme])).toEqual([
+      ['0750001A', ['6e', '5e', '4e', '3e'], true],
+      ['0750002B', ['4e', '3e'], false],
+    ]);
+  });
+});
+
+describe('assemblerDataset : recrutement particulier', () => {
+  // Ivry (94041) figure dans la carte, Vitry (94081) n'y figure pas.
+  const carteScolaire = [ligneCarte({ code_insee: '94041', code_rne: '0940001A' })];
+  const ivry = { code_commune: '94041', nom_commune: 'Ivry-sur-Seine', code_departement: '094', libelle_academie: 'Créteil' };
+  const vitry = { ...ivry, code_commune: '94081', nom_commune: 'Vitry-sur-Seine' };
+
+  it('pose l’étiquette générique sur un collège public absent de la carte alors que sa commune y figure', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0940001A', ...ivry }),
+          etab({ identifiant_de_l_etablissement: '0940002B', ...ivry }),
+          etab({ identifiant_de_l_etablissement: '0940003C', ...ivry, statut_public_prive: 'Privé', type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES" }),
+        ],
+        sources: { carteScolaire },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.recrutementParticulier])).toEqual([
+      ['0940001A', null],
+      ['0940002B', 'sans secteur : recrutement sur dossier'],
+      ['0940003C', null],
+    ]);
+  });
+
+  it('ne se déclenche jamais dans une commune absente de la carte', () => {
+    const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0940004D', ...vitry })], sources: { carteScolaire } }));
+    expect(a.publication.dataset.colleges[0].recrutementParticulier).toBeNull();
+  });
+
+  it('une correction manuelle l’emporte : libellé précis, ou étiquette retirée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0940002B', ...ivry }), etab({ identifiant_de_l_etablissement: '0940005E', ...ivry })],
+        sources: { carteScolaire },
+        corrections: {
+          colleges: {
+            '0940002B': { recrutementParticulier: 'École expérimentale (admission sur dossier)' },
+            '0940005E': { recrutementParticulier: null },
+          },
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.recrutementParticulier])).toEqual([
+      ['0940002B', 'École expérimentale (admission sur dossier)'],
+      ['0940005E', null],
+    ]);
+  });
+});
+
+describe('assemblerDataset : collèges suivis', () => {
+  it('publie dans le fichier léger si chaque collège est suivi, d’après la liste des corrections manuelles', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A' }), etab({ identifiant_de_l_etablissement: '0750002B' })],
+        corrections: { suivis: ['0750002B', '0759999Z'] },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.suivi])).toEqual([
+      ['0750001A', false],
+      ['0750002B', true],
+    ]);
+    expect(a.publication.details[0].colleges[0]).not.toHaveProperty('suivi');
+  });
+});
+
+describe('assemblerDataset : fichiers publiés', () => {
+  it('sérialise la publication dans public/data, horodatée par l’horloge injectée', () => {
+    const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })] }));
+    expect(a.fichiers.map((f) => f.chemin)).toEqual([
+      'colleges.json',
+      'colleges-75.json',
+      'secteurs-paris.geojson',
+      ...['77', '78', '91', '92', '93', '94', '95'].map((d) => `carte-scolaire-${d}.json`),
+      'events.json',
+    ]);
+    const colleges = JSON.parse(a.fichiers[0].contenu) as { generatedAt: string; colleges: { uai: string }[] };
+    expect(colleges.generatedAt).toBe('2026-10-12T08:00:00.000Z');
+    expect(colleges.colleges.map((c) => c.uai)).toEqual(['0750001A']);
+    expect(a.publication.dataset.sources.find((s) => s.id === 'annuaire')?.millesime).toBe('extraction du 2026-10-12');
+  });
+});
+
+describe('assemblerDataset : fichier léger et détails par département', () => {
+  const deuxDepartements = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Rodin' }),
+        etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Lavoisier' }),
+        etab({
+          identifiant_de_l_etablissement: '0940003C',
+          code_commune: '94041',
+          nom_commune: 'Ivry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+      ],
+      sources: { ivac: [ligneIvac({ uai: '0750001A', candidats: 100, taux: 92, noteEcrit: 13 })] },
+    });
+
+  it('le fichier léger garde ce dont la liste, la carte et les filtres ont besoin, sans les historiques ni la continuité détaillée', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const c = a.publication.dataset.colleges.find((x) => x.uai === '0750001A')!;
+    expect(c.nom).toBe('Collège Rodin');
+    expect(c.indicateurs.brevet).toBe(92);
+    expect(c.score && Object.keys(c.score).sort()).toEqual(['lettre', 'note', 'partielle', 'rang', 'sur']);
+    expect(c.continuite).toEqual({ secondeGtSurPlace: false, passage: 'non_garanti' });
+    for (const champ of ['brevet', 'ips', 'effectifs', 'affelnetSecteur1', 'personnel', 'pix', 'labels', 'adresse', 'manquants']) {
+      expect(c, champ).not.toHaveProperty(champ);
+    }
+  });
+
+  it('chaque collège figure dans le fichier de son département, avec le détail de sa fiche', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const parDepartement = Object.fromEntries(a.publication.details.map((d) => [d.departement, d.colleges.map((c) => c.uai)]));
+    expect(parDepartement).toEqual({ '75': ['0750001A', '0750002B'], '94': ['0940003C'] });
+    const rodin = a.publication.details[0].colleges[0];
+    expect(rodin.brevet.map((b) => [b.session, b.taux])).toEqual([[2025, 92]]);
+    expect(rodin).toHaveProperty('continuite.passageTexte');
+    expect(rodin.continuite.lien).toBe('aucun');
+    expect(rodin.manquants.ips).toBe('Non publié');
+    expect(rodin.composantes?.brevet).not.toBeNull();
+  });
+
+  it('publie le fichier léger minifié et un fichier de détail par département', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const fichier = (chemin: string) => a.fichiers.find((f) => f.chemin === chemin)!.contenu;
+    expect(fichier('colleges.json').trim()).not.toContain('\n');
+    expect(JSON.parse(fichier('colleges.json')).colleges).toEqual(a.publication.dataset.colleges);
+    expect(JSON.parse(fichier('colleges-94.json'))).toEqual({ departement: '94', colleges: [expect.objectContaining({ uai: '0940003C' })] });
+  });
+});
+
+describe('assemblerDataset : contours des communes', () => {
+  const carre = (lon: number, lat: number) => ({
+    type: 'Polygon' as const,
+    coordinates: [
+      [
+        [lon, lat],
+        [lon + 0.01, lat],
+        [lon + 0.01, lat + 0.01],
+        [lon, lat + 0.01],
+        [lon, lat],
+      ] as [number, number][],
+    ],
+  });
+  const contour = (code: string, nom: string, departement: string) => ({
+    type: 'Feature' as const,
+    properties: { code, nom, departement },
+    geometry: carre(2.3, 48.8),
+  });
+  const avecContours = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', code_commune: '75113', nom_commune: 'Paris 13e  Arrondissement' }),
+        etab({
+          identifiant_de_l_etablissement: '0940002B',
+          code_commune: '94041',
+          nom_commune: 'Ivry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+        etab({
+          identifiant_de_l_etablissement: '0940003C',
+          code_commune: '94081',
+          nom_commune: 'Vitry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+      ],
+      sources: {
+        contours: [
+          contour('75056', 'Paris', '75'),
+          contour('75113', 'Paris 13e Arrondissement', '75'),
+          contour('75114', 'Paris 14e Arrondissement', '75'),
+          contour('94041', 'Ivry-sur-Seine', '94'),
+        ],
+      },
+    });
+
+  it('publie, par département, le contour de chaque commune ou arrondissement où il y a un collège, sous le libellé de l’application', () => {
+    const a = assemblerDataset(avecContours());
+    const parDepartement = Object.fromEntries(
+      a.publication.contours.map((d) => [d.departement, d.contours.features.map((f) => [f.properties.code, f.properties.libelle])]),
+    );
+    expect(parDepartement).toEqual({ '75': [['75113', 'Paris 13e']], '94': [['94041', 'Ivry-sur-Seine']] });
+    expect(a.publication.contours[0].contours.features[0].geometry).toEqual(carre(2.3, 48.8));
+  });
+
+  it('écrit un fichier de contours par département, une commune par ligne', () => {
+    const a = assemblerDataset(avecContours());
+    const fichier = a.fichiers.find((f) => f.chemin === 'contours-94.geojson')!.contenu;
+    expect(JSON.parse(fichier)).toEqual({
+      type: 'FeatureCollection',
+      features: [expect.objectContaining({ properties: { code: '94041', libelle: 'Ivry-sur-Seine' } })],
+    });
+    expect(fichier.trim().split('\n')).toHaveLength(3);
+  });
+
+  it('signale au rapport les communes sans contour', () => {
+    const a = assemblerDataset(avecContours());
+    expect(a.rapport.contoursManquants).toEqual([{ code: '94081', libelle: 'Vitry-sur-Seine' }]);
+  });
+
+  it('cite Etalab et la licence ODbL parmi les sources', () => {
+    const a = assemblerDataset(avecContours());
+    expect(a.publication.dataset.sources.find((s) => s.id === 'contours')).toEqual(
+      expect.objectContaining({ licence: 'ODbL', url: 'https://www.data.gouv.fr/datasets/contours-administratifs' }),
+    );
+  });
+});
+
+describe('assemblerDataset : secteurs parisiens', () => {
+  /** Secteur publié par la Ville : un carré d'environ 100 m, collèges désignés par leur nom. */
+  const secteur = (libelle: string, ...noms: string[]) => ({
+    properties: { libelle, annee_scol: '2026-2027', ...Object.fromEntries(noms.map((n, i) => [`lib_etab_${i + 1}`, n])) },
+    geometry: { type: 'Polygon' as const, coordinates: [[[2.39, 48.86], [2.3913, 48.86], [2.3913, 48.8609], [2.39, 48.8609], [2.39, 48.86]]] as [number, number][][] },
+  });
+  const e = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Robert Doisneau', code_commune: '75120', code_postal: '75020' }),
+        etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Henri IV', code_commune: '75105' }),
+      ],
+      sources: { secteursParis: [secteur('ROBERT DOISNEAU', 'ROBERT DOISNEAU'), secteur('INCONNU', 'NOM INCONNU')] },
+    });
+
+  it('relie chaque secteur aux collèges publics parisiens, dans tous les arrondissements', () => {
+    const fc = assemblerDataset(e()).publication.secteursParis;
+    expect(fc.features.map((f) => [f.properties.libelle, f.properties.uais])).toEqual([
+      ['INCONNU', []],
+      ['ROBERT DOISNEAU', ['0750001A']],
+    ]);
+  });
+
+  it('le rapport liste les secteurs qui ne trouvent pas de collège', () => {
+    expect(assemblerDataset(e()).rapport.secteursParis.secteursSansCollege).toEqual([{ libelle: 'INCONNU', noms: ['NOM INCONNU'] }]);
+  });
+});
+
+describe('assemblerDataset : carte scolaire nationale', () => {
+  const lignes = [
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'R DE LA RÉPUBLIQUE', n_de_voie_debut: 1.0, n_de_voie_fin: 99.0, parite: 'I', code_rne: '0770001A' }),
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'RUE DE LA REPUBLIQUE', n_de_voie_debut: 1.0, n_de_voie_fin: 99.0, parite: 'I', code_rne: '0770001A' }),
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'AVENUE FOCH', n_de_voie_debut: null, n_de_voie_fin: null, parite: null, code_rne: '0770002B' }),
+    ligneCarte({ code_insee: '78013', type_et_libelle: null, n_de_voie_debut: null, n_de_voie_fin: null, parite: null, code_rne: '0780709X', secteur_unique: 'O' }),
+    ligneCarte({ code_insee: '75105', type_et_libelle: 'RUE CLOVIS', code_rne: '0750001A' }),
+  ];
+
+  it('publie une carte compacte par département hors Paris, lignes « secteur unique » comprises', () => {
+    const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })], sources: { carteScolaire: lignes } }));
+    const parDepartement = Object.fromEntries(a.publication.cartesScolaires.map((c) => [c.departement, c.communes]));
+    expect(Object.keys(parDepartement)).toEqual(['77', '78', '91', '92', '93', '94', '95']);
+    expect(parDepartement['77']).toEqual({
+      '77108': [
+        ['AVENUE FOCH', null, null, 'PI', '0770002B'],
+        ['RUE DE LA REPUBLIQUE', 1, 99, 'I', '0770001A'],
+      ],
+    });
+    expect(parDepartement['78']).toEqual({ '78013': [['', null, null, 'PI', '0780709X']] });
+    expect(parDepartement['93']).toEqual({});
+    const fichier78 = a.fichiers.find((f) => f.chemin === 'carte-scolaire-78.json')!;
+    expect(JSON.parse(fichier78.contenu)).toEqual({ departement: '78', communes: { '78013': [['', null, null, 'PI', '0780709X']] } });
+    expect(a.rapport.carte.doublons).toBe(1);
+  });
+
+  it('le rapport liste les écarts entre les polygones parisiens et la carte nationale', () => {
+    const secteur = (libelle: string) => ({
+      properties: { libelle, annee_scol: '2026-2027', lib_etab_1: libelle },
+      geometry: { type: 'Polygon' as const, coordinates: [[[2.39, 48.86], [2.3913, 48.86], [2.3913, 48.8609], [2.39, 48.8609], [2.39, 48.86]]] as [number, number][][] },
+    });
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Rodin' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Lavoisier' }),
+        ],
+        sources: {
+          secteursParis: [secteur('RODIN'), secteur('LAVOISIER')],
+          carteScolaire: [
+            ligneCarte({ code_insee: '75105', code_rne: '0750001A' }),
+            ligneCarte({ code_insee: '75113', code_rne: '0750003C' }),
+            ligneCarte({ code_insee: '77108', code_rne: '0770002B' }),
+          ],
+        },
+      }),
+    );
+    expect(a.rapport.carte.ecartsParis).toEqual({ polygonesSeuls: ['0750002B'], carteSeule: ['0750003C'] });
+  });
+});

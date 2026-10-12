@@ -1,6 +1,6 @@
 // Sections internationales, sections sportives scolaires, sport-études (ministère)
 // et offre de langues (fr-en-offre-langues-2d, en secours de l'ONISEP).
-import { odsExport, odsList } from '../lib/fetch';
+import { odsExportParLots } from '../lib/fetch';
 
 export const SI_ID = 'fr-en-sections-internationales';
 export const SSS_ID = 'fr-en-sections-sportives-scolaires';
@@ -27,9 +27,9 @@ function push<T>(m: Map<string, T[]>, k: string, ...v: T[]) {
 }
 
 export async function loadSections(uais: string[]): Promise<Sections> {
-  const where = `uai in ${odsList(uais)}`;
+  const parUai = (id: string) => odsExportParLots(id, 'uai', uais);
   const internationales = new Map<string, { section: string; ouverture: string | null }[]>();
-  for (const r of await odsExport<Record<string, unknown>>(SI_ID, { where })) {
+  for (const r of await parUai(SI_ID)) {
     const niveau = String(r.niveau ?? '');
     if (niveau && !/coll/i.test(niveau)) continue;
     push(internationales, String(r.uai), {
@@ -38,15 +38,15 @@ export async function loadSections(uais: string[]): Promise<Sections> {
     });
   }
   const sportives = new Map<string, string[]>();
-  for (const r of await odsExport<Record<string, unknown>>(SSS_ID, { where })) {
+  for (const r of await parUai(SSS_ID)) {
     push(sportives, String(r.uai), ...toList(r.sections_scolaires));
   }
   const sportEtudes = new Map<string, string[]>();
-  for (const r of await odsExport<Record<string, unknown>>(SPORT_ETUDES_ID, { where })) {
+  for (const r of await parUai(SPORT_ETUDES_ID)) {
     push(sportEtudes, String(r.uai), ...toList(r.pratique_proposee));
   }
   const offreLangues = new Map<string, { lv1: string[]; lv2: string[] }>();
-  for (const r of await odsExport<Record<string, unknown>>(OFFRE_LANGUES_ID, { where })) {
+  for (const r of await parUai(OFFRE_LANGUES_ID)) {
     const uai = String(r.uai);
     const e = String(r.enseignements ?? '').toUpperCase();
     const o = offreLangues.get(uai) ?? { lv1: [], lv2: [] };

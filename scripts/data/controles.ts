@@ -1,6 +1,6 @@
 // Contrôles sur des données réelles, géocodées avec la Géoplateforme comme le fera le navigateur :
-//  - normalisation des voies : un échantillon de lignes de la carte scolaire d'Ivry / Vitry est géocodé
-//    et l'on vérifie que normalizeVoie(rue du géocodeur) === normalizeVoie(libellé de la carte scolaire) ;
+//  - normalisation des voies : un échantillon de lignes de la carte scolaire nationale (hors Paris) est
+//    géocodé et l'on vérifie que normalizeVoie(rue du géocodeur) === normalizeVoie(libellé de la carte scolaire) ;
 //  - secteurs parisiens : des adresses test tombent-elles dans un polygone (sinon, secteur le plus proche) ?
 import type { SecteurParisProps } from '../../src/types';
 import { normalizeVoie } from '../../src/lib/normalize';
@@ -8,8 +8,6 @@ import { fetchJson } from './lib/fetch';
 import type { FeatureCollection, Ring, SurfaceGeometry } from './lib/geo';
 
 export const GEOCODEUR = 'https://data.geopf.fr/geocodage/search';
-
-const COMMUNES: Record<string, string> = { '94041': 'Ivry-sur-Seine', '94081': 'Vitry-sur-Seine' };
 
 export interface VerifVoie {
   insee: string;
@@ -32,13 +30,13 @@ interface GeoResponse {
   features?: { properties: { street?: string; name?: string; citycode?: string; type?: string } }[];
 }
 
-export async function verifierVoies(rows: { insee: string; libelle: string }[], n = 25): Promise<VerifVoie[]> {
+export async function verifierVoies(rows: { insee: string; commune: string; libelle: string }[], n = 25): Promise<VerifVoie[]> {
   const uniques = [...new Map(rows.map((r) => [`${r.insee}|${r.libelle}`, r])).values()].sort(
     (a, b) => a.insee.localeCompare(b.insee) || a.libelle.localeCompare(b.libelle),
   );
   const out: VerifVoie[] = [];
   for (const r of echantillon(uniques, n)) {
-    const q = `${r.libelle} ${COMMUNES[r.insee] ?? r.insee}`;
+    const q = `${r.libelle} ${r.commune}`;
     const url = `${GEOCODEUR}?q=${encodeURIComponent(q)}&limit=1`;
     let rue: string | null = null;
     let citycode: string | null = null;

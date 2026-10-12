@@ -1,7 +1,7 @@
 // Effectifs des collèges par niveau, sexe et langue vivante (rentrées 2019 -> dernière).
 // Les valeurs inférieures à 5 sont masquées (null) par le producteur.
 import type { Niveau } from '../../../src/types';
-import { odsExport, odsList } from '../lib/fetch';
+import { odsExportParLots } from '../lib/fetch';
 import { annee, num } from '../lib/util';
 
 export const EFFECTIFS_ID = 'fr-en-college-effectifs-niveau-sexe-lv';
@@ -26,7 +26,7 @@ const NIVEAUX: [Niveau, string][] = [
 ];
 
 export async function loadEffectifs(uais: string[]): Promise<EffectifsRow[]> {
-  const raw = await odsExport<Record<string, unknown>>(EFFECTIFS_ID, { where: `numero_college in ${odsList(uais)}` });
+  const raw = await odsExportParLots(EFFECTIFS_ID, 'numero_college', uais);
   return raw.map((r) => {
     const parNiveau = Object.fromEntries(NIVEAUX.map(([n, k]) => [n, num(r[`nombre_total_de_${k}`])])) as Record<Niveau, number | null>;
     const langues: EffectifsRow['langues'] = { lv1: {}, lv2: {} };

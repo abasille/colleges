@@ -1,27 +1,29 @@
-// Contours des arrondissements et communes du périmètre (geo.api.gouv.fr).
-import type { ZoneCode } from '../../../src/types';
-import { fetchJson } from '../lib/fetch';
-import { simplifyGeometry, type Feature, type FeatureCollection, type SurfaceGeometry } from '../lib/geo';
+// Contours des communes (arrondissements municipaux de Paris compris) : jeu « Contours administratifs »
+// d'Etalab, généralisé à 100 m, dérivé d'Admin Express (IGN). Licence ODbL 1.0 (data.gouv.fr).
+// Un seul fichier France entière (8 Mo compressé), gardé en cache ; seules les communes des départements
+// du périmètre sont rendues.
+import { gunzipSync } from 'node:zlib';
+import type { Departement } from '../../../src/types';
+import { ANNEE_CONTOURS } from '../lib/config';
+import { fetchCached } from '../lib/fetch';
+import type { Feature } from '../lib/geo';
 
-export const GEO_API = 'https://geo.api.gouv.fr';
+export const CONTOURS_URL = `https://etalab-datasets.geo.data.gouv.fr/contours-administratifs/${ANNEE_CONTOURS}/geojson/communes-100m.geojson.gz`;
 
-export function contourUrl(code: string): string {
-  return code.startsWith('751')
-    ? `${GEO_API}/communes/${code}?type=arrondissement-municipal&format=geojson&geometry=contour`
-    : `${GEO_API}/communes/${code}?format=geojson&geometry=contour`;
+/** Propriétés d'une commune dans le fichier Etalab (Paris y figure aussi en entier, code 75056). */
+export interface ContourEtalabProps {
+  code: string;
+  nom: string;
+  departement: string;
 }
 
-export async function loadContours(
-  zones: { code: ZoneCode; libelle: string }[],
-  opts: { tolerance: number; decimals: number },
-): Promise<FeatureCollection<{ code: ZoneCode; libelle: string }>> {
-  const features: Feature<{ code: ZoneCode; libelle: string }>[] = [];
-  for (const z of zones) {
-    const f = await fetchJson<{ geometry: SurfaceGeometry; properties: { code: string } }>(contourUrl(z.code));
-    if (f.properties?.code !== z.code) throw new Error(`Contour ${z.code} : code inattendu ${f.properties?.code}`);
-    const geometry = simplifyGeometry(f.geometry, opts.tolerance, opts.decimals);
-    if (!geometry) throw new Error(`Contour ${z.code} : géométrie vide après simplification`);
-    features.push({ type: 'Feature', properties: { code: z.code, libelle: z.libelle }, geometry });
-  }
-  return { type: 'FeatureCollection', features };
+export type ContourCommuneBrut = Feature<ContourEtalabProps>;
+
+/** Contours des communes des départements donnés, propriétés réduites au code, au nom et au département. */
+export async function loadContoursCommunes(departements: readonly Departement[]): Promise<ContourCommuneBrut[]> {
+  const fc = JSON.parse(gunzipSync(await fetchCached(CONTOURS_URL, '.geojson.gz')).toString('utf-8')) as { features: ContourCommuneBrut[] };
+  const garder = new Set<string>(departements);
+  return fc.features
+    .filter((f) => garder.has(f.properties.departement))
+    .map(({ properties: { code, nom, departement }, geometry }) => ({ type: 'Feature', properties: { code, nom, departement }, geometry }));
 }

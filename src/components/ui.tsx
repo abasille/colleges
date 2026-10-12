@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import type { College, Statut } from '../types';
+import type { CollegeResume, Statut } from '../types';
 import { STATUT_COLORS } from '../lib/colors';
 import { STATUT_COURT, STATUT_LABELS } from '../lib/indicateurs';
 import { useStore } from '../store';
@@ -8,13 +8,13 @@ export function cx(...c: (string | false | null | undefined)[]): string {
   return c.filter(Boolean).join(' ');
 }
 
+/** Classes et couleurs d'un badge, partagées avec les bulles de la carte, construites hors de React. */
+export const CLASSES_BADGE = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium';
+export const couleursBadge = (color: string) => ({ backgroundColor: `${color}1a`, color });
+
 export function Badge({ children, color, title, className }: { children: ReactNode; color?: string; title?: string; className?: string }) {
   return (
-    <span
-      title={title}
-      className={cx('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium', className)}
-      style={color ? { backgroundColor: `${color}1a`, color } : undefined}
-    >
+    <span title={title} className={cx(CLASSES_BADGE, className)} style={color ? couleursBadge(color) : undefined}>
       {children}
     </span>
   );
@@ -28,11 +28,23 @@ export function StatutBadge({ statut, long = false }: { statut: Statut; long?: b
   );
 }
 
-/** Étiquettes secondaires d'un collège (REP, recrutement particulier, pas de 6e…). */
-export function CollegeTags({ c, secteur }: { c: College; secteur?: boolean }) {
+export const TEXTE_SUIVI = 'Collège suivi : portes ouvertes, inscriptions et passage au lycée relevés à la main';
+export const COULEUR_SUIVI = '#1d4ed8';
+
+export function SuiviBadge() {
+  return (
+    <Badge color={COULEUR_SUIVI} title={TEXTE_SUIVI}>
+      Suivi
+    </Badge>
+  );
+}
+
+/** Étiquettes secondaires d'un collège (suivi, REP, recrutement particulier, pas de 6e…). */
+export function CollegeTags({ c, secteur }: { c: CollegeResume; secteur?: boolean }) {
   return (
     <>
       {secteur && <Badge color="#16a34a" title="Collège de secteur de votre adresse">✓ Secteur</Badge>}
+      {c.suivi && <SuiviBadge />}
       {c.rep && <Badge color="#0f766e" title="Éducation prioritaire">{c.rep}</Badge>}
       {c.recrutementParticulier && (
         <Badge color="#be185d" title={c.recrutementParticulier}>

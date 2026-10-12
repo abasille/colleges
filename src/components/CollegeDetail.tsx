@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import type { College, Niveau } from '../types';
-import { useData } from '../data';
+import type { College, CollegeResume, Niveau } from '../types';
+import { useData, useFiche } from '../data';
 import { useStore } from '../store';
 import { formatDistance, formatHeures, formatNombre, formatPeriode, todayISO } from '../lib/format';
 import { EVENT_LABELS, INSCRIPTIONS_LABELS, LIEN_LABELS, PASSAGE_LABELS } from '../lib/indicateurs';
 import { EVENT_COLORS } from '../lib/colors';
 import { eventsForCollege, isPast, statutInscriptions } from '../lib/events';
+import { outilLyceeSecteur } from '../lib/lyceeSecteur';
+import { collegeAParis } from '../lib/territoires';
 import { LineChart } from './LineChart';
 import { ScoreBadge } from './ScoreBadge';
 import { ScoreHelp } from './ScoreHelp';
@@ -13,7 +15,7 @@ import { Badge, CollegeTags, ExternalLink, InfoTip, Modal, StarButton, StatutBad
 import { IndicRow, KV, Section, TagList } from './detail/common';
 
 export function CollegeDetail({ onClose }: { onClose: () => void }) {
-  const { byUai, distances, secteur } = useData();
+  const { byUai } = useData();
   const selected = useStore((s) => s.selected);
   const scroller = useRef<HTMLDivElement>(null);
   const c = selected ? byUai.get(selected) : undefined;
@@ -21,26 +23,69 @@ export function CollegeDetail({ onClose }: { onClose: () => void }) {
     scroller.current?.scrollTo({ top: 0 });
   }, [selected]);
   if (!c) return null;
-  const distance = distances?.get(c.uai) ?? null;
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div ref={scroller} className="scroll-thin min-h-0 flex-1 overflow-y-auto">
-        <Header c={c} distance={distance} secteur={!!secteur?.uais.includes(c.uai)} onClose={onClose} />
-        <Score c={c} />
-        <Resultats c={c} />
-        <Profil c={c} />
-        <Options c={c} />
-        <Continuite c={c} />
-        <Evenements c={c} />
-        <Notes uai={c.uai} />
-        <Autres c={c} />
-        <Sources c={c} />
+        <Fiche resume={c} onClose={onClose} />
       </div>
     </div>
   );
 }
 
-function Header({ c, distance, secteur, onClose }: { c: College; distance: number | null; secteur: boolean; onClose: () => void }) {
+/** Le haut de la fiche vient du fichier léger ; le reste attend le détail du département. */
+function Fiche({ resume, onClose }: { resume: CollegeResume; onClose: () => void }) {
+  const { distances, secteur } = useData();
+  const fiche = useFiche(resume);
+  const distance = distances?.get(resume.uai) ?? null;
+  const c = fiche.etat === 'prete' ? fiche.college : null;
+  return (
+    <>
+      <Header c={resume} fiche={c} distance={distance} secteur={!!secteur?.uais.includes(resume.uai)} onClose={onClose} />
+      {fiche.etat === 'chargement' && (
+        <p className="border-t border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500" role="status">
+          Chargement de la fiche…
+        </p>
+      )}
+      {fiche.etat === 'erreur' && (
+        <div className="border-t border-zinc-200 px-4 py-4 text-sm" role="alert">
+          <p className="text-red-700" title={fiche.message}>
+            Le détail de ce collège n’a pas pu être chargé. Vérifiez votre connexion, puis réessayez.
+          </p>
+          <button type="button" onClick={fiche.reessayer} className="mt-2 rounded border border-zinc-300 px-2 py-1 text-zinc-700 hover:bg-zinc-50">
+            Réessayer
+          </button>
+        </div>
+      )}
+      {c && (
+        <>
+          <Score c={c} />
+          <Resultats c={c} />
+          <Profil c={c} />
+          <Options c={c} />
+          <Continuite c={c} />
+          {c.suivi ? <Evenements c={c} /> : <PortesOuvertesNonRelevees c={c} />}
+          <Notes uai={c.uai} />
+          <Autres c={c} />
+          <Sources c={c} />
+        </>
+      )}
+    </>
+  );
+}
+
+function Header({
+  c,
+  fiche,
+  distance,
+  secteur,
+  onClose,
+}: {
+  c: CollegeResume;
+  fiche: College | null;
+  distance: number | null;
+  secteur: boolean;
+  onClose: () => void;
+}) {
   const niveauxComplets = c.niveaux.length === 4;
   return (
     <header className="px-4 pb-3 pt-3">
@@ -57,24 +102,32 @@ function Header({ c, distance, secteur, onClose }: { c: College; distance: numbe
         <CollegeTags c={c} secteur={secteur} />
         {c.continuite.secondeGtSurPlace && <Badge color="#0369a1">Lycée général sur place</Badge>}
       </div>
+      {c.statut === 'hors_contrat' && (
+        <p className="mt-2 rounded bg-violet-50 px-2 py-1 text-xs text-violet-900">
+          Collège hors contrat : le ministère ne publie aucune donnée sur ces établissements (résultats au brevet, valeur ajoutée, IPS, effectifs,
+          encadrement…). Seules les informations de l’annuaire sont affichées.
+        </p>
+      )}
       {c.recrutementParticulier && <p className="mt-2 rounded bg-pink-50 px-2 py-1 text-xs text-pink-900">{c.recrutementParticulier}</p>}
       {!niveauxComplets && <p className="mt-2 text-xs text-zinc-600">Classes : {c.niveaux.join(', ') || 'non précisé'}</p>}
-      {c.remarques.map((r) => (
+      {fiche?.remarques.map((r) => (
         <p key={r} className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
           {r}
         </p>
       ))}
       <div className="mt-2 space-y-0.5 text-sm text-zinc-700">
         <div>
-          {c.adresse}, {c.codePostal} {c.zoneLibelle.startsWith('Paris') ? 'Paris' : c.zoneLibelle}
+          {fiche ? `${fiche.adresse}, ${fiche.codePostal} ${collegeAParis(c) ? 'Paris' : c.communeLibelle}` : c.communeLibelle}
           {distance !== null && <span className="text-zinc-500"> · à {formatDistance(distance)} de votre adresse</span>}
         </div>
-        <div className="flex flex-wrap gap-x-3">
-          {c.web && <ExternalLink href={c.web}>Site web</ExternalLink>}
-          {c.telephone && <a href={`tel:${c.telephone.replace(/\s/g, '')}`}>{c.telephone}</a>}
-          {c.mail && <a href={`mailto:${c.mail}`} className="text-blue-700 hover:underline">E-mail</a>}
-          {c.ficheOnisep && <ExternalLink href={c.ficheOnisep}>Fiche ONISEP</ExternalLink>}
-        </div>
+        {fiche && (
+          <div className="flex flex-wrap gap-x-3">
+            {fiche.web && <ExternalLink href={fiche.web}>Site web</ExternalLink>}
+            {fiche.telephone && <a href={`tel:${fiche.telephone.replace(/\s/g, '')}`}>{fiche.telephone}</a>}
+            {fiche.mail && <a href={`mailto:${fiche.mail}`} className="text-blue-700 hover:underline">E-mail</a>}
+            {fiche.ficheOnisep && <ExternalLink href={fiche.ficheOnisep}>Fiche ONISEP</ExternalLink>}
+          </div>
+        )}
         {secteur && <div className="font-medium text-green-700">✓ Collège de secteur de votre adresse</div>}
       </div>
     </header>
@@ -97,11 +150,13 @@ function Score({ c }: { c: College }) {
                 {s.partielle && <span className="ml-2 text-xs font-normal text-zinc-500">(partielle)</span>}
               </div>
               <div className="text-sm text-zinc-600">
-                {s.rang === 1 ? '1er' : `${s.rang}e`} sur {s.sur} dans la zone
+                {s.rang === 1 ? '1er' : `${formatNombre(s.rang)}e`} sur {formatNombre(s.sur)} en Île-de-France
               </div>
             </>
           ) : (
-            <div className="text-sm text-zinc-600">Non calculée : {c.statut === 'hors_contrat' ? 'les hors contrat ne publient pas ces indicateurs.' : 'données insuffisantes.'}</div>
+            <div className="text-sm text-zinc-600">
+              Non calculée : {c.statut === 'hors_contrat' ? 'aucune donnée n’est publiée pour les collèges hors contrat.' : 'données insuffisantes.'}
+            </div>
           )}
         </div>
         <button type="button" onClick={() => setHelp(true)} className="rounded-full border border-zinc-300 px-2 text-sm text-zinc-600 hover:bg-zinc-50" aria-label="Comment est calculée la note ?">
@@ -257,15 +312,21 @@ function Continuite({ c }: { c: College }) {
           {!k.secondeGtSurPlace && <div className="mt-1 text-xs text-amber-800">Pas de 2nde générale et technologique dans ce lycée.</div>}
         </div>
       )}
-      <p
-        className={cx(
-          'mt-2 text-sm font-medium',
-          k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
-        )}
-      >
-        {PASSAGE_LABELS[k.passage]}
-      </p>
-      {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+      {c.suivi ? (
+        <>
+          <p
+            className={cx(
+              'mt-2 text-sm font-medium',
+              k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
+            )}
+          >
+            {PASSAGE_LABELS[k.passage]}
+          </p>
+          {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-medium text-zinc-700">Passage au lycée : non renseigné</p>
+      )}
       {k.sources.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-x-2 text-xs">
           {k.sources.map((s, i) => (
@@ -275,23 +336,51 @@ function Continuite({ c }: { c: College }) {
           ))}
         </div>
       )}
-      {c.statut === 'public' && (
-        <div className="mt-3">
-          <div className="text-sm font-medium">
-            Lycées de secteur 1 (Affelnet 2026)
-            <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
-          </div>
-          {c.affelnetSecteur1 ? (
-            <ul className="mt-1 list-disc pl-5 text-sm">
-              {c.affelnetSecteur1.map((l) => (
-                <li key={l.uai}>{l.nom}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">Non disponible{c.academie === 'Créteil' ? ' pour le Val-de-Marne' : ''}.</p>
-          )}
-        </div>
+      {c.statut === 'public' && <LyceeSecteur c={c} />}
+    </Section>
+  );
+}
+
+function LyceeSecteur({ c }: { c: College }) {
+  const outil = outilLyceeSecteur(c);
+  if (outil) {
+    return (
+      <div className="mt-3">
+        <div className="text-sm font-medium">Lycée de secteur</div>
+        <p className="text-sm text-zinc-500">Non disponible.</p>
+        <p className="mt-1 text-xs text-zinc-600">{outil.texte}</p>
+        <ExternalLink href={outil.url} className="text-xs">
+          {outil.libelle}
+        </ExternalLink>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <div className="text-sm font-medium">
+        Lycées de secteur 1 (Affelnet 2026)
+        <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
+      </div>
+      {c.affelnetSecteur1 ? (
+        <ul className="mt-1 list-disc pl-5 text-sm">
+          {c.affelnetSecteur1.map((l) => (
+            <li key={l.uai}>{l.nom}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-zinc-500">Non disponible.</p>
       )}
+    </div>
+  );
+}
+
+/** Collège non suivi : rien n'est relevé, ce qui ne veut pas dire qu'il n'y a pas de portes ouvertes. */
+function PortesOuvertesNonRelevees({ c }: { c: College }) {
+  return (
+    <Section title="Portes ouvertes et inscriptions">
+      <p className="text-sm text-zinc-700">
+        Portes ouvertes non relevées : {c.web ? <ExternalLink href={c.web}>voir le site du collège</ExternalLink> : 'voir le site du collège'}
+      </p>
     </Section>
   );
 }

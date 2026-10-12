@@ -11,9 +11,11 @@ interface GeoFeature {
 }
 
 const ENDPOINT = 'https://data.geopf.fr/geocodage/search';
+/** Centre géographique approximatif de l'Île-de-France (Essonne, près de la Seine) : à pertinence égale, les résultats proches passent devant. */
+const CENTRE_IDF = { lat: 48.71, lon: 2.5 };
 
 async function search(q: string, signal: AbortSignal): Promise<Adresse[]> {
-  const url = `${ENDPOINT}?q=${encodeURIComponent(q)}&limit=6&autocomplete=1&lat=48.82&lon=2.37`;
+  const url = `${ENDPOINT}?q=${encodeURIComponent(q)}&limit=6&autocomplete=1&lat=${CENTRE_IDF.lat}&lon=${CENTRE_IDF.lon}`;
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Géocodage : HTTP ${res.status}`);
   const data = (await res.json()) as { features: GeoFeature[] };
@@ -159,9 +161,8 @@ function AdresseChoisie({ label, onClear }: { label: string; onClear: () => void
                 </button>
               </span>
             ))}
+            {secteur?.message && <span className="text-zinc-500"> ({secteur.message})</span>}
           </>
-        ) : secteur?.noms.length ? (
-          <>Collège de secteur : {secteur.noms.join(' ou ')} (hors zone)</>
         ) : (
           secteur?.message
         )}

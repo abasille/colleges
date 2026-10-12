@@ -3,6 +3,24 @@
 // le libellé renvoyé par le géocodeur et celui de la carte scolaire passent
 // par la même fonction avant d'être comparés.
 
+/** Minuscules, sans accents, pour la recherche par nom. */
+export function fold(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+/** Mots sans accents ni casse ; tirets, apostrophes (droites ou typographiques) et ponctuation séparent les mots. */
+export function mots(s: string): string[] {
+  return fold(s).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
+
+/** Ordre alphabétique français, sans tenir compte des accents ni de la casse, nombres dans l'ordre (« Paris 2e » avant « Paris 10e »). */
+export const comparerFr = (a: string, b: string): number => collator.compare(a, b);
+
 /** Majuscules, sans accents ni ligatures. */
 export function stripAccents(s: string): string {
   return s

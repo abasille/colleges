@@ -3,7 +3,7 @@
 //    (moyenne des centiles de la VA du taux et de la VA de la note, ou celui disponible) ;
 //  - composante = centile du collège parmi tous les collèges de France ayant l'indicateur × 20 ;
 //  - note = moyenne des composantes disponibles si au moins 2 (« partielle » s'il en manque une) ;
-//  - lettre A ≥ 16, B ≥ 12, C ≥ 8, D ≥ 4, sinon E ; rang dans la zone (ex æquo au même rang).
+//  - lettre A ≥ 16, B ≥ 12, C ≥ 8, D ≥ 4, sinon E ; rang parmi les collèges notés du périmètre (ex æquo au même rang).
 import type { ScoreMaison } from '../../src/types';
 import { round } from './lib/util';
 

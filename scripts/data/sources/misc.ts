@@ -1,5 +1,5 @@
 // Jeux complémentaires : évaluations 6e, encadrement, personnel, demi-pension, labels, Pix.
-import { odsExport, odsList } from '../lib/fetch';
+import { odsExport, odsExportParLots } from '../lib/fetch';
 import { annee, num } from '../lib/util';
 
 export const EVAL6_ID = 'fr-en-evaluations_nationales_6eme_par_etablissement';
@@ -46,7 +46,7 @@ export interface Eval6 {
 export async function loadEval6(uais: string[]): Promise<Eval6> {
   const select = 'annee,uai,libelle_academie,discipline,effectif,score_moyen,caracteristique';
   const perimetre = (
-    await odsExport<Record<string, unknown>>(EVAL6_ID, { select, where: `uai in ${odsList(uais)} and caracteristique="Ensemble"` })
+    await odsExportParLots(EVAL6_ID, 'uai', uais, { select, where: 'caracteristique="Ensemble"' })
   ).map(parseEval6);
   const derniereAnnee = perimetre.length ? Math.max(...perimetre.map((r) => r.annee)) : null;
   const national = derniereAnnee
@@ -97,7 +97,7 @@ export interface Moyens {
 export async function loadMoyens(uais: string[]): Promise<Moyens> {
   const perimetre: MoyensRow[] = [];
   for (const id of [MOYENS_PUBLIC_ID, MOYENS_PRIVE_ID]) {
-    const raw = await odsExport<Record<string, unknown>>(id, { where: `uai in ${odsList(uais)} and niveau="Collège"` });
+    const raw = await odsExportParLots(id, 'uai', uais, { where: 'niveau="Collège"' });
     perimetre.push(...raw.map(parseMoyens));
   }
   const derniereAnnee = perimetre.length ? Math.max(...perimetre.map((r) => r.annee)) : null;
@@ -114,7 +114,7 @@ export async function loadMoyens(uais: string[]): Promise<Moyens> {
 // --- Personnel ---
 
 export async function loadPersonnel(uais: string[]): Promise<Record<string, unknown>[]> {
-  return odsExport(PERSONNEL_ID, { where: `identifiant_de_l_etablissement in ${odsList(uais)}` });
+  return odsExportParLots(PERSONNEL_ID, 'identifiant_de_l_etablissement', uais);
 }
 
 // --- Demi-pension ---
@@ -128,7 +128,7 @@ export interface HebergementRow {
 }
 
 export async function loadHebergement(uais: string[]): Promise<HebergementRow[]> {
-  const raw = await odsExport<Record<string, unknown>>(HEBERGEMENT_ID, { where: `uai in ${odsList(uais)}` });
+  const raw = await odsExportParLots(HEBERGEMENT_ID, 'uai', uais);
   return raw.map((r) => ({
     annee: annee(r.rentree) ?? 0,
     uai: String(r.uai ?? ''),
@@ -147,19 +147,18 @@ export async function loadLabels(uais: string[]): Promise<Map<string, string[]>>
     if (!l.includes(label)) l.push(label);
     out.set(uai, l);
   };
-  const list = odsList(uais);
-  for (const r of await odsExport<Record<string, unknown>>(LABEL_G2030_ID, { where: `uai in ${list}` })) {
+  for (const r of await odsExportParLots(LABEL_G2030_ID, 'uai', uais)) {
     const niveau = r.niveau_labellisation ? ` (${String(r.niveau_labellisation).toLowerCase()})` : '';
     add(String(r.uai), `Génération 2030${niveau}`);
   }
-  for (const r of await odsExport<Record<string, unknown>>(LABEL_EUROSCOL_ID, { where: `rne in ${list}` })) {
+  for (const r of await odsExportParLots(LABEL_EUROSCOL_ID, 'rne', uais)) {
     add(String(r.rne), 'Euroscol');
   }
-  for (const r of await odsExport<Record<string, unknown>>(LABEL_EGALITE_ID, { where: `identifiantuai in ${list}` })) {
+  for (const r of await odsExportParLots(LABEL_EGALITE_ID, 'identifiantuai', uais)) {
     const niveau = r.niveaudelabellisation ? ` (niveau ${String(r.niveaudelabellisation)})` : '';
     add(String(r.identifiantuai), `Égalité filles-garçons${niveau}`);
   }
-  for (const r of await odsExport<Record<string, unknown>>(CITES_EDUCATIVES_ID, { where: `uai in ${list}` })) {
+  for (const r of await odsExportParLots(CITES_EDUCATIVES_ID, 'uai', uais)) {
     const lib = r.libelle_long_cite_educative ? ` (${String(r.libelle_long_cite_educative)})` : '';
     add(String(r.uai), `Cité éducative${lib}`);
   }
@@ -179,7 +178,7 @@ export interface PixRow {
 }
 
 export async function loadPix(uais: string[]): Promise<PixRow[]> {
-  const raw = await odsExport<Record<string, unknown>>(PIX_ID, { where: `uai in ${odsList(uais)}` });
+  const raw = await odsExportParLots(PIX_ID, 'uai', uais);
   return raw.map((r) => ({
     annee: annee(r.annee) ?? 0,
     uai: String(r.uai ?? ''),

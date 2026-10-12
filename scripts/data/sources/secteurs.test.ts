@@ -8,6 +8,8 @@ const colleges: CollegeNom[] = [
   { uai: '0752539C', nom: 'Collège Claude Monet', adresse: '1 rue du Docteur Magnan' },
   { uai: '0750611G', nom: 'Collège Jean Moulin', adresse: "75 rue d'Alésia" },
   { uai: '0750525N', nom: 'Collège Moulin des Prés', adresse: '18 rue du Moulin des Prés' },
+  { uai: '0755778Y', nom: 'Collège Françoise Seligmann', adresse: '21 rue de Sambre et Meuse' },
+  { uai: '0752319N', nom: 'Collège Pierre Mendès France', adresse: '24 rue le Vau' },
 ];
 
 describe('matchNomCollege', () => {
@@ -21,7 +23,15 @@ describe('matchNomCollege', () => {
     expect(matchNomCollege('AUGUSTE RODIN', '19 RUE CORVISART', colleges)).toMatchObject({ uai: '0752538B', methode: 'inclusion' });
   });
 
-  it('pas de correspondance hors périmètre', () => {
+  it('collèges de tous les arrondissements', () => {
+    expect(matchNomCollege('PIERRE MENDES FRANCE', '24 RUE LE VAU', colleges)).toMatchObject({ uai: '0752319N', methode: 'exact', adresseConcordante: true });
+  });
+
+  it('nom publié avec une lettre doublée en moins', () => {
+    expect(matchNomCollege('FRANCOISE SELIGMAN', null, colleges)).toMatchObject({ uai: '0755778Y', methode: 'approchant' });
+  });
+
+  it('pas de correspondance pour un nom absent de la liste', () => {
     expect(matchNomCollege('CLAUDE DEBUSSY', null, colleges).uai).toBeNull();
     expect(matchNomCollege('MOLIERE', null, colleges).uai).toBeNull();
   });

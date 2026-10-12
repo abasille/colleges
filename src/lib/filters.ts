@@ -1,5 +1,6 @@
-import type { College, IndicateurKey, Statut, ZoneCode } from '../types';
+import type { CollegeResume, Departement, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
+import { comparerFr, fold } from './normalize';
 
 export type ValueKey = IndicateurKey | 'distance';
 export type SortKey = ValueKey | 'nom';
@@ -13,13 +14,17 @@ export interface Sort {
 export interface Filters {
   q: string;
   statuts: Statut[]; // vide = tous
-  zones: ZoneCode[]; // vide = toutes
+  // Sélection géographique : union des communes et des départements choisis ; les deux vides = toute l'Île-de-France.
+  communes: string[]; // codes INSEE (arrondissement à Paris)
+  departements: Departement[];
   rep: 'tous' | 'rep' | 'hors_rep';
   accueilSixieme: boolean;
   masquerRecrutementParticulier: boolean;
   lyceeGeneral: boolean;
   passageGaranti: boolean;
   favoris: boolean;
+  /** Seulement les collèges suivis (relevé manuel des portes ouvertes, du passage au lycée…). */
+  suivis: boolean;
   options: string[]; // ET logique
   ranges: Partial<Record<ValueKey, [number, number]>>;
   inclureSansDonnee: boolean;
@@ -28,13 +33,15 @@ export interface Filters {
 export const DEFAULT_FILTERS: Filters = {
   q: '',
   statuts: [],
-  zones: [],
+  communes: [],
+  departements: [],
   rep: 'tous',
   accueilSixieme: true,
   masquerRecrutementParticulier: false,
   lyceeGeneral: false,
   passageGaranti: false,
   favoris: false,
+  suivis: false,
   options: [],
   ranges: {},
   inclureSansDonnee: false,
@@ -47,38 +54,39 @@ export interface FilterContext {
   distances: ReadonlyMap<string, number> | null;
 }
 
-export function getValue(c: College, key: ValueKey, ctx: Pick<FilterContext, 'distances'>): number | null {
+export function getValue(c: CollegeResume, key: ValueKey, ctx: Pick<FilterContext, 'distances'>): number | null {
   if (key === 'distance') return ctx.distances?.get(c.uai) ?? null;
   return c.indicateurs[key];
 }
 
-/** Minuscules, sans accents, pour la recherche par nom. */
-export function fold(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+export function hasLyceeGeneral(c: CollegeResume): boolean {
+  return c.continuite.secondeGtSurPlace;
 }
 
-export function hasLyceeGeneral(c: College): boolean {
-  return c.continuite.lien !== 'aucun' && c.continuite.secondeGtSurPlace;
+/** Passage garanti par écrit ; seul un collège suivi a un passage au lycée renseigné (ADR 0001). */
+export function aPassageGaranti(c: CollegeResume): boolean {
+  return c.suivi && c.continuite.passage === 'garanti';
 }
 
-export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
+export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boolean {
   if (f.q.trim()) {
     const words = fold(f.q).split(/\s+/).filter(Boolean);
-    const hay = fold(`${c.nom} ${c.zoneLibelle}`);
+    const hay = fold(`${c.nom} ${c.communeLibelle}`);
     if (!words.every((w) => hay.includes(w))) return false;
   }
   if (f.statuts.length && !f.statuts.includes(c.statut)) return false;
-  if (f.zones.length && !f.zones.includes(c.zone)) return false;
+  if (f.communes.length || f.departements.length) {
+    const retenu = f.communes.includes(c.commune) || f.departements.includes(c.departement);
+    if (!retenu) return false;
+  }
   if (f.rep === 'rep' && !c.rep) return false;
   if (f.rep === 'hors_rep' && c.rep) return false;
   if (f.accueilSixieme && !c.accueilSixieme) return false;
   if (f.masquerRecrutementParticulier && c.recrutementParticulier) return false;
   if (f.lyceeGeneral && !hasLyceeGeneral(c)) return false;
-  if (f.passageGaranti && c.continuite.passage !== 'garanti') return false;
+  if (f.passageGaranti && !aPassageGaranti(c)) return false;
   if (f.favoris && !ctx.favoris.has(c.uai)) return false;
+  if (f.suivis && !c.suivi) return false;
   if (f.options.length && !f.options.every((o) => c.optionTags.includes(o))) return false;
   for (const [key, range] of Object.entries(f.ranges) as [ValueKey, [number, number]][]) {
     if (!range) continue;
@@ -92,15 +100,16 @@ export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
   return true;
 }
 
-export function applyFilters(colleges: College[], f: Filters, ctx: FilterContext): College[] {
-  return colleges.filter((c) => matches(c, f, ctx));
+/** Les codes de commune absents des collèges donnés (lien ancien ou erroné) sont ignorés. */
+export function applyFilters(colleges: CollegeResume[], f: Filters, ctx: FilterContext): CollegeResume[] {
+  const presentes = new Set(colleges.map((c) => c.commune));
+  const effectif = { ...f, communes: f.communes.filter((code) => presentes.has(code)) };
+  return colleges.filter((c) => matches(c, effectif, ctx));
 }
 
-const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
-
 /** Tri stable ; les valeurs manquantes sont toujours en dernier, quel que soit le sens. */
-export function sortColleges(colleges: College[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): College[] {
-  const byName = (a: College, b: College) => collator.compare(nomCourt(a.nom), nomCourt(b.nom));
+export function sortColleges(colleges: CollegeResume[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): CollegeResume[] {
+  const byName = (a: CollegeResume, b: CollegeResume) => comparerFr(nomCourt(a.nom), nomCourt(b.nom));
   const out = [...colleges];
   if (sort.key === 'nom') {
     out.sort((a, b) => (sort.dir === 'asc' ? byName(a, b) : byName(b, a)));
@@ -120,7 +129,7 @@ export function sortColleges(colleges: College[], sort: Sort, ctx: Pick<FilterCo
 }
 
 /** Bornes [min, max] observées d'un indicateur, pour initialiser les curseurs. */
-export function domainOf(colleges: College[], key: ValueKey, ctx: Pick<FilterContext, 'distances'>): [number, number] | null {
+export function domainOf(colleges: CollegeResume[], key: ValueKey, ctx: Pick<FilterContext, 'distances'>): [number, number] | null {
   let min = Infinity;
   let max = -Infinity;
   for (const c of colleges) {
@@ -136,13 +145,14 @@ export function domainOf(colleges: College[], key: ValueKey, ctx: Pick<FilterCon
 export function countActive(f: Filters): number {
   let n = 0;
   if (f.statuts.length) n++;
-  if (f.zones.length) n++;
+  if (f.communes.length || f.departements.length) n++;
   if (f.rep !== 'tous') n++;
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) n++;
   if (f.masquerRecrutementParticulier) n++;
   if (f.lyceeGeneral) n++;
   if (f.passageGaranti) n++;
   if (f.favoris) n++;
+  if (f.suivis) n++;
   n += f.options.length;
   n += Object.keys(f.ranges).length;
   return n;

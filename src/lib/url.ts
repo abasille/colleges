@@ -1,6 +1,7 @@
-import type { IndicateurKey, Statut, ZoneCode } from '../types';
+import type { IndicateurKey, Statut } from '../types';
 import { DEFAULT_FILTERS, DEFAULT_SORT, type Filters, type Sort, type SortKey, type ValueKey } from './filters';
 import { INDICATEURS } from './indicateurs';
+import { estDepartement } from './territoires';
 
 export type Vue = 'carte' | 'calendrier';
 export type ColorBy = 'statut' | IndicateurKey;
@@ -14,7 +15,8 @@ export interface UrlState {
 }
 
 const STATUTS: Statut[] = ['public', 'prive_sous_contrat', 'hors_contrat'];
-const ZONES: ZoneCode[] = ['75105', '75106', '75113', '75114', '94041', '94081'];
+/** Code INSEE de commune (2A/2B pour la Corse) ; un code bien formé mais inconnu est ignoré au filtrage. */
+const CODE_COMMUNE = /^(\d{2}|2[AB])\d{3}$/;
 const VALUE_KEYS = new Set<string>([...Object.keys(INDICATEURS), 'distance']);
 const SORT_KEYS = new Set<string>([...VALUE_KEYS, 'nom']);
 
@@ -33,13 +35,16 @@ export function parseUrlState(search: string): UrlState {
   const filters: Filters = {
     q: p.get('q') ?? '',
     statuts: list(p.get('st')).filter((s): s is Statut => STATUTS.includes(s as Statut)),
-    zones: list(p.get('z')).filter((s): s is ZoneCode => ZONES.includes(s as ZoneCode)),
+    // `z` : paramètre des communes depuis les premiers liens partagés, conservé tel quel.
+    communes: list(p.get('z')).filter((s) => CODE_COMMUNE.test(s)),
+    departements: list(p.get('d')).filter(estDepartement),
     rep: rep === 'rep' || rep === 'hors_rep' ? rep : 'tous',
     accueilSixieme: p.get('s6') !== '0',
     masquerRecrutementParticulier: p.get('rp') === '1',
     lyceeGeneral: p.get('ly') === '1',
     passageGaranti: p.get('pg') === '1',
     favoris: p.get('fav') === '1',
+    suivis: p.get('sv') === '1',
     options: list(p.get('opt')),
     ranges,
     inclureSansDonnee: p.get('nd') === '1',
@@ -65,13 +70,15 @@ export function serializeUrlState(s: UrlState): string {
   const f = s.filters;
   if (f.q) p.set('q', f.q);
   if (f.statuts.length) p.set('st', f.statuts.join(','));
-  if (f.zones.length) p.set('z', f.zones.join(','));
+  if (f.communes.length) p.set('z', f.communes.join(','));
+  if (f.departements.length) p.set('d', f.departements.join(','));
   if (f.rep !== 'tous') p.set('rep', f.rep);
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) p.set('s6', f.accueilSixieme ? '1' : '0');
   if (f.masquerRecrutementParticulier) p.set('rp', '1');
   if (f.lyceeGeneral) p.set('ly', '1');
   if (f.passageGaranti) p.set('pg', '1');
   if (f.favoris) p.set('fav', '1');
+  if (f.suivis) p.set('sv', '1');
   if (f.options.length) p.set('opt', f.options.join(','));
   for (const [k, r] of Object.entries(f.ranges)) if (r) p.set(`r.${k}`, `${r[0]}~${r[1]}`);
   if (f.inclureSansDonnee) p.set('nd', '1');

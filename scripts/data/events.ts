@@ -1,6 +1,7 @@
 // Validation et copie de data/overrides/events.json -> public/data/events.json.
 import { existsSync, readFileSync } from 'node:fs';
 import type { CollegeEvent, EventsFile, EventType, StatutInscriptions } from '../../src/types';
+import { estTerritoire } from '../../src/lib/territoires';
 
 const TYPES: EventType[] = ['portes_ouvertes', 'reunion_information', 'immersion', 'inscription', 'date_limite', 'officiel'];
 const STATUTS: StatutInscriptions[] = ['ouvertes', 'closes', 'a_venir', 'inconnu'];
@@ -18,7 +19,7 @@ export function problemesEvenement(e: Record<string, unknown>): string[] {
   const p: string[] = [];
   if (typeof e.id !== 'string' || !e.id) p.push('id manquant');
   if (!(e.uai === null || (typeof e.uai === 'string' && /^\d{7}[A-Z]$/.test(e.uai)))) p.push(`uai invalide (${String(e.uai)})`);
-  if (!(e.academie === null || e.academie === 'Paris' || e.academie === 'Créteil')) p.push(`academie invalide (${String(e.academie)})`);
+  if (!(e.territoire === null || estTerritoire(e.territoire))) p.push(`territoire invalide (${String(e.territoire)})`);
   if (!TYPES.includes(e.type as EventType)) p.push(`type invalide (${String(e.type)})`);
   if (!validDate(e.date)) p.push(`date invalide (${String(e.date)})`);
   if (!(e.dateFin === null || validDate(e.dateFin))) p.push(`dateFin invalide (${String(e.dateFin)})`);
@@ -32,7 +33,8 @@ export function problemesEvenement(e: Record<string, unknown>): string[] {
   if (typeof e.source !== 'string' || !e.source) p.push('source manquante');
   if (!validDate(e.verifieLe)) p.push(`verifieLe invalide (${String(e.verifieLe)})`);
   if (!['haute', 'moyenne', 'basse'].includes(e.confiance as string)) p.push(`confiance invalide (${String(e.confiance)})`);
-  if (e.type === 'officiel' && e.academie === null) p.push('événement officiel sans académie');
+  if (e.type === 'officiel' && e.territoire === null) p.push('date officielle sans territoire');
+  if (e.type !== 'officiel' && estTerritoire(e.territoire)) p.push('territoire renseigné pour un événement de collège');
   return p;
 }
 
@@ -45,8 +47,22 @@ export interface EventsResult {
   inscriptionsHorsPerimetre: string[];
 }
 
+/** Contenu brut de data/overrides/events.json, non validé. */
+export type EvenementsBruts = Partial<Omit<EventsFile, 'events'>> & { events?: Record<string, unknown>[] };
+
+/** Lit le fichier des événements ; null s'il n'existe pas. */
+export function lireEvenements(path: string): EvenementsBruts | null {
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, 'utf-8')) as EvenementsBruts;
+}
+
 export function chargerEvenements(path: string, perimetre: Set<string>, saisonParDefaut: string): EventsResult {
-  if (!existsSync(path)) {
+  return validerEvenements(lireEvenements(path), perimetre, saisonParDefaut);
+}
+
+/** Valide les événements et garde ceux du périmètre (sans accès disque). */
+export function validerEvenements(raw: EvenementsBruts | null, perimetre: Set<string>, saisonParDefaut: string): EventsResult {
+  if (raw === null) {
     return {
       file: { saisonCourante: saisonParDefaut, events: [], inscriptions: {} },
       present: false,
@@ -56,7 +72,6 @@ export function chargerEvenements(path: string, perimetre: Set<string>, saisonPa
       inscriptionsHorsPerimetre: [],
     };
   }
-  const raw = JSON.parse(readFileSync(path, 'utf-8')) as Partial<EventsFile> & { events?: Record<string, unknown>[] };
   const rejetes: EventsResult['rejetes'] = [];
   const horsPerimetre: string[] = [];
   const events: CollegeEvent[] = [];
@@ -77,7 +92,7 @@ export function chargerEvenements(path: string, perimetre: Set<string>, saisonPa
     events.push({
       id: ev.id,
       uai: ev.uai,
-      academie: ev.academie,
+      territoire: ev.territoire,
       type: ev.type,
       date: ev.date,
       dateFin: ev.dateFin,

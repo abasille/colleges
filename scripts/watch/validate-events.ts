@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CollegeEvent, EventType, StatutInscriptions } from '../../src/types';
+import { estTerritoire, TERRITOIRES } from '../../src/lib/territoires';
 
 const EVENT_TYPES: readonly EventType[] = [
   'portes_ouvertes',
@@ -18,7 +19,7 @@ const EVENT_TYPES: readonly EventType[] = [
 const STATUTS: readonly StatutInscriptions[] = ['ouvertes', 'closes', 'a_venir', 'inconnu'];
 const CONFIANCES: readonly CollegeEvent['confiance'][] = ['haute', 'moyenne', 'basse'];
 const EVENT_KEYS: readonly (keyof CollegeEvent)[] = [
-  'id', 'uai', 'academie', 'type', 'date', 'dateFin', 'heureDebut', 'heureFin', 'titre',
+  'id', 'uai', 'territoire', 'type', 'date', 'dateFin', 'heureDebut', 'heureFin', 'titre',
   'inscriptionRequise', 'saison', 'source', 'verifieLe', 'confiance',
 ];
 
@@ -73,10 +74,12 @@ export function validateEventsFile(data: unknown, exclude: readonly string[] = [
     if (!EVENT_TYPES.includes(e.type as EventType)) errors.push(`${at} : type inconnu ${String(e.type)}`);
     if (e.type === 'officiel') {
       if (e.uai !== null) errors.push(`${at} : un événement officiel n'a pas d'UAI`);
-      if (e.academie !== 'Paris' && e.academie !== 'Créteil') errors.push(`${at} : académie attendue (Paris ou Créteil)`);
+      if (!estTerritoire(e.territoire)) {
+        errors.push(`${at} : territoire attendu (${TERRITOIRES.join(', ')}), reçu ${String(e.territoire)}`);
+      }
     } else {
       if (!isUai(e.uai)) errors.push(`${at} : UAI invalide ${String(e.uai)}`);
-      if (e.academie !== null) errors.push(`${at} : academie doit être null pour un événement de collège`);
+      if (e.territoire !== null) errors.push(`${at} : territoire doit être null pour un événement de collège`);
     }
     if (typeof e.uai === 'string' && exclude.includes(e.uai)) errors.push(`${at} : UAI exclu du périmètre`);
 
