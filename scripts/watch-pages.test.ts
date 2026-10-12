@@ -362,8 +362,8 @@ describe('data/overrides', () => {
     const bad = {
       saisonCourante: '2026-28',
       events: [
-        { id: 'x', uai: '123', academie: 'Paris', type: 'fete', date: '2026-02-30', dateFin: '2026-01-01', heureDebut: '25:00', heureFin: null, titre: '', inscriptionRequise: 'oui', saison: '2026-27', source: 'pas une url', verifieLe: '2026-10-07', confiance: 'forte' },
-        { id: 'x', uai: null, academie: null, type: 'officiel', date: '2026-01-01', dateFin: null, heureDebut: null, heureFin: null, titre: 't', inscriptionRequise: null, saison: '2025-26', source: 'https://a', verifieLe: '2026-10-07', confiance: 'haute' },
+        { id: 'x', uai: '123', territoire: 'Paris', type: 'fete', date: '2026-02-30', dateFin: '2026-01-01', heureDebut: '25:00', heureFin: null, titre: '', inscriptionRequise: 'oui', saison: '2026-27', source: 'pas une url', verifieLe: '2026-10-07', confiance: 'forte' },
+        { id: 'x', uai: null, territoire: null, type: 'officiel', date: '2026-01-01', dateFin: null, heureDebut: null, heureFin: null, titre: 't', inscriptionRequise: null, saison: '2025-26', source: 'https://a', verifieLe: '2026-10-07', confiance: 'haute' },
       ],
       inscriptions: { '0752799K': { statut: 'peut-être', constateLe: 'hier', detail: '', source: 'x' } },
     };
@@ -379,13 +379,28 @@ describe('data/overrides', () => {
       'source doit être une URL',
       'confiance invalide',
       'id en double',
-      'académie attendue',
+      'territoire attendu',
+      'territoire doit être null pour un événement de collège',
       'inscriptions.0752799K : UAI exclu',
       'statut inconnu',
       'constateLe invalide',
     ]) {
       expect(errors).toContain(fragment);
     }
+  });
+
+  it('le validateur accepte un territoire valide et refuse le reste', () => {
+    const officiel = {
+      id: 'o', uai: null, territoire: '94', type: 'officiel', date: '2027-03-27', dateFin: null, heureDebut: null, heureFin: null,
+      titre: 't', inscriptionRequise: null, saison: '2026-27', source: 'https://a', verifieLe: '2026-10-12', confiance: 'haute',
+    };
+    const fichier = (events: object[]) => ({ saisonCourante: '2026-27', events, inscriptions: {} });
+    expect(validateEventsFile(fichier([officiel, { ...officiel, id: 'p', territoire: 'Versailles' }]))).toEqual([]);
+    expect(validateEventsFile(fichier([{ ...officiel, territoire: '13' }])).join('\n')).toContain('territoire attendu');
+    expect(validateEventsFile(fichier([{ ...officiel, territoire: 'Val-de-Marne' }])).join('\n')).toContain('territoire attendu');
+    const ancien = validateEventsFile(fichier([{ ...Object.fromEntries(Object.entries(officiel).filter(([k]) => k !== 'territoire')), academie: 'Créteil' }])).join('\n');
+    expect(ancien).toContain('champ manquant territoire');
+    expect(ancien).toContain('champ inattendu academie');
   });
 
   it('watch.json : 1 à 3 pages par collège, URL valides, aucun UAI exclu, pas de /serail/upload/', () => {

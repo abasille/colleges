@@ -7,7 +7,7 @@ import { chargerEvenements, problemesEvenement } from './events';
 const ok = {
   id: 'jpo-0752526N-2027-01',
   uai: '0752526N',
-  academie: null,
+  territoire: null,
   type: 'portes_ouvertes',
   date: '2027-01-16',
   dateFin: null,
@@ -28,7 +28,16 @@ describe('problemesEvenement', () => {
   it('signale les champs invalides', () => {
     const p = problemesEvenement({ ...ok, date: '2027-02-30', type: 'fete', heureDebut: '9h', confiance: 'forte' });
     expect(p).toHaveLength(4);
-    expect(problemesEvenement({ ...ok, uai: null, type: 'officiel', academie: null })).toContain('événement officiel sans académie');
+    expect(problemesEvenement({ ...ok, uai: null, type: 'officiel', territoire: null })).toContain('date officielle sans territoire');
+  });
+  it('accepte une académie ou un département comme territoire, refuse le reste', () => {
+    const officiel = { ...ok, uai: null, type: 'officiel' };
+    expect(problemesEvenement({ ...officiel, territoire: 'Versailles' })).toEqual([]);
+    expect(problemesEvenement({ ...officiel, territoire: '94' })).toEqual([]);
+    expect(problemesEvenement({ ...officiel, territoire: '13' })).toContain('territoire invalide (13)');
+    expect(problemesEvenement({ ...officiel, territoire: 'Lyon' })).toContain('territoire invalide (Lyon)');
+    expect(problemesEvenement({ ...officiel, academie: 'Paris' })).toContain('date officielle sans territoire');
+    expect(problemesEvenement({ ...ok, territoire: '94' })).toContain('territoire renseigné pour un événement de collège');
   });
 });
 
@@ -50,7 +59,7 @@ describe('chargerEvenements', () => {
           { ...ok, id: 'b', date: '2027-02-01' },
           { ...ok, id: 'a', date: '2027-01-10' },
           { ...ok, id: 'hors', uai: '0759999Z' },
-          { ...ok, id: 'off', uai: null, academie: 'Paris', type: 'officiel' },
+          { ...ok, id: 'off', uai: null, territoire: '94', type: 'officiel' },
           { ...ok, id: 'bad', date: 'demain' },
         ],
         inscriptions: {
@@ -61,6 +70,7 @@ describe('chargerEvenements', () => {
     );
     const r = chargerEvenements(path, new Set(['0752526N']), '2026-27');
     expect(r.file.events.map((e) => e.id)).toEqual(['a', 'off', 'b']);
+    expect(r.file.events.find((e) => e.id === 'off')?.territoire).toBe('94');
     expect(r.rejetes.map((x) => x.id)).toEqual(['bad']);
     expect(r.horsPerimetre).toEqual(['hors (0759999Z)']);
     expect(Object.keys(r.file.inscriptions)).toEqual(['0752526N']);

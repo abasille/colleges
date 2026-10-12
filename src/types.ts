@@ -9,6 +9,9 @@
 //   carte-scolaire-94.json   -> CarteScolaireRow[]
 
 export type Academie = 'Paris' | 'Créteil' | 'Versailles';
+export type Departement = '75' | '77' | '78' | '91' | '92' | '93' | '94' | '95';
+/** Académie ou département auquel s'applique une date officielle, selon qui la publie (rectorat ou direction départementale). */
+export type Territoire = Academie | Departement;
 export type Statut = 'public' | 'prive_sous_contrat' | 'hors_contrat';
 export type Niveau = '6e' | '5e' | '4e' | '3e';
 
@@ -239,9 +242,9 @@ export type EventType =
 
 export interface CollegeEvent {
   id: string;
-  /** UAI du collège ; null pour une date officielle d'académie. */
+  /** UAI du collège ; null pour une date officielle. */
   uai: string | null;
-  academie: Academie | null; // renseigné pour type 'officiel'
+  territoire: Territoire | null; // renseigné pour type 'officiel', null sinon
   type: EventType;
   date: string; // YYYY-MM-DD
   dateFin: string | null; // période (ex. inscriptions du 3 au 28 novembre)

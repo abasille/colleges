@@ -1,16 +1,15 @@
 import { useMemo } from 'react';
-import type { Academie, CollegeEvent, EventType } from '../types';
+import type { CollegeEvent, EventType } from '../types';
 import { useData } from '../data';
 import { ALL_EVENT_TYPES, useStore } from '../store';
-import { calendarEvents, isPast, isUrgent } from '../lib/events';
+import { calendarEvents, isPast, isUrgent, territoiresPresents } from '../lib/events';
 import { EVENT_COLORS } from '../lib/colors';
 import { EVENT_LABELS } from '../lib/indicateurs';
 import { formatDate, formatHeures, formatMois, formatPeriode, parseISODate, toISODate, todayISO } from '../lib/format';
 import { buildIcs, downloadIcs } from '../lib/ics';
 import { nomCourt } from '../lib/format';
+import { libelleTerritoire } from '../lib/territoires';
 import { cx, ExternalLink } from './ui';
-
-const ACADEMIES: Academie[] = ['Paris', 'Créteil'];
 
 export function CalendarView({ onOpen }: { onOpen?: () => void }) {
   const { events, visiblesSet, byUai } = useData();
@@ -18,8 +17,8 @@ export function CalendarView({ onOpen }: { onOpen?: () => void }) {
   const setMode = useStore((s) => s.setCalendarMode);
   const types = useStore((s) => s.eventTypes);
   const toggleType = useStore((s) => s.toggleEventType);
-  const academies = useStore((s) => s.academies);
-  const toggleAcademie = useStore((s) => s.toggleAcademie);
+  const masques = useStore((s) => s.territoiresMasques);
+  const toggleTerritoire = useStore((s) => s.toggleTerritoire);
   const select = useStore((s) => s.select);
   const today = todayISO();
 
@@ -28,11 +27,12 @@ export function CalendarView({ onOpen }: { onOpen?: () => void }) {
       calendarEvents(events.events, {
         saison: events.saisonCourante,
         types: new Set(types),
-        academies: new Set(academies),
+        territoiresMasques: new Set(masques),
         colleges: visiblesSet,
       }),
-    [events, types, academies, visiblesSet],
+    [events, types, masques, visiblesSet],
   );
+  const territoires = useMemo(() => territoiresPresents(events.events), [events]);
 
   const nomDe = (uai: string) => byUai.get(uai)?.nom ?? uai;
   const open = (e: CollegeEvent) => {
@@ -75,21 +75,21 @@ export function CalendarView({ onOpen }: { onOpen?: () => void }) {
           {ALL_EVENT_TYPES.filter((t) => t !== 'officiel').map((t) => (
             <TypeToggle key={t} type={t} on={types.includes(t)} onClick={() => toggleType(t)} />
           ))}
-          {ACADEMIES.map((a) => (
-            <button
-              key={a}
-              type="button"
-              onClick={() => toggleAcademie(a)}
-              aria-pressed={academies.includes(a) && types.includes('officiel')}
-              className={cx(
-                'rounded-full border px-2 py-0.5 text-xs',
-                academies.includes(a) && types.includes('officiel') ? 'border-slate-600 bg-slate-600 text-white' : 'border-zinc-300 text-zinc-500',
-              )}
-              title={`Dates officielles de l’académie de ${a}`}
-            >
-              Académie de {a}
-            </button>
-          ))}
+          {territoires.map((t) => {
+            const on = !masques.includes(t) && types.includes('officiel');
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => toggleTerritoire(t)}
+                aria-pressed={on}
+                className={cx('rounded-full border px-2 py-0.5 text-xs', on ? 'border-slate-600 bg-slate-600 text-white' : 'border-zinc-300 text-zinc-500')}
+                title={`Dates officielles : ${libelleTerritoire(t)}`}
+              >
+                {libelleTerritoire(t)}
+              </button>
+            );
+          })}
         </div>
         <p className="text-xs text-zinc-500">
           {shown.length} événement{shown.length > 1 ? 's' : ''} pour les collèges filtrés · les filtres de la liste s’appliquent (ex. ★ favoris seulement).
@@ -188,7 +188,7 @@ function EventRow({ e, today, nomDe, onClick }: { e: CollegeEvent; today: string
               {nomCourt(nomDe(e.uai))}
             </button>
           ) : (
-            <span className="font-medium text-slate-700">Académie de {e.academie}</span>
+            <span className="font-medium text-slate-700">{e.territoire && libelleTerritoire(e.territoire)}</span>
           )}{' '}
           · <ExternalLink href={e.source}>source</ExternalLink>
         </div>
@@ -242,7 +242,7 @@ function MonthGrid({ events, today, nomDe, onClick }: ListProps) {
                     key={e.id}
                     type="button"
                     onClick={() => onClick(e)}
-                    title={`${EVENT_LABELS[e.type]} – ${e.titre} – ${e.uai ? nomDe(e.uai) : `Académie de ${e.academie}`} (${formatDate(e.date)})`}
+                    title={`${EVENT_LABELS[e.type]} – ${e.titre} – ${e.uai ? nomDe(e.uai) : e.territoire ? libelleTerritoire(e.territoire) : ''} (${formatDate(e.date)})`}
                     className="block w-full truncate rounded px-1 text-left text-[10px] leading-4 text-white"
                     style={{ background: EVENT_COLORS[e.type], opacity: iso < today ? 0.45 : 1 }}
                   >
