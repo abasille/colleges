@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AnnuaireRow } from './annuaire';
+import { etab } from '../fabriques';
 import {
   choisirLien,
   construireContinuite,
@@ -10,43 +10,6 @@ import {
   type CiteRow,
   type VoiesLycee,
 } from './continuite';
-
-function etab(p: Partial<AnnuaireRow>): AnnuaireRow {
-  return {
-    identifiant_de_l_etablissement: '0750000A',
-    nom_etablissement: 'x',
-    type_etablissement: null,
-    statut_public_prive: 'Public',
-    type_contrat_prive: 'SANS OBJET',
-    adresse_1: null,
-    code_postal: '75005',
-    code_commune: '75105',
-    nom_commune: 'Paris',
-    code_departement: '075',
-    libelle_academie: 'Paris',
-    latitude: 48.8,
-    longitude: 2.3,
-    precision_localisation: null,
-    telephone: null,
-    web: null,
-    mail: null,
-    fiche_onisep: null,
-    restauration: 1,
-    ulis: 0,
-    segpa: '0',
-    appartenance_education_prioritaire: null,
-    siren_siret: null,
-    etablissement_mere: null,
-    code_nature: 340,
-    libelle_nature: null,
-    voie_generale: null,
-    voie_technologique: null,
-    voie_professionnelle: null,
-    date_ouverture: null,
-    etat: 'OUVERT',
-    ...p,
-  };
-}
 
 describe('normAdresse', () => {
   it('ignore CS, plages de numéros, accents et ponctuation', () => {

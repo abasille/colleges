@@ -45,8 +45,22 @@ export interface EventsResult {
   inscriptionsHorsPerimetre: string[];
 }
 
+/** Contenu brut de data/overrides/events.json, non validé. */
+export type EvenementsBruts = Partial<Omit<EventsFile, 'events'>> & { events?: Record<string, unknown>[] };
+
+/** Lit le fichier des événements ; null s'il n'existe pas. */
+export function lireEvenements(path: string): EvenementsBruts | null {
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, 'utf-8')) as EvenementsBruts;
+}
+
 export function chargerEvenements(path: string, perimetre: Set<string>, saisonParDefaut: string): EventsResult {
-  if (!existsSync(path)) {
+  return validerEvenements(lireEvenements(path), perimetre, saisonParDefaut);
+}
+
+/** Valide les événements et garde ceux du périmètre (sans accès disque). */
+export function validerEvenements(raw: EvenementsBruts | null, perimetre: Set<string>, saisonParDefaut: string): EventsResult {
+  if (raw === null) {
     return {
       file: { saisonCourante: saisonParDefaut, events: [], inscriptions: {} },
       present: false,
@@ -56,7 +70,6 @@ export function chargerEvenements(path: string, perimetre: Set<string>, saisonPa
       inscriptionsHorsPerimetre: [],
     };
   }
-  const raw = JSON.parse(readFileSync(path, 'utf-8')) as Partial<EventsFile> & { events?: Record<string, unknown>[] };
   const rejetes: EventsResult['rejetes'] = [];
   const horsPerimetre: string[] = [];
   const events: CollegeEvent[] = [];

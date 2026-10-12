@@ -15,7 +15,7 @@ export function secteursParisUrl(): string {
   return odsExportUrl(SECTEURS_PARIS_ID, { base: ODS_PARIS, where: `annee_scol="${ANNEE_SECTEURS_PARIS}"` }, 'geojson');
 }
 
-interface RawSecteurProps {
+export interface RawSecteurProps {
   libelle: string;
   annee_scol: string;
   lib_etab_1?: string | null;
@@ -85,11 +85,22 @@ export interface SecteursParisResult {
   polygonesApres: number;
 }
 
-export async function loadSecteursParis(
+/** Secteur tel que publié par la Ville (géométrie non simplifiée, collèges désignés par leur nom). */
+export interface SecteurParisBrut {
+  properties: RawSecteurProps;
+  geometry: SurfaceGeometry | null;
+}
+
+export async function loadSecteursParisBruts(): Promise<SecteurParisBrut[]> {
+  return (await fetchJson<{ features: SecteurParisBrut[] }>(secteursParisUrl())).features;
+}
+
+/** Relie chaque secteur aux collèges par leur nom et simplifie les géométries (sans accès réseau). */
+export function relierSecteursParis(
+  bruts: SecteurParisBrut[],
   collegesParis: CollegeNom[],
   opts: { tolerance: number; decimals: number; minHoleArea: number; minPolygonArea: number },
-): Promise<SecteursParisResult> {
-  const raw = await fetchJson<{ features: { properties: RawSecteurProps; geometry: SurfaceGeometry }[] }>(secteursParisUrl());
+): SecteursParisResult {
   const correspondances: SecteursParisResult['correspondances'] = [];
   const features: Feature<SecteurParisProps>[] = [];
   let positionsAvant = 0;
@@ -97,7 +108,7 @@ export async function loadSecteursParis(
   let polygonesAvant = 0;
   let polygonesApres = 0;
   const nbPolygones = (g: SurfaceGeometry) => (g.type === 'Polygon' ? 1 : g.coordinates.length);
-  for (const f of raw.features) {
+  for (const f of bruts) {
     const p = f.properties;
     const noms: string[] = [];
     const uais: string[] = [];
@@ -132,8 +143,14 @@ export interface CarteScolaireResult {
   doublons: number;
 }
 
-export async function loadCarteScolaire(communes: string[]): Promise<CarteScolaireResult> {
-  const raw = await odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { where: `code_insee in ${odsList(communes)}` });
+/** Lignes brutes de la carte scolaire pour les communes du Val-de-Marne de la configuration. */
+export async function loadCarteScolaireBrute(zones: { code: string }[]): Promise<Record<string, unknown>[]> {
+  const communes94 = zones.filter((z) => z.code.startsWith('94')).map((z) => z.code);
+  return odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { where: `code_insee in ${odsList(communes94)}` });
+}
+
+/** Normalise les voies, écarte les lignes sans voie ni UAI et les doublons exacts, trie (sans accès réseau). */
+export function compacterCarteScolaire(raw: Record<string, unknown>[]): CarteScolaireResult {
   const seen = new Set<string>();
   const rows: CarteScolaireRow[] = [];
   const brut: CarteScolaireResult['brut'] = [];

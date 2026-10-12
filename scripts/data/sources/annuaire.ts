@@ -73,17 +73,27 @@ const FIELDS = [
   'etat',
 ].join(',');
 
+/** Lignes de l'annuaire telles que chargées, sans sélection. */
+export interface AnnuaireBrut {
+  /** Établissements des communes et codes nature de la configuration (exclusions non appliquées). */
+  colleges: AnnuaireRow[];
+  /** Lycées (natures NATURES_LYCEE) de Paris et du Val-de-Marne. */
+  lycees: AnnuaireRow[];
+  /** Lycées cités par les corrections de continuité mais absents des deux listes précédentes. */
+  complements: AnnuaireRow[];
+}
+
 export interface Annuaire {
   /** Collèges du périmètre (exclusions appliquées), triés par UAI. */
   colleges: AnnuaireRow[];
   /** Établissements de nature collège du périmètre écartés par la configuration. */
   exclus: AnnuaireRow[];
-  /** Lycées (natures NATURES_LYCEE) de Paris et du Val-de-Marne. */
+  /** Lycées (natures NATURES_LYCEE) de Paris et du Val-de-Marne, triés par UAI. */
   lycees: AnnuaireRow[];
   byUai: Map<string, AnnuaireRow>;
 }
 
-export async function loadAnnuaire(cfg: Config): Promise<Annuaire> {
+export async function loadAnnuaire(cfg: Config, continuite: Record<string, { lyceeUai?: string | null }>): Promise<AnnuaireBrut> {
   const communes = cfg.zones.map((z) => z.code);
   const colleges = await odsExport<AnnuaireRow>(ANNUAIRE_ID, {
     select: FIELDS,
@@ -93,16 +103,11 @@ export async function loadAnnuaire(cfg: Config): Promise<Annuaire> {
     select: FIELDS,
     where: `code_departement in ("075","094") and code_nature in ${odsList(NATURES_LYCEE)}`,
   });
-  const exclure = new Set(cfg.exclure);
-  const byUai = new Map<string, AnnuaireRow>();
-  for (const r of [...lycees, ...colleges]) byUai.set(r.identifiant_de_l_etablissement, r);
-  const sort = (a: AnnuaireRow, b: AnnuaireRow) => a.identifiant_de_l_etablissement.localeCompare(b.identifiant_de_l_etablissement);
-  return {
-    colleges: colleges.filter((r) => !exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
-    exclus: colleges.filter((r) => exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
-    lycees: lycees.sort(sort),
-    byUai,
-  };
+  const charges = new Set([...colleges, ...lycees].map((r) => r.identifiant_de_l_etablissement));
+  const manquants = Object.values(continuite)
+    .map((o) => o.lyceeUai)
+    .filter((u): u is string => !!u && !charges.has(u));
+  return { colleges, lycees, complements: await loadAnnuaireUais(manquants) };
 }
 
 /** Fiches de l'annuaire pour des UAI précis (lycées hors Paris / Val-de-Marne cités dans les corrections). */
