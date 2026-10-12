@@ -15,6 +15,7 @@ import { loadEval6, loadHebergement, loadLabels, loadMoyens, loadPersonnel, load
 import { loadCites, loadVoiesLycees, type ContinuiteOverrides } from './sources/continuite';
 import { loadCarteScolaireBrute, loadSecteursParisBruts } from './sources/secteurs';
 import { loadAffelnet } from './sources/affelnet';
+import { loadContoursCommunes } from './sources/contours';
 import { geocoderEtablissements } from './sources/geocodage';
 import { lireEvenements } from './events';
 import { verifierSecteursParis, verifierVoies } from './controles';
@@ -90,6 +91,10 @@ async function main() {
   const carteScolaire = await loadCarteScolaireBrute(config.departements);
   console.log(`  carte scolaire nationale : ${carteScolaire.length} lignes`);
 
+  step('Contours des communes (Etalab)');
+  const contours = await loadContoursCommunes(config.departements);
+  console.log(`  ${contours.length} communes et arrondissements`);
+
   // ---------------------------------------------------------------- assemblage
   step('Calculs');
   const a = assemblerDataset({
@@ -115,6 +120,7 @@ async function main() {
       geocodage,
       secteursParis,
       carteScolaire,
+      contours,
     },
     maintenant: new Date(),
   });

@@ -24,6 +24,7 @@ npm run build          # build statique dans dist/
 npm run data           # régénère public/data/ depuis les sources (cache dans data/cache/)
 npm run data -- --offline   # idem, sans réseau, à partir du cache
 npm run watch-pages    # détecte les pages de portes ouvertes modifiées
+npm run suivre -- trouver <nom ou UAI>   # aide de /college-suivre : collège, relevé existant, dates officielles
 ```
 
 Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/deploy.yml`).
@@ -32,6 +33,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 
 - **Indicateurs** (une fois par an, après la publication des résultats du brevet et de l'IPS) : lancer `npm run data`, relire `data/report.md`, puis committer `public/data/`.
 - **Corrections manuelles** : le dossier `data/overrides/` contient les étiquettes, la continuité vers le lycée, les événements et les pages surveillées. Ces fichiers l'emportent sur les sources.
+- **Collèges suivis** : lancer `/college-suivre <nom ou UAI>` dans Claude Code pour qu'un collège du périmètre devienne suivi. La commande cherche 1 à 3 pages à surveiller (en respectant robots.txt), la formulation de l'établissement sur le passage au lycée avec sa source, les étiquettes et, pour le privé, le statut des inscriptions. Elle signale les dates officielles qui manquent pour le territoire du collège et présente un diff à relire : rien n'est écrit sans validation.
 - **Portes ouvertes** : une GitHub Action hebdomadaire (`watch-pages.yml`) ouvre un ticket quand une page surveillée change. Il faut alors lancer `/college-maj-portes-ouvertes` dans Claude Code, qui propose les nouvelles dates à relire avant de les committer. Les sites des collèges publics (pia.ac-paris.fr, Skolengo) refusent les connexions venant de GitHub : l'Action ne surveille en pratique que les sites du privé, et `npm run watch-pages` lancé en local couvre tout.
 
 ## Sources
@@ -42,7 +44,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 | Idéo-Structures d'enseignement secondaire, Idéo-Actions de dispositif | [ONISEP](https://opendata.onisep.fr) | ODbL |
 | Secteurs scolaires des collèges | [Ville de Paris](https://opendata.paris.fr) | ODbL |
 | Affectation en 2nde GT 2026 (lycées de secteur) | Académie de Paris | — |
-| Contours des communes et arrondissements | [geo.api.gouv.fr](https://geo.api.gouv.fr) | Licence Ouverte 2.0 |
+| Contours des communes et arrondissements (millésime 2026, généralisés à 100 m), d'après Admin Express (IGN) | Etalab, [Contours administratifs](https://www.data.gouv.fr/datasets/contours-administratifs) sur data.gouv.fr | ODbL |
 | Géocodage des adresses | Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Fond de carte | Plan IGN, Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Dates de portes ouvertes et d'inscription | Sites des établissements, relevés à la main (source citée pour chaque date) | — |

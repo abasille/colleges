@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T17:50:42.416Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T17:52:56.059Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -3288,4 +3288,14 @@ Contrôle croisé à Paris (polygones de la Ville / carte nationale) : UAI des p
 | public/data/carte-scolaire-93.json | 465 ko |
 | public/data/carte-scolaire-94.json | 390 ko |
 | public/data/carte-scolaire-95.json | 431 ko |
+| public/data/contours-75.geojson | 8 ko |
+| public/data/contours-77.geojson | 76 ko |
+| public/data/contours-78.geojson | 51 ko |
+| public/data/contours-91.geojson | 46 ko |
+| public/data/contours-92.geojson | 17 ko |
+| public/data/contours-93.geojson | 22 ko |
+| public/data/contours-94.geojson | 25 ko |
+| public/data/contours-95.geojson | 38 ko |
 | public/data/events.json | 33 ko |
+
+Contours : chaque commune présente a le sien (contours-<dép>.geojson).

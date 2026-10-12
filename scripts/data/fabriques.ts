@@ -113,6 +113,7 @@ export function sourcesVides(): SourcesChargees {
     geocodage: new Map(),
     secteursParis: [],
     carteScolaire: [],
+    contours: [],
   };
 }
 
