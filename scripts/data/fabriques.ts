@@ -113,7 +113,7 @@ export function entree(
   const cfg = config(p.config);
   return {
     config: cfg,
-    corrections: { colleges: {}, continuite: {}, evenements: null, ...p.corrections },
+    corrections: { colleges: {}, continuite: {}, evenements: null, suivis: [], ...p.corrections },
     sources,
     maintenant: new Date('2026-10-12T08:00:00Z'),
   };

@@ -267,6 +267,22 @@ describe('assemblerDataset : corrections manuelles', () => {
   });
 });
 
+describe('assemblerDataset : collèges suivis', () => {
+  it('publie dans le fichier léger si chaque collège est suivi, d’après la liste des corrections manuelles', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A' }), etab({ identifiant_de_l_etablissement: '0750002B' })],
+        corrections: { suivis: ['0750002B', '0759999Z'] },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.suivi])).toEqual([
+      ['0750001A', false],
+      ['0750002B', true],
+    ]);
+    expect(a.publication.details[0].colleges[0]).not.toHaveProperty('suivi');
+  });
+});
+
 describe('assemblerDataset : fichiers publiés', () => {
   it('sérialise la publication dans public/data, horodatée par l’horloge injectée', () => {
     const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })] }));

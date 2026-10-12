@@ -1,4 +1,4 @@
-import type { CollegeResume, IndicateurKey, Statut } from '../types';
+import type { CollegeResume, Departement, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
 
 export type ValueKey = IndicateurKey | 'distance';
@@ -13,13 +13,17 @@ export interface Sort {
 export interface Filters {
   q: string;
   statuts: Statut[]; // vide = tous
-  communes: string[]; // codes INSEE ; vide = toutes
+  // Sélection géographique : union des communes et des départements choisis ; les deux vides = toute l'Île-de-France.
+  communes: string[]; // codes INSEE (arrondissement à Paris)
+  departements: Departement[];
   rep: 'tous' | 'rep' | 'hors_rep';
   accueilSixieme: boolean;
   masquerRecrutementParticulier: boolean;
   lyceeGeneral: boolean;
   passageGaranti: boolean;
   favoris: boolean;
+  /** Seulement les collèges suivis (relevé manuel des portes ouvertes, du passage au lycée…). */
+  suivis: boolean;
   options: string[]; // ET logique
   ranges: Partial<Record<ValueKey, [number, number]>>;
   inclureSansDonnee: boolean;
@@ -29,12 +33,14 @@ export const DEFAULT_FILTERS: Filters = {
   q: '',
   statuts: [],
   communes: [],
+  departements: [],
   rep: 'tous',
   accueilSixieme: true,
   masquerRecrutementParticulier: false,
   lyceeGeneral: false,
   passageGaranti: false,
   favoris: false,
+  suivis: false,
   options: [],
   ranges: {},
   inclureSansDonnee: false,
@@ -64,6 +70,11 @@ export function hasLyceeGeneral(c: CollegeResume): boolean {
   return c.continuite.lien !== 'aucun' && c.continuite.secondeGtSurPlace;
 }
 
+/** Passage garanti par écrit ; seul un collège suivi a un passage au lycée renseigné (ADR 0001). */
+export function aPassageGaranti(c: CollegeResume): boolean {
+  return c.suivi && c.continuite.passage === 'garanti';
+}
+
 export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boolean {
   if (f.q.trim()) {
     const words = fold(f.q).split(/\s+/).filter(Boolean);
@@ -71,14 +82,18 @@ export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boole
     if (!words.every((w) => hay.includes(w))) return false;
   }
   if (f.statuts.length && !f.statuts.includes(c.statut)) return false;
-  if (f.communes.length && !f.communes.includes(c.commune)) return false;
+  if (f.communes.length || f.departements.length) {
+    const retenu = f.communes.includes(c.commune) || (f.departements as readonly string[]).includes(c.departement);
+    if (!retenu) return false;
+  }
   if (f.rep === 'rep' && !c.rep) return false;
   if (f.rep === 'hors_rep' && c.rep) return false;
   if (f.accueilSixieme && !c.accueilSixieme) return false;
   if (f.masquerRecrutementParticulier && c.recrutementParticulier) return false;
   if (f.lyceeGeneral && !hasLyceeGeneral(c)) return false;
-  if (f.passageGaranti && c.continuite.passage !== 'garanti') return false;
+  if (f.passageGaranti && !aPassageGaranti(c)) return false;
   if (f.favoris && !ctx.favoris.has(c.uai)) return false;
+  if (f.suivis && !c.suivi) return false;
   if (f.options.length && !f.options.every((o) => c.optionTags.includes(o))) return false;
   for (const [key, range] of Object.entries(f.ranges) as [ValueKey, [number, number]][]) {
     if (!range) continue;
@@ -139,13 +154,14 @@ export function domainOf(colleges: CollegeResume[], key: ValueKey, ctx: Pick<Fil
 export function countActive(f: Filters): number {
   let n = 0;
   if (f.statuts.length) n++;
-  if (f.communes.length) n++;
+  if (f.communes.length || f.departements.length) n++;
   if (f.rep !== 'tous') n++;
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) n++;
   if (f.masquerRecrutementParticulier) n++;
   if (f.lyceeGeneral) n++;
   if (f.passageGaranti) n++;
   if (f.favoris) n++;
+  if (f.suivis) n++;
   n += f.options.length;
   n += Object.keys(f.ranges).length;
   return n;

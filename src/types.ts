@@ -118,6 +118,8 @@ export interface College {
   accueilSixieme: boolean;
   remarques: string[];
   demiPension: boolean | null;
+  /** Collège suivi : portes ouvertes, inscriptions, passage au lycée et étiquettes relevés à la main (ADR 0001). */
+  suivi: boolean;
 
   indicateurs: Indicateurs;
   /** Raison de l'absence d'un indicateur (« hors contrat : non publié », « effectif trop faible »…). */
@@ -179,6 +181,7 @@ export type ChampResume =
   | 'recrutementParticulier'
   | 'niveaux'
   | 'accueilSixieme'
+  | 'suivi'
   | 'indicateurs'
   | 'manquants'
   | 'optionTags';

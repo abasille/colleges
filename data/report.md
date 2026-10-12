@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T17:37:13.851Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T17:39:37.771Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -3249,7 +3249,7 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 
 | Fichier | Taille |
 |---|---|
-| public/data/colleges.json | 1179 ko |
+| public/data/colleges.json | 1197 ko |
 | public/data/colleges-75.json | 862 ko |
 | public/data/colleges-77.json | 680 ko |
 | public/data/colleges-78.json | 654 ko |

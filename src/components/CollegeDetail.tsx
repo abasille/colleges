@@ -6,6 +6,7 @@ import { formatDistance, formatHeures, formatNombre, formatPeriode, todayISO } f
 import { EVENT_LABELS, INSCRIPTIONS_LABELS, LIEN_LABELS, PASSAGE_LABELS } from '../lib/indicateurs';
 import { EVENT_COLORS } from '../lib/colors';
 import { eventsForCollege, isPast, statutInscriptions } from '../lib/events';
+import { outilLyceeSecteur } from '../lib/lyceeSecteur';
 import { LineChart } from './LineChart';
 import { ScoreBadge } from './ScoreBadge';
 import { ScoreHelp } from './ScoreHelp';
@@ -61,7 +62,7 @@ function Fiche({ resume, onClose }: { resume: CollegeResume; onClose: () => void
           <Profil c={c} />
           <Options c={c} />
           <Continuite c={c} />
-          <Evenements c={c} />
+          {c.suivi ? <Evenements c={c} /> : <PortesOuvertesNonRelevees c={c} />}
           <Notes uai={c.uai} />
           <Autres c={c} />
           <Sources c={c} />
@@ -310,15 +311,21 @@ function Continuite({ c }: { c: College }) {
           {!k.secondeGtSurPlace && <div className="mt-1 text-xs text-amber-800">Pas de 2nde générale et technologique dans ce lycée.</div>}
         </div>
       )}
-      <p
-        className={cx(
-          'mt-2 text-sm font-medium',
-          k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
-        )}
-      >
-        {PASSAGE_LABELS[k.passage]}
-      </p>
-      {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+      {c.suivi ? (
+        <>
+          <p
+            className={cx(
+              'mt-2 text-sm font-medium',
+              k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
+            )}
+          >
+            {PASSAGE_LABELS[k.passage]}
+          </p>
+          {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-medium text-zinc-700">Passage au lycée : non renseigné</p>
+      )}
       {k.sources.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-x-2 text-xs">
           {k.sources.map((s, i) => (
@@ -328,23 +335,51 @@ function Continuite({ c }: { c: College }) {
           ))}
         </div>
       )}
-      {c.statut === 'public' && (
-        <div className="mt-3">
-          <div className="text-sm font-medium">
-            Lycées de secteur 1 (Affelnet 2026)
-            <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
-          </div>
-          {c.affelnetSecteur1 ? (
-            <ul className="mt-1 list-disc pl-5 text-sm">
-              {c.affelnetSecteur1.map((l) => (
-                <li key={l.uai}>{l.nom}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">Non disponible{c.academie === 'Créteil' ? ' pour le Val-de-Marne' : ''}.</p>
-          )}
-        </div>
+      {c.statut === 'public' && <LyceeSecteur c={c} />}
+    </Section>
+  );
+}
+
+function LyceeSecteur({ c }: { c: College }) {
+  const outil = outilLyceeSecteur(c);
+  if (outil) {
+    return (
+      <div className="mt-3">
+        <div className="text-sm font-medium">Lycée de secteur</div>
+        <p className="text-sm text-zinc-500">Non disponible.</p>
+        <p className="mt-1 text-xs text-zinc-600">{outil.texte}</p>
+        <ExternalLink href={outil.url} className="text-xs">
+          {outil.libelle}
+        </ExternalLink>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <div className="text-sm font-medium">
+        Lycées de secteur 1 (Affelnet 2026)
+        <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
+      </div>
+      {c.affelnetSecteur1 ? (
+        <ul className="mt-1 list-disc pl-5 text-sm">
+          {c.affelnetSecteur1.map((l) => (
+            <li key={l.uai}>{l.nom}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-zinc-500">Non disponible.</p>
       )}
+    </div>
+  );
+}
+
+/** Collège non suivi : rien n'est relevé, ce qui ne veut pas dire qu'il n'y a pas de portes ouvertes. */
+function PortesOuvertesNonRelevees({ c }: { c: College }) {
+  return (
+    <Section title="Portes ouvertes et inscriptions">
+      <p className="text-sm text-zinc-700">
+        Portes ouvertes non relevées : {c.web ? <ExternalLink href={c.web}>voir le site du collège</ExternalLink> : 'voir le site du collège'}
+      </p>
     </Section>
   );
 }

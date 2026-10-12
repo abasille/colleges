@@ -45,6 +45,7 @@ async function main() {
     colleges: readJson<{ colleges: Record<string, CollegeOverride> }>('data/overrides/colleges.json').colleges,
     continuite: readJson<ContinuiteOverrides>('data/overrides/continuite.json').colleges,
     evenements: lireEvenements('data/overrides/events.json'),
+    suivis: Object.keys(readJson<{ colleges: Record<string, string> }>('data/overrides/suivis.json').colleges),
   };
 
   step("Annuaire de l'éducation");
