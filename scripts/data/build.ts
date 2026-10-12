@@ -93,7 +93,7 @@ async function main() {
 
   step('Contours des communes (Etalab)');
   const contours = await loadContoursCommunes(config.departements);
-  console.log(`  ${contours.length} communes et arrondissements`);
+  console.log(`  ${contours.length} contours de communes (arrondissements à Paris)`);
 
   // ---------------------------------------------------------------- assemblage
   step('Calculs');

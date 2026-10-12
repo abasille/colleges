@@ -6,7 +6,7 @@ Application web statique pour choisir un collège en Île-de-France, à partir d
 
 - **Usage** : outil personnel / familial, partagé par lien. Pas de comptes. Interface en français uniquement.
 - **Hébergement** : dépôt public `abasille/colleges`, site sur GitHub Pages (`https://abasille.github.io/colleges/`), déployé par GitHub Actions à chaque push sur `main`. Page en `noindex`.
-- **Licences** : code sous MIT (`LICENSE`), base de données produite sous ODbL (`data/LICENSE-ODbL.md`) car elle intègre des données ONISEP et Paris Open Data (ODbL, partage à l'identique). Données du ministère sous Licence Ouverte 2.0. Le README cite chaque source. Le dépôt étant public, on n'y publie aucune donnée sans licence (voir [ADR 0003](docs/adr/0003-lycee-de-secteur-limite-a-paris.md)).
+- **Licences** : code sous MIT (`LICENSE`), base de données produite sous ODbL (`data/LICENSE-ODbL.md`) car elle intègre des données ONISEP, Paris Open Data et les contours des communes d'Etalab (ODbL, partage à l'identique). Données du ministère sous Licence Ouverte 2.0. Le README cite chaque source. Le dépôt étant public, on n'y publie aucune donnée sans licence (voir [ADR 0003](docs/adr/0003-lycee-de-secteur-limite-a-paris.md)).
 - **Vie privée** : l'adresse saisie, les favoris et les notes restent dans le navigateur (`localStorage`). Ils ne sont jamais écrits dans le dépôt.
 
 ## 2. Périmètre
@@ -94,7 +94,7 @@ API Opendatasoft `https://data.education.gouv.fr/api/explore/v2.1/catalog/datase
 | Secteurs de Paris (polygones, sans UAI → jointure par nom) | opendata.paris.fr `secteurs-scolaires-colleges` (ODbL) | 2026-2027 |
 | Carte scolaire nationale (plages d'adresses, hors Paris ; contrôle croisé à Paris) | `fr-en-carte-scolaire-colleges-publics` (Licence Ouverte 2.0) | rentrée 2026 |
 | Lycées de secteur 1 (Paris) | ArcGIS `services9.arcgis.com/ekT8MJFiVh8nvlV5/arcgis/rest/services/Affectation_Lycées/FeatureServer/0` | 2026 |
-| Contours des communes et arrondissements | Etalab `contours-administratifs` simplifiés (`etalab-datasets.geo.data.gouv.fr/contours-administratifs/`, millésime 2026, environ 100 m de précision ; Licence Ouverte dérivée d'Admin Express, à confirmer avant publication) | 2026 |
+| Contours des communes (arrondissements à Paris) | Etalab `contours-administratifs` simplifiés (`etalab-datasets.geo.data.gouv.fr/contours-administratifs/`, millésime 2026, environ 100 m de précision, d'après Admin Express IGN ; ODbL 1.0, jeu [`contours-administratifs`](https://www.data.gouv.fr/datasets/contours-administratifs) sur data.gouv.fr) | 2026 |
 | Géocodage (navigateur) | Géoplateforme `data.geopf.fr/geocodage/search` (CORS ouvert), résultats centrés sur l'Île-de-France | — |
 
 - **Carte scolaire nationale** : valable pour la rentrée 2026 d'après la description du jeu (les métadonnées « 2021-2023 » sont périmées). 78 407 lignes en Île-de-France, dont 1 037 lignes « secteur unique » sans nom de voie. Couverture des collèges publics : complète dans le 77, le 91 et le 95 ; dans le 75, le 78, le 92 et le 94, il ne manque que les collèges à recrutement particulier ; dans le 93, 10 communes sont absentes.
@@ -130,7 +130,8 @@ Deux mécanismes, selon le département de l'adresse (voir [ADR 0002](docs/adr/0
 2. Adresse à Paris : polygone qui contient le point, sinon polygone le plus proche à moins de 60 m. Le polygone du secteur est affiché sur la carte.
 3. Ailleurs, lignes de la carte nationale pour la commune :
    - commune formant un seul secteur : son ou ses collèges, même si la rue n'est pas reconnue (`commune_entiere`) ;
-   - sinon, comparaison de la voie normalisée et du numéro (bornes et parité). Si plusieurs collèges correspondent, ils sont tous renvoyés (secteur partagé).
+   - sinon, comparaison de la voie normalisée et du numéro (bornes et parité). Si plusieurs collèges correspondent, ils sont tous renvoyés (secteur partagé). Sans numéro, ce sont tous les collèges de la voie, avec « précisez le numéro » s'il y en a plusieurs. Sans rue, message « précisez la rue » ;
+   - commune qui a à la fois des voies listées et une ligne « secteur unique » : une adresse dont la voie et le numéro ne correspondent à aucune ligne reçoit le collège du reste de la commune (`commune_entiere`, mention « adresse absente des voies listées »).
 4. Commune absente de la carte : si elle compte exactement un collège public dans le périmètre, il est renvoyé avec la mention « déduit : seul collège public de la commune » (`deduit`) — cas de neuf communes du 93. Sinon (Coubron), message « secteur inconnu pour cette commune ».
 5. Rue introuvable : message explicite.
 
@@ -198,5 +199,4 @@ Limité à Paris (voir [ADR 0003](docs/adr/0003-lycee-de-secteur-limite-a-paris.
 - École alsacienne : domaine `ecole-alsacienne.org` hors service le 2026-10-07.
 - Saint-Louis : `college-st-louis.org` est un domaine parqué.
 - 9 privés sous contrat sans formulation sur le passage au lycée.
-- Licence des contours Etalab, avant publication.
 - Pages de sectorisation des lycées des DSDEN 77 et 93.

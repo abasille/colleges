@@ -11,6 +11,7 @@ Le collège de secteur est trouvé de deux façons selon le département de l'ad
 
 - Les deux mécanismes ont des formes de données différentes : polygones pour Paris, carte compacte par département ailleurs. Chacune n'est chargée qu'après la saisie d'une adresse, et seulement pour le département de cette adresse.
 - `findSecteur` indique sa méthode (`polygone`, `adresse`, `commune_entiere`, `deduit`). Une commune qui forme un seul secteur donne son collège même si la rue n'est pas reconnue.
+- Une commune peut avoir à la fois des voies listées et une ligne « secteur unique » (sans voie) : cette ligne vaut pour le reste de la commune. Une adresse dont la voie et le numéro ne correspondent à aucune ligne reçoit donc le collège du reste de la commune (`commune_entiere`, avec la mention « adresse absente des voies listées »), plutôt qu'un message d'échec. Sans numéro, tous les collèges de la voie sont renvoyés, avec « précisez le numéro » s'il y en a plusieurs.
 - La carte nationale a des trous : dix communes de Seine-Saint-Denis sont absentes. Pour les neuf qui n'ont qu'un collège public, ce collège est renvoyé avec la mention « déduit ». Pour Coubron, qui n'en a aucun, le secteur est déclaré inconnu. On ne cherche pas d'autre source pour ces communes.
 - Les tronçons qui renvoient à plusieurs collèges sont traités comme des secteurs partagés : tous les collèges sont renvoyés, sans avoir vérifié s'il s'agit de chevauchements.
 - Un collège public absent de la carte alors que sa commune y figure est étiqueté « recrutement particulier ».

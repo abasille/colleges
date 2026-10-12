@@ -31,7 +31,7 @@ export function outilLyceeSecteur(c: { academie: Academie; departement: string }
   const url = c.academie === 'Créteil' ? SECTORISATION_CRETEIL[c.departement] : undefined;
   if (!url) return null;
   return {
-    texte: `${PRINCIPE} Dans l’académie de Créteil, la direction départementale publie les zones de recrutement des lycées pour l’entrée en 2nde générale et technologique.`,
+    texte: `${PRINCIPE} Dans l’académie de Créteil, la direction départementale publie la sectorisation des lycées pour l’entrée en 2nde générale et technologique.`,
     libelle: `Sectorisation des lycées (${DEPARTEMENTS[c.departement as Departement]})`,
     url,
   };

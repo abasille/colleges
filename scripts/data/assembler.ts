@@ -786,7 +786,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     { id: 'secteurs-paris', label: 'Secteurs scolaires des collèges (Ville de Paris)', url: 'https://opendata.paris.fr/explore/dataset/secteurs-scolaires-colleges/', licence: 'ODbL', millesime: ANNEE_SECTEURS_PARIS },
     { id: 'carte-scolaire', label: 'Carte scolaire des collèges publics (plages d’adresses)', url: ed('fr-en-carte-scolaire-colleges-publics'), licence: LO, millesime: `extraction du ${today}` },
     { id: 'affelnet', label: 'Affectation en 2nde : lycées de secteur (académie de Paris)', url: 'https://services9.arcgis.com/ekT8MJFiVh8nvlV5/arcgis/rest/services/Affectation_Lyc%C3%A9es/FeatureServer/0', licence: 'Données publiques de l’académie de Paris (licence non précisée)', millesime: `rentrée ${ANNEE_AFFELNET}` },
-    { id: 'contours', label: 'Contours des communes et arrondissements (Etalab, d’après Admin Express IGN)', url: 'https://www.data.gouv.fr/datasets/contours-administratifs', licence: 'ODbL', millesime: `${ANNEE_CONTOURS}, généralisés à 100 m` },
+    { id: 'contours', label: 'Contours des communes, arrondissements à Paris (Etalab, d’après Admin Express IGN)', url: 'https://www.data.gouv.fr/datasets/contours-administratifs', licence: 'ODbL', millesime: `${ANNEE_CONTOURS}, généralisés à 100 m` },
     { id: 'geocodage', label: 'Géocodage des adresses (Géoplateforme IGN, dans le navigateur)', url: 'https://data.geopf.fr/geocodage', licence: LO, millesime: 'en direct' },
   ];
 

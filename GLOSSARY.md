@@ -18,15 +18,33 @@ _Éviter_ : zone, ville, arrondissement (comme catégorie distincte)
 **Académie** :
 Circonscription du ministère : Paris (75), Créteil (77, 93, 94) ou Versailles (78, 91, 92, 95).
 
+**Lieu** :
+Une commune ou un département, tel qu'on le choisit dans le filtre « commune ou département » pour restreindre les collèges affichés.
+_Éviter_ : zone, localisation, secteur (réservé à la sectorisation)
+
 ## Sectorisation
 
 **Collège de secteur** :
 Collège public auquel la carte scolaire rattache une adresse de domicile. Quand un secteur est partagé, une adresse peut en avoir plusieurs.
 _Éviter_ : collège de rattachement, collège du quartier
 
+**Méthode du collège de secteur** :
+La façon dont le collège de secteur d'une adresse a été trouvé : par le polygone du secteur (Paris), par la plage d'adresses de la voie, par la commune entière (commune formant un seul secteur, ou reste de la commune hors des voies listées), ou déduit (seul collège public d'une commune absente de la carte scolaire).
+_Éviter_ : source du secteur, mode de calcul
+
 **Lycée de secteur** :
 Lycée où un élève est prioritaire à l'affectation en 2nde générale et technologique. À Paris, il dépend du collège fréquenté ; ailleurs, de l'adresse du domicile.
 _Éviter_ : lycée de rattachement
+
+## Étiquettes
+
+**Recrutement particulier** :
+Collège public qui ne recrute pas par la carte scolaire (sur dossier, section spécialisée, établissement de réadaptation) : il n'est le collège de secteur d'aucune adresse.
+_Éviter_ : collège sans secteur, collège à dossier, collège hors carte
+
+**Accueil en 6e** :
+Le fait qu'un collège accueille de nouveaux élèves en 6e à la rentrée. Ce n'est pas le cas d'un collège qui ferme, dont la 6e a été transférée ailleurs ou qui ne commence qu'à un niveau supérieur.
+_Éviter_ : entrée en 6e, recrute en 6e
 
 ## Calendrier
 
