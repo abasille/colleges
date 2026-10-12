@@ -65,6 +65,21 @@ export function ligneIvac(p: Partial<IvacRow>): IvacRow {
   };
 }
 
+/** Ligne brute de la carte scolaire nationale (fr-en-carte-scolaire-colleges-publics) : une plage d'Ivry, toute la voie. */
+export function ligneCarte(p: Record<string, unknown>): Record<string, unknown> {
+  return {
+    code_insee: '94041',
+    libelle_commune: 'IVRY-SUR-SEINE',
+    type_et_libelle: 'RUE DE LA REPUBLIQUE',
+    n_de_voie_debut: 1.0,
+    n_de_voie_fin: 9999.0,
+    parite: 'PI',
+    code_rne: '0940001A',
+    secteur_unique: 'N',
+    ...p,
+  };
+}
+
 /** Configuration : les huit départements d'Île-de-France, aucune exclusion. */
 export function config(p: Partial<Config> = {}): Config {
   return {

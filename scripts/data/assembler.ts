@@ -4,7 +4,7 @@
 import type {
   Academie,
   BrevetSession,
-  CarteScolaireRow,
+  CarteScolaireDepartement,
   College,
   CollegeDetail,
   CollegeResume,
@@ -100,7 +100,7 @@ export interface SourcesChargees {
   /** Adresses géocodées des collèges sans coordonnées dans l'annuaire (voir `etablissementsAGeocoder`), par UAI. */
   geocodage: Map<string, CoordonneesGeocodees>;
   secteursParis: SecteurParisBrut[];
-  /** Lignes brutes de fr-en-carte-scolaire-colleges-publics. */
+  /** Lignes brutes de fr-en-carte-scolaire-colleges-publics (communes des départements de la configuration). */
   carteScolaire: Record<string, unknown>[];
 }
 
@@ -122,8 +122,8 @@ export interface Publication {
   evenements: EventsFile;
   /** secteurs-paris.geojson */
   secteursParis: FeatureCollection<SecteurParisProps>;
-  /** carte-scolaire-94.json */
-  carteScolaire: CarteScolaireRow[];
+  /** carte-scolaire-<dép>.json : un par département hors Paris (à Paris, la carte ne sert qu'au contrôle croisé). */
+  cartesScolaires: CarteScolaireDepartement[];
 }
 
 /** Fichier prêt à écrire : chemin relatif à public/data/, contenu sérialisé. */
@@ -141,7 +141,7 @@ export interface Assemblage {
   fichiers: FichierPublie[];
   /** Entrées des contrôles par géocodage (réseau), faits par le point d'entrée après l'assemblage. */
   controles: {
-    voiesCarteScolaire: { insee: string; libelle: string; uai: string }[];
+    voiesCarteScolaire: { insee: string; commune: string; libelle: string; uai: string }[];
     secteursParis: FeatureCollection<SecteurParisProps>;
   };
   rapport: RapportAssemble;
@@ -236,6 +236,12 @@ function jsonParLigne(items: unknown[], wrap?: (body: string) => string): string
 }
 
 const featureCollection = (b: string) => `{"type":"FeatureCollection","features":${b}}`;
+
+/** Carte scolaire compacte : une commune par ligne (diffs lisibles). */
+function carteParLigne(c: CarteScolaireDepartement): string {
+  const communes = Object.entries(c.communes).map(([insee, plages]) => `${JSON.stringify(insee)}:${JSON.stringify(plages)}`);
+  return `{"departement":${JSON.stringify(c.departement)},"communes":{${communes.length ? `\n${communes.join(',\n')}\n` : ''}}}\n`;
+}
 
 /** Sépare un collège entre le fichier léger et le fichier de détail de son département. */
 function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } {
@@ -408,7 +414,17 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     collegesParisPublics.map((c) => ({ uai: c.identifiant_de_l_etablissement, nom: c.nom_etablissement, adresse: c.adresse_1 })),
     { tolerance: TOLERANCE_SECTEURS, decimals: 5, minHoleArea: 100, minPolygonArea: 10 },
   );
-  const carte = compacterCarteScolaire(src.carteScolaire);
+  const carte = compacterCarteScolaire(src.carteScolaire, cfg.departements);
+  // UAI et communes présents dans la carte nationale (Paris compris) : #15 y lit la règle du recrutement
+  // particulier (collège public absent de la carte alors que sa commune y figure).
+  const presenceCarte = { uais: carte.uais, communes: carte.communes };
+  // Contrôle croisé à Paris (ADR 0002) : UAI des polygones de la Ville absents de la carte, et inversement.
+  const uaisPolygones = new Set(secteursParis.geojson.features.flatMap((f) => f.properties.uais));
+  const uaisCarteParis = new Set(carte.rows.filter((r) => r.insee.startsWith('75')).map((r) => r.uai));
+  const ecartsParis = {
+    polygonesSeuls: [...uaisPolygones].filter((u) => !uaisCarteParis.has(u)).sort(),
+    carteSeule: [...uaisCarteParis].filter((u) => !uaisPolygones.has(u)).sort(),
+  };
 
   const events = validerEvenements(corrections.evenements, perimetre, cfg.saisonCourante);
 
@@ -779,13 +795,13 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     details,
     evenements: events.file,
     secteursParis: secteursParis.geojson,
-    carteScolaire: carte.rows,
+    cartesScolaires: carte.departements.filter((c) => c.departement !== '75'),
   };
   const fichiers: FichierPublie[] = [
     { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset) + '\n' },
     ...publication.details.map((d) => ({ chemin: `colleges-${d.departement}.json`, contenu: JSON.stringify(d) + '\n' })),
     { chemin: 'secteurs-paris.geojson', contenu: jsonParLigne(publication.secteursParis.features, featureCollection) },
-    { chemin: 'carte-scolaire-94.json', contenu: jsonParLigne(publication.carteScolaire) },
+    ...publication.cartesScolaires.map((c) => ({ chemin: `carte-scolaire-${c.departement}.json`, contenu: carteParLigne(c) })),
     { chemin: 'events.json', contenu: JSON.stringify(publication.evenements, null, 1) + '\n' },
   ];
 
@@ -811,7 +827,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     onisep: { structuresIgnorees: onisep.structuresIgnorees, dispositifsIgnores: onisep.dispositifsIgnores },
     secteursParis,
     collegesParisPublics: collegesParisPublics.map((c) => c.identifiant_de_l_etablissement),
-    carte: { rows: carte.rows, doublons: carte.doublons },
+    carte: { rows: carte.rows, doublons: carte.doublons, ecartees: carte.ecartees, ...presenceCarte, ecartsParis },
     affelnet: { lignes: affelnet.length },
     events,
     indicateurs: INDICATEURS,
@@ -820,7 +836,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   return {
     publication,
     fichiers,
-    controles: { voiesCarteScolaire: carte.brut, secteursParis: secteursParis.geojson },
+    controles: { voiesCarteScolaire: carte.brut.filter((r) => !r.insee.startsWith('75')), secteursParis: secteursParis.geojson },
     rapport,
   };
 }

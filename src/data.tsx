@@ -137,7 +137,9 @@ type SecteursRecus = { fichier: string; donnees: DonneesSecteur } | { fichier: s
  * Collège de secteur de l'adresse. Le fichier de sectorisation du département de l'adresse
  * (sourceSecteur) n'est téléchargé qu'une fois l'adresse saisie : rien à l'ouverture du site.
  */
-function useSecteur(adresse: Adresse | null, version: string | undefined): SecteurResult | null {
+function useSecteur(adresse: Adresse | null, dataset: Dataset | undefined): SecteurResult | null {
+  const version = dataset?.generatedAt;
+  const colleges = dataset?.colleges;
   const source = adresse ? sourceSecteur(adresse) : null;
   const fichier = source?.fichier ?? null;
   const [recus, setRecus] = useState<SecteursRecus | null>(null);
@@ -159,11 +161,11 @@ function useSecteur(adresse: Adresse | null, version: string | undefined): Secte
 
   return useMemo(() => {
     if (!adresse) return null;
-    if (!fichier) return findSecteur(adresse, null);
+    if (!fichier) return findSecteur(adresse, null, colleges ?? []);
     if (recus?.fichier !== fichier) return { uais: [], methode: null, feature: null, message: 'Recherche du collège de secteur…' };
     if ('erreur' in recus) return { uais: [], methode: null, feature: null, message: `Secteurs indisponibles (${recus.erreur}).` };
-    return findSecteur(adresse, recus.donnees);
-  }, [adresse, fichier, recus]);
+    return findSecteur(adresse, recus.donnees, colleges ?? []);
+  }, [adresse, fichier, recus, colleges]);
 }
 
 // ---------------------------------------------------------------- fournisseur
@@ -175,7 +177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const sort = useStore((s) => s.sort);
   const favorisList = useStore((s) => s.favoris);
   const adresse = useStore((s) => s.adresse);
-  const secteur = useSecteur(adresse, raw?.dataset.generatedAt);
+  const secteur = useSecteur(adresse, raw?.dataset);
 
   useEffect(() => {
     loadAll().then(setRaw, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));

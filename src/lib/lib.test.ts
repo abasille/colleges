@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { College, CollegeEvent, EventsFile } from '../types';
+import type { CarteScolaireDepartement, College, CollegeEvent, CollegeResume, EventsFile } from '../types';
 import { applyFilters, DEFAULT_FILTERS, sortColleges, type Filters } from './filters';
 import { parseUrlState, serializeUrlState } from './url';
 import { haversineKm, pointInGeometry } from './geo';
-import { findSecteur, findSecteur94, parseNumero, sourceSecteur, type Adresse, type DonneesSecteur } from './secteur';
+import { findSecteur, parseNumero, sourceSecteur, type Adresse, type DonneesSecteur } from './secteur';
 import { buildIcs, foldLine } from './ics';
 import { decodeShare, encodeShare, mergeShare } from './share';
 import { calendarEvents, isUrgent, statutInscriptions, territoiresPresents, upcomingForFavoris } from './events';
@@ -267,18 +267,95 @@ describe('géographie', () => {
   });
 });
 
-describe('carte scolaire 94', () => {
-  const rows = [
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 1, fin: 99, parite: 'I' as const, uai: 'A' },
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 2, fin: 100, parite: 'P' as const, uai: 'B' },
-    { insee: '94041', voie: 'RUE DE LA REPUBLIQUE', debut: 101, fin: null, parite: 'PI' as const, uai: 'C' },
-  ];
-  it('respecte la parité et les bornes', () => {
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '13' }, rows)).toEqual(['A']);
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '14bis' }, rows)).toEqual(['B']);
-    expect(findSecteur94({ citycode: '94041', street: 'Rue de la République', housenumber: '250' }, rows)).toEqual(['C']);
-    expect(findSecteur94({ citycode: '94081', street: 'Rue de la République', housenumber: '13' }, rows)).toEqual([]);
+describe('collège de secteur hors Paris (carte scolaire nationale)', () => {
+  const carte = (communes: CarteScolaireDepartement['communes']): DonneesSecteur => ({ type: 'carte', carte: { departement: '77', communes } });
+  const adresse = (citycode: string, street: string | null, housenumber: string | null = null): Adresse => ({
+    label: `${housenumber ?? ''} ${street ?? ''} ${citycode}`,
+    lat: 48.7,
+    lon: 2.5,
+    citycode,
+    street,
+    housenumber,
   });
+  const chelles = carte({
+    '77108': [
+      ['RUE DE LA REPUBLIQUE', 1, 99, 'I', '0770001A'],
+      ['RUE DE LA REPUBLIQUE', 2, 100, 'P', '0770002B'],
+      ['RUE DE LA REPUBLIQUE', 101, 9999, 'PI', '0770003C'],
+    ],
+  });
+
+  it('compare la voie normalisée et le numéro, avec les bornes et la parité', () => {
+    expect(findSecteur(adresse('77108', 'Rue de la République', '13'), chelles, [])).toMatchObject({ uais: ['0770001A'], methode: 'adresse', feature: null });
+    expect(findSecteur(adresse('77108', 'Rue de la République', '14bis'), chelles, []).uais).toEqual(['0770002B']);
+    expect(findSecteur(adresse('77108', 'Rue de la République', '250'), chelles, []).uais).toEqual(['0770003C']);
+  });
+
+  it('une commune à secteur unique donne son collège même si la rue n’est pas reconnue', () => {
+    const andelu = carte({ '78013': [['', null, null, 'PI', '0780709X']] });
+    expect(findSecteur(adresse('78013', 'Chemin inconnu des services', '3'), andelu, [])).toMatchObject({ uais: ['0780709X'], methode: 'commune_entiere', message: null });
+    expect(findSecteur(adresse('78013', null), andelu, []).uais).toEqual(['0780709X']);
+  });
+
+  it('un tronçon qui relève de plusieurs collèges les renvoie tous (secteur partagé)', () => {
+    const partage = carte({
+      '91432': [
+        ['AVENUE DE LA REPUBLIQUE', 1, 9999, 'PI', '0912539R'],
+        ['AVENUE DE LA REPUBLIQUE', 1, 9999, 'PI', '0910041A'],
+      ],
+    });
+    expect(findSecteur(adresse('91432', 'Av. de la République', '8'), partage, [])).toMatchObject({ uais: ['0910041A', '0912539R'], methode: 'adresse' });
+  });
+
+  it('hors des voies listées, la ligne sans voie donne le collège du reste de la commune', () => {
+    const morangis = carte({
+      '91432': [
+        ['RUE DE LA GARE', 1, 9999, 'PI', '0912539R'],
+        ['', null, null, 'PI', '0910041A'],
+      ],
+    });
+    expect(findSecteur(adresse('91432', 'Rue de la Gare', '4'), morangis, []).uais).toEqual(['0912539R']);
+    expect(findSecteur(adresse('91432', 'Rue des Lilas', '4'), morangis, [])).toMatchObject({ uais: ['0910041A'], methode: 'commune_entiere' });
+  });
+
+  it('une rue introuvable dans une commune à plusieurs secteurs donne un message explicite', () => {
+    const r = findSecteur(adresse('77108', 'Rue des Lilas', '4'), chelles, []);
+    expect(r).toMatchObject({ uais: [], methode: null, feature: null });
+    expect(r.message).toMatch(/rue introuvable/i);
+  });
+
+  const lilas = (statut: CollegeResume['statut'], uai: string, commune = '93045') => ({ uai, commune, statut });
+  const seineSaintDenis: DonneesSecteur = { type: 'carte', carte: { departement: '93', communes: { '93048': [['', null, null, 'PI', '0930001A']] } } };
+
+  it('une commune absente de la carte avec un seul collège public donne ce collège, « déduit »', () => {
+    const colleges = [lilas('public', '0931234A'), lilas('prive_sous_contrat', '0935678B'), lilas('public', '0939999Z', '93048')];
+    const r = findSecteur(adresse('93045', 'Rue de Paris', '10'), seineSaintDenis, colleges);
+    expect(r).toMatchObject({ uais: ['0931234A'], methode: 'deduit' });
+    expect(r.message).toContain('déduit : seul collège public de la commune');
+  });
+
+  it('une commune absente de la carte sans collège public unique (Coubron) : secteur inconnu', () => {
+    const r = findSecteur(adresse('93015', 'Rue de Paris', '10'), seineSaintDenis, [lilas('prive_sous_contrat', '0935678B', '93015')]);
+    expect(r).toMatchObject({ uais: [], methode: null });
+    expect(r.message).toMatch(/secteur inconnu pour cette commune/i);
+  });
+
+  it('une adresse hors d’Île-de-France n’a pas de collège de secteur ni de fichier à télécharger', () => {
+    const orleans = adresse('45234', 'Rue de la République', '1');
+    expect(sourceSecteur(orleans)).toBeNull();
+    const r = findSecteur(orleans, null, [lilas('public', '0931234A')]);
+    expect(r).toMatchObject({ uais: [], methode: null });
+    expect(r.message).toMatch(/hors Île-de-France/);
+  });
+
+  it('seul le fichier du département de l’adresse est téléchargé', () => {
+    expect(sourceSecteur({ citycode: '77108' })).toEqual({ fichier: 'carte-scolaire-77.json', type: 'carte' });
+    expect(sourceSecteur({ citycode: '94041' })?.fichier).toBe('carte-scolaire-94.json');
+    expect(sourceSecteur({ citycode: '95127' })?.fichier).toBe('carte-scolaire-95.json');
+  });
+});
+
+describe('numéros et noms', () => {
   it('lit les numéros avec suffixe', () => {
     expect(parseNumero('12bis')).toBe(12);
     expect(parseNumero(null)).toBeNull();
@@ -443,22 +520,22 @@ describe('collège de secteur à Paris', () => {
   const adresse = (lon: number): Adresse => ({ label: 'Paris 20e', lat: 48.8605, lon, citycode: '75120', street: 'Rue des Pyrénées', housenumber: '300' });
 
   it('donne le collège du polygone qui contient l’adresse, avec le polygone et la méthode « polygone »', () => {
-    const r = findSecteur(adresse(2.4005), polygones);
+    const r = findSecteur(adresse(2.4005), polygones, []);
     expect(r).toMatchObject({ uais: ['0750002B'], methode: 'polygone', message: null });
     expect(r.feature?.properties.libelle).toBe('COLETTE BESSON');
   });
 
   it('dans la rue, retient le polygone le plus proche à moins de 60 m', () => {
     // 0,0002° de longitude ≈ 15 m à l'est du premier carré
-    const r = findSecteur(adresse(2.3912), polygones);
+    const r = findSecteur(adresse(2.3912), polygones, []);
     expect(r).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
     expect(r.feature?.properties.libelle).toBe('DOISNEAU');
   });
 
   it('au-delà de 60 m de tout polygone, le secteur est introuvable', () => {
     // À cette latitude, 0,0001° de longitude ≈ 7,3 m : ≈ 51 m du premier carré, retenu ; ≈ 66 m, non
-    expect(findSecteur(adresse(2.3917), polygones)).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
-    const loin = findSecteur(adresse(2.3919), polygones);
+    expect(findSecteur(adresse(2.3917), polygones, [])).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
+    const loin = findSecteur(adresse(2.3919), polygones, []);
     expect(loin).toMatchObject({ uais: [], methode: null, feature: null });
     expect(loin.message).toBeTruthy();
   });

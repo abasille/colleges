@@ -7,7 +7,8 @@
 //   contours.geojson         -> (plus publié pour l’instant ; l’application le tolère absent)
 //   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps (chargé après
 //                               la saisie d'une adresse à Paris, voir sourceSecteur)
-//   carte-scolaire-94.json   -> CarteScolaireRow[] (chargé après une adresse à Ivry ou Vitry)
+//   carte-scolaire-<dép>.json -> CarteScolaireDepartement (un par département hors Paris, chargé
+//                               après la saisie d'une adresse dans ce département ; ex. carte-scolaire-94.json)
 
 export type Academie = 'Paris' | 'Créteil' | 'Versailles';
 export type Departement = '75' | '77' | '78' | '91' | '92' | '93' | '94' | '95';
@@ -281,11 +282,18 @@ export interface SecteurParisProps {
   noms: string[];
 }
 
-export interface CarteScolaireRow {
-  insee: string; // commune de l'adresse
-  voie: string; // libellé normalisé (majuscules, sans accents, abréviations développées)
-  debut: number | null;
-  fin: number | null;
-  parite: 'P' | 'I' | 'PI';
-  uai: string;
+export type PariteCarteScolaire = 'P' | 'I' | 'PI';
+
+/**
+ * Plage d'adresses de la carte scolaire nationale : [voie normalisée, premier numéro, dernier numéro,
+ * parité, UAI]. Voie normalisée par normalizeVoie (majuscules, sans accents, abréviations développées) ;
+ * voie vide = ligne « secteur unique » (toute la commune, ou le reste de la commune s'il y a aussi des voies) ;
+ * bornes publiées telles quelles (9999 = jusqu'au bout de la voie), null si absentes.
+ */
+export type PlageCarteScolaire = [voie: string, debut: number | null, fin: number | null, parite: PariteCarteScolaire, uai: string];
+
+/** Carte scolaire compacte d'un département : plages d'adresses par code INSEE de commune. */
+export interface CarteScolaireDepartement {
+  departement: string;
+  communes: Record<string, PlageCarteScolaire[]>;
 }

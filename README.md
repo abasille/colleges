@@ -8,7 +8,7 @@ Les données publiques sont calculées pour tous les collèges. Le relevé à la
 
 - Liste filtrable et triable, carte, et fiche détaillée de chaque collège : brevet, valeur ajoutée, IPS, effectifs, langues et options, continuité jusqu'au bac, lycées de secteur à Paris.
 - Note « maison » sur 20, à la formule transparente : brevet, note à l'écrit et valeur ajoutée, comparés à tous les collèges de France.
-- Recherche d'adresse : distance à chaque collège et collège de secteur.
+- Recherche d'adresse : distance à chaque collège et collège de secteur dans toute l'Île-de-France, par les secteurs de la Ville à Paris et par la carte scolaire nationale ailleurs ([ADR 0002](docs/adr/0002-deux-mecanismes-de-college-de-secteur.md)).
 - Calendrier des portes ouvertes et des inscriptions des collèges suivis, avec export `.ics`.
 - Favoris et notes personnelles, enregistrés dans le navigateur et transférables par lien.
 
@@ -38,7 +38,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 
 | Données | Producteur | Licence |
 |---|---|---|
-| Annuaire de l'éducation, indicateurs de valeur ajoutée des collèges (IVAC), résultats au brevet, IPS, effectifs et langues, évaluations de 6e, moyens enseignants, personnels, sections internationales et sportives, labels, cités scolaires, carte scolaire des collèges publics | Ministère de l'Éducation nationale, [data.education.gouv.fr](https://data.education.gouv.fr) | Licence Ouverte 2.0 |
+| Annuaire de l'éducation, indicateurs de valeur ajoutée des collèges (IVAC), résultats au brevet, IPS, effectifs et langues, évaluations de 6e, moyens enseignants, personnels, sections internationales et sportives, labels, cités scolaires, carte scolaire nationale des collèges publics (collège de secteur hors Paris) | Ministère de l'Éducation nationale, [data.education.gouv.fr](https://data.education.gouv.fr) | Licence Ouverte 2.0 |
 | Idéo-Structures d'enseignement secondaire, Idéo-Actions de dispositif | [ONISEP](https://opendata.onisep.fr) | ODbL |
 | Secteurs scolaires des collèges | [Ville de Paris](https://opendata.paris.fr) | ODbL |
 | Affectation en 2nde GT 2026 (lycées de secteur) | Académie de Paris | — |

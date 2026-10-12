@@ -87,7 +87,8 @@ async function main() {
 
   step('Secteurs');
   const secteursParis = await loadSecteursParisBruts();
-  const carteScolaire = await loadCarteScolaireBrute();
+  const carteScolaire = await loadCarteScolaireBrute(config.departements);
+  console.log(`  carte scolaire nationale : ${carteScolaire.length} lignes`);
 
   // ---------------------------------------------------------------- assemblage
   step('Calculs');
@@ -121,7 +122,7 @@ async function main() {
   console.log(`  distributions nationales : brevet ${d.brevet}, note écrit ${d.noteEcrit}, VA taux ${d.vaTaux}, VA note ${d.vaNote} collèges`);
 
   step('Contrôles (normalisation des voies, secteurs parisiens)');
-  const verifVoies = await verifierVoies(a.controles.voiesCarteScolaire, 25);
+  const verifVoies = await verifierVoies(a.controles.voiesCarteScolaire, 40);
   console.log(`  ${verifVoies.filter((v) => v.ok).length}/${verifVoies.length} libellés identiques après normalisation`);
   const verifSecteurs = await verifierSecteursParis(a.controles.secteursParis);
   console.log(`  secteurs parisiens : ${verifSecteurs.filter((v) => v.contenant.length).length}/${verifSecteurs.length} adresses test dans un polygone`);

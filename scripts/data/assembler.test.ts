@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assemblerDataset, etablissementsAGeocoder, uaisDuPerimetre } from './assembler';
-import { entree, etab, ligneIvac } from './fabriques';
+import { entree, etab, ligneCarte, ligneIvac } from './fabriques';
 
 describe('assemblerDataset : coordonnées', () => {
   it('sans coordonnées dans l’annuaire, publie celles du géocodage de l’adresse', () => {
@@ -286,7 +286,13 @@ describe('assemblerDataset : collèges suivis', () => {
 describe('assemblerDataset : fichiers publiés', () => {
   it('sérialise la publication dans public/data, horodatée par l’horloge injectée', () => {
     const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })] }));
-    expect(a.fichiers.map((f) => f.chemin)).toEqual(['colleges.json', 'colleges-75.json', 'secteurs-paris.geojson', 'carte-scolaire-94.json', 'events.json']);
+    expect(a.fichiers.map((f) => f.chemin)).toEqual([
+      'colleges.json',
+      'colleges-75.json',
+      'secteurs-paris.geojson',
+      ...['77', '78', '91', '92', '93', '94', '95'].map((d) => `carte-scolaire-${d}.json`),
+      'events.json',
+    ]);
     const colleges = JSON.parse(a.fichiers[0].contenu) as { generatedAt: string; colleges: { uai: string }[] };
     expect(colleges.generatedAt).toBe('2026-10-12T08:00:00.000Z');
     expect(colleges.colleges.map((c) => c.uai)).toEqual(['0750001A']);
@@ -367,5 +373,56 @@ describe('assemblerDataset : secteurs parisiens', () => {
 
   it('le rapport liste les secteurs qui ne trouvent pas de collège', () => {
     expect(assemblerDataset(e()).rapport.secteursParis.secteursSansCollege).toEqual([{ libelle: 'INCONNU', noms: ['NOM INCONNU'] }]);
+  });
+});
+
+describe('assemblerDataset : carte scolaire nationale', () => {
+  const lignes = [
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'R DE LA RÉPUBLIQUE', n_de_voie_debut: 1.0, n_de_voie_fin: 99.0, parite: 'I', code_rne: '0770001A' }),
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'RUE DE LA REPUBLIQUE', n_de_voie_debut: 1.0, n_de_voie_fin: 99.0, parite: 'I', code_rne: '0770001A' }),
+    ligneCarte({ code_insee: '77108', type_et_libelle: 'AVENUE FOCH', n_de_voie_debut: null, n_de_voie_fin: null, parite: null, code_rne: '0770002B' }),
+    ligneCarte({ code_insee: '78013', type_et_libelle: null, n_de_voie_debut: null, n_de_voie_fin: null, parite: null, code_rne: '0780709X', secteur_unique: 'O' }),
+    ligneCarte({ code_insee: '75105', type_et_libelle: 'RUE CLOVIS', code_rne: '0750001A' }),
+  ];
+
+  it('publie une carte compacte par département hors Paris, lignes « secteur unique » comprises', () => {
+    const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })], sources: { carteScolaire: lignes } }));
+    const parDepartement = Object.fromEntries(a.publication.cartesScolaires.map((c) => [c.departement, c.communes]));
+    expect(Object.keys(parDepartement)).toEqual(['77', '78', '91', '92', '93', '94', '95']);
+    expect(parDepartement['77']).toEqual({
+      '77108': [
+        ['AVENUE FOCH', null, null, 'PI', '0770002B'],
+        ['RUE DE LA REPUBLIQUE', 1, 99, 'I', '0770001A'],
+      ],
+    });
+    expect(parDepartement['78']).toEqual({ '78013': [['', null, null, 'PI', '0780709X']] });
+    expect(parDepartement['93']).toEqual({});
+    const fichier78 = a.fichiers.find((f) => f.chemin === 'carte-scolaire-78.json')!;
+    expect(JSON.parse(fichier78.contenu)).toEqual({ departement: '78', communes: { '78013': [['', null, null, 'PI', '0780709X']] } });
+    expect(a.rapport.carte.doublons).toBe(1);
+  });
+
+  it('le rapport liste les écarts entre les polygones parisiens et la carte nationale', () => {
+    const secteur = (libelle: string) => ({
+      properties: { libelle, annee_scol: '2026-2027', lib_etab_1: libelle },
+      geometry: { type: 'Polygon' as const, coordinates: [[[2.39, 48.86], [2.3913, 48.86], [2.3913, 48.8609], [2.39, 48.8609], [2.39, 48.86]]] as [number, number][][] },
+    });
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Rodin' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Lavoisier' }),
+        ],
+        sources: {
+          secteursParis: [secteur('RODIN'), secteur('LAVOISIER')],
+          carteScolaire: [
+            ligneCarte({ code_insee: '75105', code_rne: '0750001A' }),
+            ligneCarte({ code_insee: '75113', code_rne: '0750003C' }),
+            ligneCarte({ code_insee: '77108', code_rne: '0770002B' }),
+          ],
+        },
+      }),
+    );
+    expect(a.rapport.carte.ecartsParis).toEqual({ polygonesSeuls: ['0750002B'], carteSeule: ['0750003C'] });
   });
 });

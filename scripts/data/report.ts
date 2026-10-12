@@ -1,11 +1,11 @@
 // Rapport d'anomalies data/report.md (relu à chaque mise à jour des données).
-import type { Academie, CarteScolaireRow, College, Dataset, IndicateurKey } from '../../src/types';
+import type { Academie, College, Dataset, IndicateurKey } from '../../src/types';
 import { normalizeNom } from '../../src/lib/normalize';
 import type { Config } from './lib/config';
 import type { AnnuaireRow } from './sources/annuaire';
 import type { Candidat, DetectionLien } from './sources/continuite';
 import type { OnisepStructure } from './sources/onisep';
-import type { SecteursParisResult } from './sources/secteurs';
+import type { CarteScolaireResult, SecteursParisResult } from './sources/secteurs';
 import type { VerifSecteur, VerifVoie } from './controles';
 import type { EventsResult } from './events';
 import { groupBy } from './lib/util';
@@ -42,7 +42,11 @@ export interface ReportData {
   onisep: { structuresIgnorees: OnisepStructure[]; dispositifsIgnores: { uai: string; intitule: string; typeEtablissement: string | null }[] };
   secteursParis: SecteursParisResult;
   collegesParisPublics: string[];
-  carte: { rows: CarteScolaireRow[]; doublons: number };
+  /** Carte scolaire nationale, Paris compris ; `uais`/`communes` : présents dans la carte. */
+  carte: Pick<CarteScolaireResult, 'rows' | 'doublons' | 'ecartees' | 'uais' | 'communes'> & {
+    /** Contrôle croisé à Paris : UAI des polygones de la Ville absents de la carte, et inversement. */
+    ecartsParis: { polygonesSeuls: string[]; carteSeule: string[] };
+  };
   verifVoies: VerifVoie[];
   verifSecteurs: VerifSecteur[];
   affelnet: { lignes: number };
@@ -375,23 +379,61 @@ export function renderReport(d: ReportData): string {
   L.push('', `Contrôle sur ${vs.length} adresses géocodées (Géoplateforme) : ${vs.filter((v) => v.contenant.length).length} dans un polygone, ${vs.filter((v) => !v.contenant.length).length} hors polygone (secteur le plus proche indiqué).`, '');
   L.push(table(['Adresse', 'Géocodée', 'Secteur (polygone)', 'Secteur le plus proche', 'Distance (m)'], vs.map((v) => [v.adresse, v.label, v.contenant.join(', '), v.plusProche, v.distance])));
 
-  // Carte scolaire 94
-  L.push('', '## 12. Carte scolaire Ivry / Vitry (plages d’adresses)', '');
-  const rows = d.carte.rows;
-  const parInsee = groupBy(rows, (r) => r.insee);
+  // Carte scolaire nationale
+  L.push('', '## 12. Carte scolaire nationale (plages d’adresses)', '');
+  const carte = d.carte;
+  const rows = carte.rows;
   const uaisCarte = groupBy(rows, (r) => r.uai);
-  L.push(`${rows.length} lignes (${[...parInsee.entries()].map(([k, l]) => `${k} : ${l.length}`).join(', ')}), ${d.carte.doublons} doublons exacts retirés.`);
-  const horsPerim = [...uaisCarte.keys()].filter((u) => !byUai.has(u));
-  if (horsPerim.length) L.push(`UAI hors périmètre : ${horsPerim.join(', ')}.`);
-  const publics94 = cs.filter((c) => c.statut === 'public' && parInsee.has(c.commune));
-  const sansRows = publics94.filter((c) => !uaisCarte.has(c.uai));
-  L.push(`Collèges publics d'Ivry / Vitry sans adresse : ${sansRows.map(nomCourt).join(', ') || 'aucun'}.`);
-  const transfrontaliers = rows.filter((r) => byUai.get(r.uai) && byUai.get(r.uai)!.commune !== r.insee);
-  if (transfrontaliers.length) L.push(`Adresses d'une commune rattachées à un collège de l'autre : ${transfrontaliers.length} (${[...groupBy(transfrontaliers, (r) => `${r.insee} → ${byUai.get(r.uai)!.nom}`).entries()].map(([k, l]) => `${k} : ${l.length}`).join(' ; ')}).`);
-  const parVoie = groupBy(rows, (r) => `${r.insee}|${r.voie}|${r.debut}|${r.fin}|${r.parite}`);
-  const doubles = [...parVoie.entries()].filter(([, l]) => new Set(l.map((r) => r.uai)).size > 1);
-  L.push(`Tronçons rattachés à plusieurs collèges : ${doubles.length}${doubles.length ? ` (${doubles.map(([k, l]) => `${k.split('|').slice(0, 2).join(' ')} : ${l.map((r) => r.uai).join('/')}`).join(' ; ')})` : ''}.`);
-  L.push(`Plages « toute la voie » (1–9999) : ${rows.filter((r) => (r.debut ?? 0) <= 1 && (r.fin ?? 0) >= 9998).length}/${rows.length} ; \`debut\`/\`fin\` sont publiés tels quels (9999 = jusqu'au bout de la voie).`);
+  const nomOuUai = (u: string) => (byUai.has(u) ? nomCourt(byUai.get(u)!) : `${u} (hors périmètre)`);
+  L.push(
+    `${rows.length} lignes après normalisation des voies, ${carte.doublons} doublons retirés, ${carte.ecartees} lignes écartées (sans UAI ou commune hors des départements). ${carte.communes.size} communes, ${carte.uais.size} collèges. Une ligne sans voie (« secteur unique ») couvre toute la commune, ou le reste de la commune quand d'autres lignes listent des voies. Publié : un fichier par département hors Paris.`,
+  );
+  L.push('');
+  const partage = (l: typeof rows) =>
+    [...groupBy(l, (r) => `${r.insee}|${r.voie}|${r.debut}|${r.fin}|${r.parite}`).values()].filter((x) => new Set(x.map((r) => r.uai)).size > 1).length;
+  /** Collèges publics du périmètre absents de la carte alors que leur commune y figure. */
+  const absents = cs.filter((c) => c.statut === 'public' && carte.communes.has(c.commune) && !carte.uais.has(c.uai));
+  L.push(
+    table(
+      ['Département', 'Communes', 'Lignes', 'Lignes sans voie', 'Communes à secteur unique', 'Tronçons partagés', 'Collèges publics absents (commune présente)'],
+      [...groupBy(rows, (r) => r.insee.slice(0, 2)).entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([dep, l]) => {
+          const parCommune = groupBy(l, (r) => r.insee);
+          return [
+            dep,
+            parCommune.size,
+            l.length,
+            l.filter((r) => !r.voie).length,
+            [...parCommune.values()].filter((x) => x.every((r) => !r.voie)).length,
+            partage(l),
+            absents.filter((c) => c.departement === dep).length,
+          ];
+        }),
+    ),
+  );
+  L.push('');
+  L.push(`Collèges publics absents de la carte alors que leur commune y figure (${absents.length}) : ${absents.map(nomCourt).join(', ') || 'aucun'}.`);
+  const communesAbsentes = [...groupBy(cs.filter((c) => !carte.communes.has(c.commune)), (c) => c.commune).entries()].sort(([a], [b]) => a.localeCompare(b));
+  L.push(
+    `Communes du périmètre absentes de la carte (${communesAbsentes.length}) : ${
+      communesAbsentes
+        .map(([, l]) => {
+          const publics = l.filter((c) => c.statut === 'public');
+          return `${l[0].communeLibelle} (${l[0].commune}, ${publics.length === 1 ? `déduit : ${publics[0].nom}` : `${publics.length} collèges publics : secteur inconnu`})`;
+        })
+        .join(', ') || 'aucune'
+    }. Une commune sans aucun collège et absente de la carte (Coubron) n'apparaît pas ici : son secteur est inconnu.`,
+  );
+  const horsPerim = [...uaisCarte.keys()].filter((u) => !byUai.has(u)).sort();
+  L.push(`UAI de la carte hors périmètre (${horsPerim.length}) : ${horsPerim.join(', ') || 'aucun'}.`);
+  const autreCommune = rows.filter((r) => byUai.get(r.uai) && byUai.get(r.uai)!.commune !== r.insee);
+  L.push(`Lignes rattachées à un collège d'une autre commune : ${autreCommune.length}.`);
+  L.push(`Plages « toute la voie » (1–9999) : ${rows.filter((r) => r.voie && (r.debut ?? 0) <= 1 && (r.fin ?? 0) >= 9998).length}/${rows.length} ; \`debut\`/\`fin\` sont publiés tels quels (9999 = jusqu'au bout de la voie).`);
+  L.push('');
+  L.push(
+    `Contrôle croisé à Paris (polygones de la Ville / carte nationale) : UAI des polygones absents de la carte : ${carte.ecartsParis.polygonesSeuls.map(nomOuUai).join(', ') || 'aucun'} ; UAI de la carte parisienne sans polygone : ${carte.ecartsParis.carteSeule.map(nomOuUai).join(', ') || 'aucun'}.`,
+  );
 
   // Normalisation des voies
   L.push('', '## 13. Normalisation des voies (contrôle Géoplateforme)', '');

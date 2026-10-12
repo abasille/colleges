@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T17:39:37.771Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T17:50:42.416Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -450,7 +450,7 @@ Détail des collèges sous contrat (hors contrat simple) sans résultat ou sans 
 | 327 | Collège Landowski (0921236U) | 11.4 | C | 12.4 | 16.5 | 5.3 |  | 91.7 | 12.4 | -5 | -0.2 |
 | 330 | Collège Jean Moulin (0750611G) | 11.3 | C | 13.5 | 15.3 | 5.2 |  | 93 | 12.1 | -1.7 | -0.7 |
 | 330 | Collège Erik Satie (0772573D) | 11.3 | C | 12.8 | 7.2 | 13.9 |  | 92.2 | 10.5 | 4.3 | 0 |
-| 330 | Collège Colonel Arnaud Beltrame (0772867Y) | 11.3 | C | 12.2 | 14.9 | 6.9 |  | 91.5 | 12 | -3 | -0.2 |
+| 330 | Collège Colonel Arnaud Beltrame (0772867Y) | 11.3 | C | 12.2 | 14.9 | 6.8 |  | 91.5 | 12 | -3 | -0.2 |
 | 330 | Collège Antoine de Saint-Exupéry (0941017V) | 11.3 | C | 13.2 | 12.4 | 8.3 |  | 92.6 | 11.5 | -0.3 | -0.3 |
 | 330 | Collège Cécile Sorel (0951991Y) | 11.3 | C | 14.6 | 12.3 | 7 |  | 94.2 | 11.5 | -1 | -0.4 |
 | 335 | Collège Rodin (0752538B) | 11.2 | C | 13 | 15 | 5.7 |  | 92.4 | 12 | -1.7 | -0.6 |
@@ -545,7 +545,7 @@ Détail des collèges sous contrat (hors contrat simple) sans résultat ou sans 
 | 421 | Collège Albert Camus (0910714G) | 9.5 | C | 12.4 | 1.9 | 14.3 |  | 91.7 | 9 | 12.7 | -0.1 |
 | 421 | Collège Albert Camus (0930586G) | 9.5 | C | 8.1 | 5 | 15.4 |  | 87 | 10.1 | 3 | 0.4 |
 | 421 | Collège Denis Diderot (0950682A) | 9.5 | C | 10.6 | 10.8 | 7.1 |  | 89.8 | 11.2 | -1.3 | -0.4 |
-| 421 | Collège Marcel Pagnol (0951051B) | 9.5 | C | 13.5 | 10 | 4.9 |  | 93 | 11 | -1.3 | -0.9 |
+| 421 | Collège Marcel Pagnol (0951051B) | 9.5 | C | 13.5 | 10 | 5 |  | 93 | 11 | -1.3 | -0.9 |
 | 428 | Collège Camille Claudel (0932263E) | 9.4 | C | 5.3 | 4.9 | 18.1 |  | 83.6 | 10 | 4.7 | 0.9 |
 | 428 | Collège Henri Matisse (0941231C) | 9.4 | C | 5.1 | 7.3 | 15.9 |  | 83.3 | 10.5 | 1.3 | 0.9 |
 | 428 | Collège Jacques Monod (0950933Y) | 9.4 | C | 8.2 | 11.4 | 8.5 |  | 87.1 | 11.3 | -4 | 0.1 |
@@ -3087,43 +3087,40 @@ Secteurs non reliés à un collège : aucun. Noms publiés sans collège : aucun
 | CARNOT | CARNOT | Collège Carnot | exact | oui |
 | JEAN-BAPTISTE CLEMENT | JEAN-BAPTISTE CLEMENT | Collège Jean Baptiste Clément | exact | oui |
 | JEAN-BAPTISTE POQUELIN | JEAN-BAPTISTE POQUELIN | Collège Jean Baptiste Poquelin | exact | — |
+| CLAUDE DEBUSSY | CLAUDE DEBUSSY | Collège Claude Debussy | exact | oui |
 | JACQUES PREVERT | JACQUES PREVERT | Collège Jacques Prévert | exact | — |
 | SUZANNE LACORE | SUZANNE LACORE | Collège Suzanne Lacore Paris Nord Est | inclusion | oui |
 | EDMOND MICHELET | EDMOND MICHELET | Collège Edmond Michelet | exact | oui |
 | LAVOISIER | LAVOISIER | Collège Lavoisier | exact | — |
-| CLAUDE DEBUSSY | CLAUDE DEBUSSY | Collège Claude Debussy | exact | oui |
 | ALPHONSE DAUDET | ALPHONSE DAUDET | Collège Alphonse Daudet | exact | oui |
 | CLAUDE CHAPPE | CLAUDE CHAPPE | Collège Claude Chappe | exact | oui |
 | GABRIEL FAURE | GABRIEL FAURE | Collège Gabriel Fauré | exact | oui |
 | GUILLAUME BUDE | GUILLAUME BUDE | Collège Guillaume Budé | exact | oui |
 | GUILLAUME APOLLINAIRE | GUILLAUME APOLLINAIRE | Collège Guillaume Apollinaire | exact | oui |
-| SMC BERGSON / PAILLERON | HENRI BERGSON | Collège Henri Bergson | exact | oui |
-| SMC BERGSON / PAILLERON | EDOUARD PAILLERON | Collège Édouard Pailleron | exact | ⚠️ non |
-| GEORGES COURTELINE | GEORGES COURTELINE | Collège Georges Courteline | exact | ⚠️ non |
 | LA GRANGE AUX BELLES | LA GRANGE AUX BELLES | Collège la Grange aux Belles | exact | oui |
 | ANNE FRANK | ANNE FRANK | Collège Anne Frank | exact | oui |
 | JEAN-BAPTISTE SAY | JEAN-BAPTISTE SAY | Collège Jean-Baptiste Say | exact | oui |
 | MARX DORMOY | MARX DORMOY | Collège Marx Dormoy | exact | oui |
+| SMC BERGSON / PAILLERON | HENRI BERGSON | Collège Henri Bergson | exact | oui |
+| SMC BERGSON / PAILLERON | EDOUARD PAILLERON | Collège Édouard Pailleron | exact | ⚠️ non |
+| GEORGES COURTELINE | GEORGES COURTELINE | Collège Georges Courteline | exact | ⚠️ non |
 | GEORGE SAND | GEORGE SAND | Collège George Sand | exact | oui |
 | GUSTAVE FLAUBERT | GUSTAVE FLAUBERT | Collège Gustave Flaubert | exact | ⚠️ non |
 | MADAME DE STAEL | MADAME DE STAEL | Collège Madame de Staël | exact | oui |
 | PAUL GAUGUIN | PAUL GAUGUIN | Collège Paul Gauguin | exact | — |
+| GEORGES CLEMENCEAU | GEORGES CLEMENCEAU | Collège Georges Clemenceau | exact | oui |
+| ROBERT DOISNEAU | ROBERT DOISNEAU | Collège Robert Doisneau | exact | oui |
 | ST EXUPERY | ST EXUPERY | Collège Saint-Exupéry | exact | oui |
 | GEORGES BRAQUE | GEORGES BRAQUE | Collège Georges Braque | exact | oui |
 | GEORGES DUHAMEL | GEORGES DUHAMEL | Collège Georges Duhamel | exact | oui |
-| GEORGES CLEMENCEAU | GEORGES CLEMENCEAU | Collège Georges Clemenceau | exact | oui |
-| ROBERT DOISNEAU | ROBERT DOISNEAU | Collège Robert Doisneau | exact | oui |
+| LUCIE ET RAYMOND AUBRAC | LUCIE ET RAYMOND AUBRAC | Collège Lucie Aubrac | inclusion | oui |
+| DANIEL MAYER | DANIEL MAYER | Collège Daniel Mayer | exact | oui |
 | COLETTE BESSON | COLETTE BESSON | Collège Colette Besson | exact | oui |
 | GUY FLAVIEN | GUY FLAVIEN | Collège Guy Flavien | exact | oui |
 | AMEDEO MODIGLIANI | AMEDEO MODIGLIANI | Collège Modigliani | inclusion | oui |
-| LUCIE ET RAYMOND AUBRAC | LUCIE ET RAYMOND AUBRAC | Collège Lucie Aubrac | inclusion | oui |
-| DANIEL MAYER | DANIEL MAYER | Collège Daniel Mayer | exact | oui |
 | MONTGOLFIER | MONTGOLFIER | Collège Montgolfier | exact | — |
 | PIERRE JEAN DE BERANGER | PIERRE JEAN DE BERANGER | Collège Pierre Jean de Béranger | exact | — |
 | BEAUMARCHAIS | BEAUMARCHAIS | Collège Beaumarchais | exact | oui |
-| JANSON DE SAILLY | JANSON DE SAILLY | Collège Janson de Sailly | exact | oui |
-| JEAN DE LA FONTAINE | JEAN DE LA FONTAINE | Collège Jean de La Fontaine | exact | oui |
-| MAURICE UTRILLO | MAURICE UTRILLO | Collège Maurice Utrillo | exact | ⚠️ non |
 | MAURICE RAVEL | MAURICE RAVEL | Collège Maurice Ravel | exact | oui |
 | ALBERTO GIACOMETTI | ALBERTO GIACOMETTI | Collège Alberto Giacometti | exact | oui |
 | STEPHANE MALLARME | STEPHANE MALLARME | Collège Stéphane Mallarmé | exact | oui |
@@ -3132,29 +3129,30 @@ Secteurs non reliés à un collège : aucun. Noms publiés sans collège : aucun
 | LEON GAMBETTA | LEON GAMBETTA | Collège Léon Gambetta | exact | oui |
 | RAYMOND QUENEAU | RAYMOND QUENEAU | Collège Raymond Queneau | exact | — |
 | BUFFON | BUFFON | Collège Buffon | exact | oui |
+| JANSON DE SAILLY | JANSON DE SAILLY | Collège Janson de Sailly | exact | oui |
+| JEAN DE LA FONTAINE | JEAN DE LA FONTAINE | Collège Jean de La Fontaine | exact | oui |
+| MAURICE UTRILLO | MAURICE UTRILLO | Collège Maurice Utrillo | exact | ⚠️ non |
+| FRANCOIS COUPERIN | FRANCOIS COUPERIN | Collège François Couperin | exact | — |
+| SMC CURIE / PHILIPPE | MARIE CURIE | Collège Marie Curie | exact | ⚠️ non |
+| SMC CURIE / PHILIPPE | GERARD PHILIPE | Collège Gérard Philipe | exact | oui |
 | FLORA TRISTAN | FLORA TRISTAN | Collège Flora Tristan | exact | oui |
 | HENRI MATISSE | HENRI MATISSE | Collège Henri Matisse | exact | oui |
 | EVARISTE GALOIS | EVARISTE GALOIS | Collège Évariste Galois | exact | oui |
 | ELSA TRIOLET | ELSA TRIOLET | Collège Elsa Triolet | exact | oui |
 | JULES VERNE | JULES VERNE | Collège Jules Verne | exact | oui |
-| FRANCOIS COUPERIN | FRANCOIS COUPERIN | Collège François Couperin | exact | — |
-| SMC CURIE / PHILIPPE | MARIE CURIE | Collège Marie Curie | exact | ⚠️ non |
-| SMC CURIE / PHILIPPE | GERARD PHILIPE | Collège Gérard Philipe | exact | oui |
-| VOLTAIRE | VOLTAIRE | Collège Voltaire | exact | oui |
-| AIME CESAIRE | AIME CESAIRE | Collège Aimé Césaire | exact | ⚠️ non |
 | MOULIN DES PRES | MOULIN DES PRES | Collège Moulin des Prés | exact | oui |
 | LAMARTINE | LAMARTINE | Collège Alphonse de Lamartine | inclusion | — |
 | BERNARD PALISSY | BERNARD PALISSY | Collège Bernard Palissy | exact | oui |
-| HELENE BOUCHER | HELENE BOUCHER | Collège Hélène Boucher | exact | oui |
-| ROLAND DORGELES | ROLAND DORGELES | Collège Roland Dorgelès | exact | oui |
+| VOLTAIRE | VOLTAIRE | Collège Voltaire | exact | oui |
+| AIME CESAIRE | AIME CESAIRE | Collège Aimé Césaire | exact | ⚠️ non |
 | EDGAR VARESE | EDGAR VARESE | Collège Edgar Varèse | exact | oui |
 | GEORGES BRASSENS | GEORGES BRASSENS | Collège Georges Brassens | exact | oui |
 | ANDRE MALRAUX | ANDRE MALRAUX | Collège André Malraux | exact | oui |
 | ANDRE CITROEN | ANDRE CITROEN | Collège André Citroën | exact | oui |
+| HELENE BOUCHER | HELENE BOUCHER | Collège Hélène Boucher | exact | oui |
+| ROLAND DORGELES | ROLAND DORGELES | Collège Roland Dorgelès | exact | oui |
 | FRANCOISE DOLTO | FRANCOISE DOLTO | Collège Françoise Dolto | exact | oui |
 | PAUL BERT | PAUL BERT | Collège Paul Bert | exact | oui |
-| VICTOR HUGO | VICTOR HUGO | Collège Victor Hugo | exact | — |
-| CLAUDE BERNARD | CLAUDE BERNARD | Collège Claude Bernard | exact | oui |
 | CAMILLE CLAUDEL | CAMILLE CLAUDEL | Collège Camille Claudel | exact | oui |
 | HENRI IV | HENRI IV | Collège Henri IV | exact | — |
 | JULES ROMAINS | JULES ROMAINS | Collège Jules Romains | exact | — |
@@ -3162,6 +3160,8 @@ Secteurs non reliés à un collège : aucun. Noms publiés sans collège : aucun
 | MONTAIGNE | MONTAIGNE | Collège Montaigne | exact | — |
 | PAUL VALERY | PAUL VALERY | Collège Paul Valéry | exact | oui |
 | PAUL VERLAINE | PAUL VERLAINE | Collège Paul Verlaine | exact | oui |
+| VICTOR HUGO | VICTOR HUGO | Collège Victor Hugo | exact | — |
+| CLAUDE BERNARD | CLAUDE BERNARD | Collège Claude Bernard | exact | oui |
 | SMC BERLIOZ / COYSEVOX | HECTOR BERLIOZ | Collège Hector Berlioz | exact | oui |
 | SMC BERLIOZ / COYSEVOX | ANTOINE COYSEVOX | Collège Antoine Coysevox | exact | oui |
 | JEAN PERRIN | JEAN PERRIN | Collège Jean Perrin | exact | oui |
@@ -3216,22 +3216,44 @@ Contrôle sur 12 adresses géocodées (Géoplateforme) : 8 dans un polygone, 4 h
 | 50 rue Notre-Dame des Champs 75006 Paris | 50 Rue Notre-Dame des Champs 75006 Paris |  | MONTAIGNE | 1 |
 | 10 rue de Vaugirard 75006 Paris | 10 Rue de Vaugirard 75006 Paris | JACQUES PREVERT | JACQUES PREVERT | 0 |
 
-## 12. Carte scolaire Ivry / Vitry (plages d’adresses)
+## 12. Carte scolaire nationale (plages d’adresses)
 
-887 lignes (94041 : 338, 94081 : 549), 0 doublons exacts retirés.
-Collèges publics d'Ivry / Vitry sans adresse : aucun.
-Adresses d'une commune rattachées à un collège de l'autre : 51 (94081 → Collège Romain Rolland : 51).
-Tronçons rattachés à plusieurs collèges : 8 (94041 ALLEE DE LA SEINE : 0941025D/0941026E ; 94041 PROMENEE MARAT : 0941025D/0941026E ; 94041 RUE BAUDIN : 0941025D/0941781A ; 94041 RUE RAYMOND LEFEVRE : 0941025D/0942532S ; 94081 ALLEE DES CHAMPS FLEURIS : 0940042K/0941033M ; 94081 ALLEE DU COTEAU : 0940042K/0941034N ; 94081 RUE HENRI DE VILMORIN : 0941034N/0941601E ; 94081 RUE SAINT GERMAIN : 0941033M/0941034N).
-Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés tels quels (9999 = jusqu'au bout de la voie).
+78124 lignes après normalisation des voies, 281 doublons retirés, 0 lignes écartées (sans UAI ou commune hors des départements). 1281 communes, 908 collèges. Une ligne sans voie (« secteur unique ») couvre toute la commune, ou le reste de la commune quand d'autres lignes listent des voies. Publié : un fichier par département hors Paris.
+
+| Département | Communes | Lignes | Lignes sans voie | Communes à secteur unique | Tronçons partagés | Collèges publics absents (commune présente) |
+|---|---|---|---|---|---|---|
+| 75 | 20 | 12729 | 0 | 0 | 399 | 1 |
+| 77 | 507 | 9565 | 473 | 472 | 1 | 0 |
+| 78 | 261 | 9586 | 226 | 225 | 2 | 3 |
+| 91 | 196 | 8754 | 166 | 160 | 115 | 0 |
+| 92 | 36 | 8775 | 1 | 1 | 4 | 1 |
+| 93 | 29 | 10409 | 0 | 0 | 50 | 0 |
+| 94 | 47 | 8741 | 15 | 15 | 128 | 1 |
+| 95 | 185 | 9565 | 154 | 153 | 2 | 0 |
+
+Collèges publics absents de la carte alors que leur commune y figure (6) : Collège Rognoni – École des enfants du spectacle (0750407K), Maison de la Légion d'Honneur (0783122V), Collège franco-allemand (0783546F), Collège international (0783547G), Ecole de danse de l'Opéra de Paris (0922579D), Collège Ovide Decroly (0940024R).
+Communes du périmètre absentes de la carte (9) : Le Bourget (93013, déduit : Collège Didier Daurat), Dugny (93030, déduit : Collège Jean-Baptiste Clément), Gournay-sur-Marne (93033, déduit : Collège Eugène Carrière), L'Ile-Saint-Denis (93039, déduit : Collège Alfred Sisley), Les Lilas (93045, déduit : Collège Marie Curie), Neuilly-Plaisance (93049, déduit : Collège Jean Moulin), Le Pré-Saint-Gervais (93061, déduit : Collège Jean-Jacques Rousseau), Le Raincy (93062, déduit : Collège Jean-Baptiste Corot), Vaujours (93074, déduit : Collège Henri IV). Une commune sans aucun collège et absente de la carte (Coubron) n'apparaît pas ici : son secteur est inconnu.
+UAI de la carte hors périmètre (2) : 0280001Z, 0510026B.
+Lignes rattachées à un collège d'une autre commune : 5370.
+Plages « toute la voie » (1–9999) : 64269/78124 ; `debut`/`fin` sont publiés tels quels (9999 = jusqu'au bout de la voie).
+
+Contrôle croisé à Paris (polygones de la Ville / carte nationale) : UAI des polygones absents de la carte : aucun ; UAI de la carte parisienne sans polygone : aucun.
 
 ## 13. Normalisation des voies (contrôle Géoplateforme)
 
-Échantillon de 25 libellés de la carte scolaire géocodés « <libellé> <commune> » : **24/25** identiques après `normalizeVoie` (et même code commune).
-Écarts imputables à la normalisation : 0/25.
+Échantillon de 40 libellés de la carte scolaire géocodés « <libellé> <commune> » : **32/40** identiques après `normalizeVoie` (et même code commune).
+Écarts imputables à la normalisation : 2/40.
 
 | INSEE | Carte scolaire | Géocodeur (rue) | normalizeVoie(géocodeur) | Code commune | Diagnostic |
 |---|---|---|---|---|---|
-| 94041 | RUE DES PENICHES | Rue Hoche | RUE HOCHE | 94041 | autre voie renvoyée (voie inconnue du géocodeur ?) |
+| 77067 | RUE DE LA BUTTE DU LUET | Rue de la Butte du Luet | RUE DE LA BUTTE DU LUET | 77495 | autre commune renvoyée |
+| 77243 | SQUARE PAUL LEVEQUE |  |  |  | aucun résultat du géocodeur |
+| 77294 | PONT AUX POULAINS | Rue Paul Vaillant Couturier | RUE PAUL VAILLANT COUTURIER | 77294 | autre voie renvoyée (voie inconnue du géocodeur ?) |
+| 77445 | RUE DU TITANE | Rue du Rhône | RUE DU RHONE | 77445 | écart de normalisation |
+| 78138 | PASSAGE DES PETITS PAS | Passage des Violettes | PASSAGE DES VIOLETTES | 77085 | autre commune renvoyée |
+| 91223 | IMPASSE SAINT JEAN | Rue Saint-jean | RUE SAINT JEAN | 91223 | écart de normalisation |
+| 92026 | BOULEVARD CIRCULAIRE | Boulevard Circulaire | BOULEVARD CIRCULAIRE | 93078 | autre commune renvoyée |
+| 93007 | PLACE DES QUATRE TOURS | Cité Quatre Tours | CITE QUATRE TOURS | 93007 | autre voie renvoyée (voie inconnue du géocodeur ?) |
 
 ## 14. Événements
 
@@ -3259,5 +3281,11 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 | public/data/colleges-94.json | 601 ko |
 | public/data/colleges-95.json | 633 ko |
 | public/data/secteurs-paris.geojson | 962 ko |
-| public/data/carte-scolaire-94.json | 85 ko |
+| public/data/carte-scolaire-77.json | 432 ko |
+| public/data/carte-scolaire-78.json | 432 ko |
+| public/data/carte-scolaire-91.json | 397 ko |
+| public/data/carte-scolaire-92.json | 393 ko |
+| public/data/carte-scolaire-93.json | 465 ko |
+| public/data/carte-scolaire-94.json | 390 ko |
+| public/data/carte-scolaire-95.json | 431 ko |
 | public/data/events.json | 33 ko |

@@ -1,6 +1,7 @@
-import type { CarteScolaireRow, SecteurParisProps } from '../types';
+import type { CarteScolaireDepartement, CollegeResume, Departement, PlageCarteScolaire, SecteurParisProps } from '../types';
 import { distanceToGeometryM, pointInGeometry, type AreaGeometry } from './geo';
 import { normalizeVoie } from './normalize';
+import { DEPARTEMENTS } from './territoires';
 
 export interface SecteurFeature {
   type: 'Feature';
@@ -18,9 +19,10 @@ export interface Adresse {
 }
 
 /**
- * Comment le collège de secteur a été trouvé (ADR 0002) : `polygone` à Paris (secteurs de la Ville),
- * `adresse` par une plage d'adresses de la carte scolaire ; #14 ajoute `commune_entiere` (commune
- * formant un seul secteur) et `deduit` (commune absente de la carte, avec un seul collège public).
+ * Comment le collège de secteur a été trouvé (ADR 0002) : `polygone` à Paris (secteurs de la Ville) ;
+ * ailleurs, par la carte scolaire nationale : `adresse` (plage d'adresses de la voie), `commune_entiere`
+ * (commune formant un seul secteur, ou reste de la commune hors des voies listées) et `deduit`
+ * (commune absente de la carte, avec un seul collège public).
  */
 export type MethodeSecteur = 'polygone' | 'adresse' | 'commune_entiere' | 'deduit';
 
@@ -31,7 +33,7 @@ export interface SecteurResult {
   methode: MethodeSecteur | null;
   /** Polygone du secteur (méthode `polygone` uniquement). */
   feature: SecteurFeature | null;
-  /** Explication quand aucun collège n'est trouvé. */
+  /** Explication quand aucun collège n'est trouvé, ou mention qui accompagne le résultat (« déduit : … »). */
   message: string | null;
 }
 
@@ -46,15 +48,13 @@ export interface SourceSecteur {
 }
 
 /** Contenu d'un fichier de sectorisation, une fois téléchargé. */
-export type DonneesSecteur = { type: 'polygones'; features: SecteurFeature[] } | { type: 'carte'; rows: CarteScolaireRow[] };
+export type DonneesSecteur = { type: 'polygones'; features: SecteurFeature[] } | { type: 'carte'; carte: CarteScolaireDepartement };
 
-/** Communes couvertes par la carte scolaire publiée (provisoire : #14 publie une carte par département). */
-const COMMUNES_CARTE_SCOLAIRE = ['94041', '94081'];
-
-/** Fichier à télécharger pour trouver le collège de secteur d'une adresse ; null si aucun ne la couvre. */
+/** Fichier à télécharger pour trouver le collège de secteur d'une adresse ; null hors Île-de-France. */
 export function sourceSecteur(adresse: Pick<Adresse, 'citycode'>): SourceSecteur | null {
-  if (adresse.citycode.startsWith('751')) return { fichier: 'secteurs-paris.geojson', type: 'polygones' };
-  if (COMMUNES_CARTE_SCOLAIRE.includes(adresse.citycode)) return { fichier: 'carte-scolaire-94.json', type: 'carte' };
+  const departement = adresse.citycode.slice(0, 2);
+  if (departement === '75') return { fichier: 'secteurs-paris.geojson', type: 'polygones' };
+  if (departement in DEPARTEMENTS) return { fichier: `carte-scolaire-${departement as Departement}.json`, type: 'carte' };
   return null;
 }
 
@@ -62,7 +62,7 @@ export function sourceSecteur(adresse: Pick<Adresse, 'citycode'>): SourceSecteur
 export function lireDonneesSecteur(source: SourceSecteur, json: unknown): DonneesSecteur {
   return source.type === 'polygones'
     ? { type: 'polygones', features: (json as { features: SecteurFeature[] }).features }
-    : { type: 'carte', rows: json as CarteScolaireRow[] };
+    : { type: 'carte', carte: json as CarteScolaireDepartement };
 }
 
 /** Au-delà, une adresse hors de tout îlot n'est pas rattachée au secteur le plus proche. */
@@ -93,39 +93,64 @@ export function parseNumero(housenumber: string | null): number | null {
   return m ? Number(m[0]) : null;
 }
 
-/** Collèges de secteur pour une adresse d'Ivry ou de Vitry (table de plages d'adresses). */
-export function findSecteur94(adresse: Pick<Adresse, 'citycode' | 'street' | 'housenumber'>, rows: CarteScolaireRow[]): string[] {
-  if (!adresse.street) return [];
-  const voie = normalizeVoie(adresse.street);
-  const n = parseNumero(adresse.housenumber);
-  const uais = new Set<string>();
-  for (const r of rows) {
-    if (r.insee !== adresse.citycode || r.voie !== voie) continue;
-    if (n !== null) {
-      if (r.parite === 'P' && n % 2 !== 0) continue;
-      if (r.parite === 'I' && n % 2 === 0) continue;
-      if (r.debut !== null && n < r.debut) continue;
-      if (r.fin !== null && n > r.fin) continue;
-    }
-    uais.add(r.uai);
-  }
-  return [...uais];
+const uaisDe = (plages: PlageCarteScolaire[]) => [...new Set(plages.map((p) => p[4]))].sort();
+
+/** Plages de la voie qui contiennent le numéro (bornes et parité) ; sans numéro, toutes les plages de la voie. */
+function plagesDuNumero(plages: PlageCarteScolaire[], voie: string, n: number | null): PlageCarteScolaire[] {
+  return plages.filter(([v, debut, fin, parite]) => {
+    if (v !== voie) return false;
+    if (n === null) return true;
+    if (parite === 'P' && n % 2 !== 0) return false;
+    if (parite === 'I' && n % 2 === 0) return false;
+    if (debut !== null && n < debut) return false;
+    if (fin !== null && n > fin) return false;
+    return true;
+  });
 }
 
 const introuvable = (message: string): SecteurResult => ({ uais: [], methode: null, feature: null, message });
+const trouve = (uais: string[], methode: MethodeSecteur, message: string | null = null): SecteurResult => ({ uais, methode, feature: null, message });
+
+export const MESSAGE_HORS_IDF = 'Adresse hors Île-de-France : pas de collège de secteur.';
+export const MENTION_DEDUIT = 'déduit : seul collège public de la commune';
+
+/** Adresse hors Paris : lignes de la carte scolaire nationale de sa commune. */
+function findSecteurCarte(adresse: Adresse, carte: CarteScolaireDepartement, colleges: readonly Pick<CollegeResume, 'uai' | 'commune' | 'statut'>[]): SecteurResult {
+  const plages = carte.communes[adresse.citycode] ?? [];
+  if (plages.length === 0) {
+    const publics = colleges.filter((c) => c.statut === 'public' && c.commune === adresse.citycode);
+    if (publics.length === 1) return trouve([publics[0].uai], 'deduit', MENTION_DEDUIT);
+    return introuvable('Secteur inconnu pour cette commune (absente de la carte scolaire nationale).');
+  }
+  // Lignes « secteur unique » (sans voie) : toute la commune, ou le reste de la commune hors des voies listées.
+  const reste = plages.filter((p) => p[0] === '');
+  if (reste.length === plages.length) return trouve(uaisDe(reste), 'commune_entiere');
+  if (!adresse.street) return introuvable('Précisez la rue : cette commune compte plusieurs secteurs.');
+  const voie = normalizeVoie(adresse.street);
+  const n = parseNumero(adresse.housenumber);
+  const uais = uaisDe(plagesDuNumero(plages, voie, n));
+  if (uais.length) return trouve(uais, 'adresse', n === null && uais.length > 1 ? 'Plusieurs secteurs sur cette voie : précisez le numéro.' : null);
+  if (reste.length) return trouve(uaisDe(reste), 'commune_entiere', 'adresse absente des voies listées : collège du reste de la commune');
+  if (plages.some((p) => p[0] === voie)) return introuvable(`Numéro hors des plages de cette rue dans la carte scolaire.`);
+  return introuvable('Rue introuvable dans la carte scolaire de cette commune.');
+}
 
 /**
- * Collège de secteur d'une adresse, à partir des données de sectorisation de son département
- * (`donnees` : contenu du fichier indiqué par `sourceSecteur`, null si aucun fichier ne couvre l'adresse).
+ * Collège de secteur d'une adresse (ADR 0002), dans cet ordre : hors des huit départements, aucun ;
+ * à Paris, le polygone ; ailleurs, la carte scolaire nationale de la commune (commune entière, puis voie
+ * et numéro), sinon le seul collège public d'une commune absente de la carte (`deduit`).
+ * `donnees` : contenu du fichier indiqué par `sourceSecteur`, null quand aucun ne couvre l'adresse
+ * (hors Île-de-France). `colleges` : fichier léger (collèges publics d'une commune absente de la carte).
  */
-export function findSecteur(adresse: Adresse, donnees: DonneesSecteur | null): SecteurResult {
-  if (!donnees) return introuvable('Sectorisation disponible seulement pour Paris, Ivry et Vitry.');
-  if (donnees.type === 'polygones') {
-    const f = findSecteurParis(adresse, donnees.features);
-    if (!f) return introuvable('Secteur introuvable pour cette adresse.');
-    if (!f.properties.uais.length) return introuvable(`Collège de secteur non identifié (${f.properties.noms.join(' ou ')}).`);
-    return { uais: f.properties.uais, methode: 'polygone', feature: f, message: null };
-  }
-  const uais = findSecteur94(adresse, donnees.rows);
-  return uais.length ? { uais, methode: 'adresse', feature: null, message: null } : introuvable('Rue introuvable dans la carte scolaire du Val-de-Marne.');
+export function findSecteur(
+  adresse: Adresse,
+  donnees: DonneesSecteur | null,
+  colleges: readonly Pick<CollegeResume, 'uai' | 'commune' | 'statut'>[],
+): SecteurResult {
+  if (!donnees) return introuvable(MESSAGE_HORS_IDF);
+  if (donnees.type === 'carte') return findSecteurCarte(adresse, donnees.carte, colleges);
+  const f = findSecteurParis(adresse, donnees.features);
+  if (!f) return introuvable('Secteur introuvable pour cette adresse.');
+  if (!f.properties.uais.length) return introuvable(`Collège de secteur non identifié (${f.properties.noms.join(' ou ')}).`);
+  return { uais: f.properties.uais, methode: 'polygone', feature: f, message: null };
 }
