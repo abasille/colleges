@@ -53,6 +53,7 @@ import { classer, composantes, distribution, noteMaison, type Distributions } fr
 import { construireOptions, GROUPES, optionTags, type OptionLabel } from './options';
 import { validerEvenements, type EvenementsBruts } from './events';
 import type { ReportData } from './report';
+import { detecterAnomalies } from './anomalies';
 
 // ---------------------------------------------------------------- interface
 
@@ -75,7 +76,7 @@ export interface Corrections {
   continuite: Record<string, ContinuiteOverride>;
   /** data/overrides/events.json non validé ; null si le fichier n'existe pas. */
   evenements: EvenementsBruts | null;
-  /** UAI des collèges suivis (data/overrides/suivis.json, clés de `colleges`) ; un UAI hors périmètre est ignoré. */
+  /** UAI des collèges suivis (data/overrides/suivis.json, clés de `colleges`) ; un UAI hors périmètre est ignoré (anomalie du rapport). */
   suivis: string[];
 }
 
@@ -845,7 +846,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   ];
 
   // ---------------------------------------------------------------- rapport
-  const rapport: RapportAssemble = {
+  const rapportSansAnomalies: Omit<RapportAssemble, 'anomalies'> = {
     generatedAt: dataset.generatedAt,
     cfg,
     exclus: ann.exclus,
@@ -855,6 +856,18 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       .map((r) => ({ uai: r.identifiant_de_l_etablissement, adresse: `${r.adresse_1 ?? ''} ${r.code_postal ?? ''}`.trim(), ...src.geocodage.get(r.identifiant_de_l_etablissement)! }))
       .map(({ uai, adresse, label, score }) => ({ uai, adresse, label, score })),
     colleges: rapportColleges,
+    suivisHorsPerimetre: corrections.suivis
+      .filter((uai) => !perimetre.has(uai))
+      .sort()
+      .map((uai) => {
+        const r = src.annuaire.colleges.find((x) => x.identifiant_de_l_etablissement === uai);
+        const raison = ann.exclus.some((x) => x.identifiant_de_l_etablissement === uai)
+          ? 'écarté par data/config.json'
+          : r
+            ? `hors sélection de l'annuaire (département ${communeDe(r).departement}, nature ${r.code_nature}, état ${r.etat})`
+            : "absent de l'annuaire des collèges";
+        return { uai, nom: r?.nom_etablissement ?? null, raison };
+      }),
     sessionsRef,
     derniereSession,
     derniereIps,
@@ -872,6 +885,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     events,
     indicateurs: INDICATEURS,
   };
+  const rapport: RapportAssemble = { ...rapportSansAnomalies, anomalies: detecterAnomalies(rapportSansAnomalies) };
 
   return {
     publication,
