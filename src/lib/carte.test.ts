@@ -23,11 +23,10 @@ function college(uai: string, over: Partial<CollegeResume> = {}, ind: Partial<Co
       mentions: null, accesSixiemeTroisieme: null, ips: null, effectif: null, elevesParClasse: null,
       heuresParEleve: null, eval6Francais: null, eval6Maths: null, ...ind,
     },
-    manquants: {},
     optionTags: [],
     suivi: false,
     score: null,
-    continuite: { lien: 'aucun', secondeGtSurPlace: false, passage: 'non_garanti' },
+    continuite: { secondeGtSurPlace: false, passage: 'non_garanti' },
     ...over,
   };
 }

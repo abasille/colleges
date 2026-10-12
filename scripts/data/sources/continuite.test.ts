@@ -111,6 +111,18 @@ describe('construireContinuite', () => {
     expect(c.sources[0]).toBe('https://exemple.fr');
   });
 
+  it('pas de 2nde GT sur place sans lycée lié, même si une correction l’affirme', () => {
+    const c = construireContinuite({
+      college,
+      statut: 'public',
+      detection: { lien: 'cite_scolaire', lyceeUai: '0750654D', regles: [], ignores: [] },
+      override: { lien: 'aucun', secondeGtSurPlace: true },
+      annuaire,
+      voies,
+    });
+    expect(c).toMatchObject({ lien: 'aucun', lycee: null, secondeGtSurPlace: false });
+  });
+
   it('défauts selon le statut', () => {
     expect(continuiteParDefaut('meme_etablissement_prive', 'hors_contrat')).toEqual({ passage: 'inconnu', passageTexte: TEXTES.horsContrat });
     expect(continuiteParDefaut('meme_etablissement_prive', 'prive_sous_contrat').passageTexte).toBe(TEXTES.privePoursuite);

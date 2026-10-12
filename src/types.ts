@@ -72,7 +72,7 @@ export type Passage = 'garanti' | 'sous_reserve' | 'non_garanti' | 'inconnu';
 export interface Continuite {
   lien: LienLycee;
   lycee: Lycee | null;
-  /** Vrai seulement si le lycée lié accueille des élèves en 2nde générale et technologique. */
+  /** Vrai seulement si un lycée est lié (lien autre que « aucun ») et accueille des élèves en 2nde générale et technologique. */
   secondeGtSurPlace: boolean;
   passage: Passage;
   /** Formulation affichée (citation de l'établissement ou texte générique). */
@@ -185,14 +185,13 @@ export type ChampResume =
   | 'accueilSixieme'
   | 'suivi'
   | 'indicateurs'
-  | 'manquants'
   | 'optionTags';
 
 /** Collège dans le fichier léger : sans historiques ni détail de la fiche. */
 export type CollegeResume = Pick<College, ChampResume> & {
   score: Omit<ScoreMaison, 'composantes'> | null;
   /** Catégorie de lycée sur place et de passage (filtres « lycée général », « passage garanti »). */
-  continuite: Pick<Continuite, 'lien' | 'secondeGtSurPlace' | 'passage'>;
+  continuite: Pick<Continuite, 'secondeGtSurPlace' | 'passage'>;
 };
 
 /** Collège dans le fichier de son département : le reste de la fiche. */

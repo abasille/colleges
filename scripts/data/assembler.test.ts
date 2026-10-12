@@ -440,8 +440,8 @@ describe('assemblerDataset : fichier léger et détails par département', () =>
     expect(c.nom).toBe('Collège Rodin');
     expect(c.indicateurs.brevet).toBe(92);
     expect(c.score && Object.keys(c.score).sort()).toEqual(['lettre', 'note', 'partielle', 'rang', 'sur']);
-    expect(Object.keys(c.continuite).sort()).toEqual(['lien', 'passage', 'secondeGtSurPlace']);
-    for (const champ of ['brevet', 'ips', 'effectifs', 'affelnetSecteur1', 'personnel', 'pix', 'labels', 'adresse']) {
+    expect(c.continuite).toEqual({ secondeGtSurPlace: false, passage: 'non_garanti' });
+    for (const champ of ['brevet', 'ips', 'effectifs', 'affelnetSecteur1', 'personnel', 'pix', 'labels', 'adresse', 'manquants']) {
       expect(c, champ).not.toHaveProperty(champ);
     }
   });
@@ -453,6 +453,8 @@ describe('assemblerDataset : fichier léger et détails par département', () =>
     const rodin = a.publication.details[0].colleges[0];
     expect(rodin.brevet.map((b) => [b.session, b.taux])).toEqual([[2025, 92]]);
     expect(rodin).toHaveProperty('continuite.passageTexte');
+    expect(rodin.continuite.lien).toBe('aucun');
+    expect(rodin.manquants.ips).toBe('Non publié');
     expect(rodin.composantes?.brevet).not.toBeNull();
   });
 

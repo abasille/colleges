@@ -67,7 +67,7 @@ export function fold(s: string): string {
 }
 
 export function hasLyceeGeneral(c: CollegeResume): boolean {
-  return c.continuite.lien !== 'aucun' && c.continuite.secondeGtSurPlace;
+  return c.continuite.secondeGtSurPlace;
 }
 
 /** Passage garanti par écrit ; seul un collège suivi a un passage au lycée renseigné (ADR 0001). */

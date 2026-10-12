@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { CollegeResume, IndicateurKey } from '../../types';
+import type { College, IndicateurKey } from '../../types';
 import { useData } from '../../data';
 import { INDICATEURS } from '../../lib/indicateurs';
 import { formatIndicateur } from '../../lib/format';
@@ -15,7 +15,7 @@ export function Section({ title, children, id }: { title: string; children: Reac
 }
 
 /** Ligne « libellé : valeur » avec raison si absente et comparaison académie / France. */
-export function IndicRow({ c, k, label, children }: { c: CollegeResume; k: IndicateurKey; label?: string; children?: ReactNode }) {
+export function IndicRow({ c, k, label, children }: { c: College; k: IndicateurKey; label?: string; children?: ReactNode }) {
   const { dataset } = useData();
   const v = c.indicateurs[k];
   const refAc = dataset.references.academies[c.academie]?.[k];

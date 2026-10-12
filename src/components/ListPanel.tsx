@@ -355,7 +355,7 @@ const CollegeCard = memo(function CollegeCard({
             {[...SHOWN, ...(extra ? [extra] : [])].map((k) => (
               <div key={k} className={cx('flex gap-1', k === sortKey && 'font-semibold text-blue-800')}>
                 <dt className="text-zinc-500">{INDICATEURS[k].court}</dt>
-                <dd className="tabular-nums" title={c.indicateurs[k] === null ? c.manquants[k] : undefined}>
+                <dd className="tabular-nums" title={c.indicateurs[k] === null ? 'Non disponible : la raison figure dans la fiche' : undefined}>
                   {formatIndicateur(k, c.indicateurs[k])}
                 </dd>
               </div>

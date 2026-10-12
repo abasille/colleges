@@ -145,7 +145,7 @@ function trouver(requete: string): number {
   console.log(`  remarques : ${detail?.remarques.length ? detail.remarques.join(' | ') : '—'}`);
   console.log(`\nContinuité publiée (détection automatique, texte par défaut) :`);
   console.log(
-    `  lien : ${c.continuite.lien}${k?.lycee ? ` — ${k.lycee.nom} (${k.lycee.uai}), voies : ${k.lycee.voies.join(', ') || '—'}` : ''}`,
+    `  lien : ${k?.lien ?? '?'}${k?.lycee ? ` — ${k.lycee.nom} (${k.lycee.uai}), voies : ${k.lycee.voies.join(', ') || '—'}` : ''}`,
   );
   console.log(`  2nde GT sur place : ${c.continuite.secondeGtSurPlace ? 'oui' : 'non'}`);
   console.log(`  passage : ${c.continuite.passage} — « ${k?.passageTexte ?? '?'} »`);

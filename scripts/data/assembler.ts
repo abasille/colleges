@@ -276,7 +276,6 @@ function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } 
     accueilSixieme,
     suivi,
     indicateurs,
-    manquants,
     optionTags,
     score,
     ...reste
@@ -298,9 +297,8 @@ function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } 
     accueilSixieme,
     suivi,
     indicateurs,
-    manquants,
     score: score && { note: score.note, lettre: score.lettre, rang: score.rang, sur: score.sur, partielle: score.partielle },
-    continuite: { lien: c.continuite.lien, secondeGtSurPlace: c.continuite.secondeGtSurPlace, passage: c.continuite.passage },
+    continuite: { secondeGtSurPlace: c.continuite.secondeGtSurPlace, passage: c.continuite.passage },
     optionTags,
   };
   return { resume, detail: { uai, ...reste, composantes: score?.composantes ?? null } };

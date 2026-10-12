@@ -269,7 +269,9 @@ export function construireContinuite(i: ContinuiteInput): College['continuite'] 
     };
   }
   const v = lyceeUai ? i.voies.get(lyceeUai) : undefined;
-  const secondeGtSurPlace = o.secondeGtSurPlace ?? (lien === 'cite_scolaire' || lien === 'meme_etablissement_prive' ? (v?.secondeGt ?? 0) > 0 : false);
+  // Sans lycée lié, pas de 2nde GT sur place : le filtre « lycée général sur place » ne lit que ce booléen.
+  const secondeGtSurPlace =
+    lien !== 'aucun' && (o.secondeGtSurPlace ?? (lien === 'cite_scolaire' || lien === 'meme_etablissement_prive' ? (v?.secondeGt ?? 0) > 0 : false));
   const def = continuiteParDefaut(lien, i.statut);
   const sources = uniq([
     ...(o.sources ?? []),
