@@ -1,7 +1,7 @@
-import type { Departement, IndicateurKey, Statut } from '../types';
+import type { IndicateurKey, Statut } from '../types';
 import { DEFAULT_FILTERS, DEFAULT_SORT, type Filters, type Sort, type SortKey, type ValueKey } from './filters';
 import { INDICATEURS } from './indicateurs';
-import { DEPARTEMENTS } from './territoires';
+import { estDepartement } from './territoires';
 
 export type Vue = 'carte' | 'calendrier';
 export type ColorBy = 'statut' | IndicateurKey;
@@ -37,7 +37,7 @@ export function parseUrlState(search: string): UrlState {
     statuts: list(p.get('st')).filter((s): s is Statut => STATUTS.includes(s as Statut)),
     // `z` : paramètre des communes depuis les premiers liens partagés, conservé tel quel.
     communes: list(p.get('z')).filter((s) => CODE_COMMUNE.test(s)),
-    departements: list(p.get('d')).filter((s): s is Departement => Object.hasOwn(DEPARTEMENTS, s)),
+    departements: list(p.get('d')).filter(estDepartement),
     rep: rep === 'rep' || rep === 'hors_rep' ? rep : 'tous',
     accueilSixieme: p.get('s6') !== '0',
     masquerRecrutementParticulier: p.get('rp') === '1',
