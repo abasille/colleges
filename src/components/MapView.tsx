@@ -4,11 +4,12 @@ import { GeoJSON, MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react
 import type { CollegeResume, IndicateurKey } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
-import { MISSING_COLOR, scaleColor, sequential, STATUT_COLORS } from '../lib/colors';
-import { domainOf } from '../lib/filters';
+import { MISSING_COLOR, sequential, STATUT_COLORS } from '../lib/colors';
+import { CADRAGE_ILE_DE_FRANCE, domaineDeCouleur, emprise, pointsDeLaCarte, type PointCarte } from '../lib/carte';
 import { INDICATEURS, STATUT_LABELS } from '../lib/indicateurs';
 import { formatIndicateur, nomCourt } from '../lib/format';
 import type { ColorBy } from '../lib/url';
+import { CouchePoints, type RappelsPoints } from './pointsColleges';
 
 const COLOR_OPTIONS: { key: ColorBy; label: string }[] = [
   { key: 'statut', label: 'Statut' },
@@ -18,37 +19,70 @@ const COLOR_OPTIONS: { key: ColorBy; label: string }[] = [
   })),
 ];
 
-function markerIcon(color: string, opts: { selected: boolean; favori: boolean; secteur: boolean; dim: boolean }): L.DivIcon {
-  const size = opts.selected ? 24 : 16;
-  const cls = ['college-marker', opts.selected && 'selected', opts.secteur && 'secteur'].filter(Boolean).join(' ');
-  return L.divIcon({
-    className: cls,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    html: `<div class="dot" style="background:${color};opacity:${opts.dim ? 0.35 : 1}"></div>${opts.favori ? '<span class="star">★</span>' : ''}`,
-  });
-}
-
 const homeIcon = L.divIcon({ className: 'home-marker', iconSize: [24, 24], iconAnchor: [12, 20], html: '🏠' });
+
+/** En deçà, la carte montre la région ou un département : on s'approche du collège sélectionné. */
+const ZOOM_MIN_SELECTION = 11;
 
 function FlyToSelected({ college }: { college: CollegeResume | null }) {
   const map = useMap();
   useEffect(() => {
     if (!college) return;
     const target = L.latLng(college.lat, college.lon);
-    if (!map.getBounds().pad(-0.15).contains(target)) map.flyTo(target, Math.max(map.getZoom(), 14), { duration: 0.6 });
+    if (map.getZoom() < ZOOM_MIN_SELECTION || !map.getBounds().pad(-0.15).contains(target)) map.flyTo(target, Math.max(map.getZoom(), 14), { duration: 0.6 });
   }, [college, map]);
   return null;
 }
 
-function FitOnLoad({ colleges }: { colleges: CollegeResume[] }) {
+/** Délai sans changement de filtre avant de recadrer : la carte ne saute pas à chaque frappe. */
+const DELAI_CADRAGE_MS = 600;
+
+/**
+ * Cadre la carte sur les collèges retenus quand les filtres changent. À l'ouverture, la carte garde
+ * le cadrage de l'Île-de-France ; un changement qui ne déplace pas l'emprise ne la fait pas bouger.
+ */
+function CadrageSurRetenus({ retenus }: { retenus: CollegeResume[] }) {
   const map = useMap();
-  const done = useRef(false);
+  const cible = useMemo(() => emprise(retenus), [retenus]);
+  const derniere = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (done.current || colleges.length === 0) return;
-    done.current = true;
-    map.fitBounds(L.latLngBounds(colleges.map((c) => [c.lat, c.lon])), { padding: [24, 24] });
-  }, [colleges, map]);
+    const cle = JSON.stringify(cible);
+    if (derniere.current === undefined) {
+      derniere.current = cle; // ouverture
+      return;
+    }
+    if (!cible || cle === derniere.current) return;
+    const t = window.setTimeout(() => {
+      derniere.current = cle;
+      map.fitBounds(cible, { padding: [32, 32], maxZoom: 15 });
+    }, DELAI_CADRAGE_MS);
+    return () => window.clearTimeout(t);
+  }, [cible, map]);
+  return null;
+}
+
+/** Points des collèges en canvas, créés une fois puis mis à jour (voir pointsColleges.ts). */
+function PointsColleges({ colleges, points, rappels }: { colleges: CollegeResume[]; points: PointCarte[]; rappels: RappelsPoints }) {
+  const map = useMap();
+  const couche = useRef<CouchePoints | null>(null);
+  const derniersRappels = useRef(rappels);
+  useEffect(() => {
+    derniersRappels.current = rappels;
+  });
+  useEffect(() => {
+    const c = new CouchePoints(map, colleges, {
+      ouvrir: (uai) => derniersRappels.current.ouvrir(uai),
+      bulle: (uai) => derniersRappels.current.bulle(uai),
+    });
+    couche.current = c;
+    return () => {
+      c.retirer();
+      couche.current = null;
+    };
+  }, [map, colleges]);
+  useEffect(() => {
+    couche.current?.mettreAJour(points);
+  }, [points, colleges]);
   return null;
 }
 
@@ -65,7 +99,7 @@ function InvalidateOnResize() {
 }
 
 export function MapView({ onOpen }: { onOpen?: () => void }) {
-  const { dataset, contours, visiblesSet, byUai, secteur } = useData();
+  const { dataset, contours, visibles, visiblesSet, byUai, secteur } = useData();
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
   const favoris = useStore((s) => s.favoris);
@@ -74,22 +108,32 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
   const setColorBy = useStore((s) => s.setColorBy);
   const colleges = dataset.colleges;
 
-  const domain = useMemo(() => (colorBy === 'statut' ? null : domainOf(colleges, colorBy, { distances: null })), [colleges, colorBy]);
-  const colorOf = (c: CollegeResume) => {
-    if (colorBy === 'statut') return STATUT_COLORS[c.statut];
-    return scaleColor(c.indicateurs[colorBy], domain, INDICATEURS[colorBy].plusHautMieux === false);
-  };
-
-  // Les collèges filtrés sont dessinés au-dessus, les autres estompés.
-  const ordered = useMemo(
-    () => [...colleges].sort((a, b) => Number(visiblesSet.has(a.uai)) - Number(visiblesSet.has(b.uai)) || Number(a.uai === selected) - Number(b.uai === selected)),
-    [colleges, visiblesSet, selected],
+  const domain = useMemo(() => domaineDeCouleur(colleges, colorBy), [colleges, colorBy]);
+  const secteurUais = secteur?.uais;
+  const points = useMemo(
+    () => pointsDeLaCarte(colleges, { colorBy, retenus: visiblesSet, selectionne: selected, favoris, secteur: secteurUais ?? [] }),
+    [colleges, colorBy, visiblesSet, selected, favoris, secteurUais],
   );
+  const rappels: RappelsPoints = {
+    ouvrir: (uai) => {
+      select(uai);
+      onOpen?.();
+    },
+    bulle: (uai) => {
+      const c = byUai.get(uai);
+      const el = document.createElement('div');
+      if (!c) return el;
+      const nom = el.appendChild(document.createElement('strong'));
+      nom.textContent = nomCourt(c.nom);
+      if (colorBy !== 'statut') el.append(` · ${formatIndicateur(colorBy, c.indicateurs[colorBy])}`);
+      return el;
+    },
+  };
   const selectedCollege = selected ? byUai.get(selected) ?? null : null;
 
   return (
     <div className="relative h-full w-full">
-      <MapContainer center={[48.82, 2.37]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl>
+      <MapContainer bounds={CADRAGE_ILE_DE_FRANCE} className="h-full w-full" zoomControl={false} attributionControl>
         <TileLayer
           url="https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
           attribution='&copy; <a href="https://www.ign.fr/">IGN</a> – Plan IGN (Géoplateforme)'
@@ -98,7 +142,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
         />
         <ZoomControl />
         <InvalidateOnResize />
-        <FitOnLoad colleges={colleges} />
+        <CadrageSurRetenus retenus={visibles} />
         <FlyToSelected college={selectedCollege} />
         {contours.features.length > 0 && (
           <GeoJSON
@@ -121,31 +165,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
             </Tooltip>
           </Marker>
         )}
-        {ordered.map((c) => {
-          const isSel = c.uai === selected;
-          const visible = visiblesSet.has(c.uai);
-          return (
-            <Marker
-              key={c.uai}
-              position={[c.lat, c.lon]}
-              icon={markerIcon(colorOf(c), { selected: isSel, favori: favoris.includes(c.uai), secteur: !!secteur?.uais.includes(c.uai), dim: !visible })}
-              zIndexOffset={isSel ? 900 : visible ? 100 : 0}
-              keyboard
-              title={c.nom}
-              eventHandlers={{
-                click: () => {
-                  select(c.uai);
-                  onOpen?.();
-                },
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -8]}>
-                <strong>{nomCourt(c.nom)}</strong>
-                {colorBy !== 'statut' && <> · {formatIndicateur(colorBy, c.indicateurs[colorBy])}</>}
-              </Tooltip>
-            </Marker>
-          );
-        })}
+        <PointsColleges colleges={colleges} points={points} rappels={rappels} />
       </MapContainer>
 
       <div className="absolute right-3 top-3 z-[1000] rounded-lg bg-white/95 p-2 shadow-md">
