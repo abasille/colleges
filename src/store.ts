@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import type { Academie, EventType } from './types';
+import type { EventType, Territoire } from './types';
 import { DEFAULT_FILTERS, DEFAULT_SORT, type Filters, type Sort } from './lib/filters';
 import { parseUrlState, serializeUrlState, type ColorBy, type Vue } from './lib/url';
 import type { Adresse } from './lib/secteur';
@@ -28,7 +28,8 @@ interface State {
   calendarMode: CalendarMode;
   calendarMonth: string | null; // YYYY-MM
   eventTypes: EventType[];
-  academies: Academie[];
+  /** Territoires décochés dans le calendrier ; tout territoire présent dans les données est coché par défaut. */
+  territoiresMasques: Territoire[];
   // conservés dans le navigateur
   favoris: string[];
   notes: Record<string, string>;
@@ -45,7 +46,7 @@ interface State {
   setCalendarMode: (m: CalendarMode) => void;
   setCalendarMonth: (m: string | null) => void;
   toggleEventType: (t: EventType) => void;
-  toggleAcademie: (a: Academie) => void;
+  toggleTerritoire: (t: Territoire) => void;
   toggleFavori: (uai: string) => void;
   setNote: (uai: string, text: string) => void;
   importer: (favoris: string[], notes: Record<string, string>) => void;
@@ -92,7 +93,7 @@ export const useStore = create<State>()(
       calendarMode: 'liste',
       calendarMonth: null,
       eventTypes: ALL_EVENT_TYPES,
-      academies: ['Paris', 'Créteil'],
+      territoiresMasques: [],
       favoris: [],
       notes: {},
       adresse: null,
@@ -110,8 +111,10 @@ export const useStore = create<State>()(
       setCalendarMonth: (calendarMonth) => set({ calendarMonth }),
       toggleEventType: (t) =>
         set((s) => ({ eventTypes: s.eventTypes.includes(t) ? s.eventTypes.filter((x) => x !== t) : [...s.eventTypes, t] })),
-      toggleAcademie: (a) =>
-        set((s) => ({ academies: s.academies.includes(a) ? s.academies.filter((x) => x !== a) : [...s.academies, a] })),
+      toggleTerritoire: (t) =>
+        set((s) => ({
+          territoiresMasques: s.territoiresMasques.includes(t) ? s.territoiresMasques.filter((x) => x !== t) : [...s.territoiresMasques, t],
+        })),
       toggleFavori: (uai) =>
         set((s) => ({ favoris: s.favoris.includes(uai) ? s.favoris.filter((x) => x !== uai) : [...s.favoris, uai] })),
       setNote: (uai, text) => set((s) => ({ notes: { ...s.notes, [uai]: text } })),

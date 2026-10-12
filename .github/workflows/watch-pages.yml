@@ -64,7 +64,7 @@ jobs:
             cat summary.md
             echo
             echo '---'
-            echo 'Pour mettre à jour le calendrier : lancer `/maj-portes-ouvertes` dans Claude Code.'
+            echo 'Pour mettre à jour le calendrier : lancer `/college-maj-portes-ouvertes` dans Claude Code.'
             echo 'Fermer ce ticket une fois `data/overrides/events.json` mis à jour et commité.'
           } | head -c 60000 | iconv -c -f utf-8 -t utf-8 > body.md
           number=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number // empty')
