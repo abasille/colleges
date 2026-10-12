@@ -8,13 +8,13 @@ export function cx(...c: (string | false | null | undefined)[]): string {
   return c.filter(Boolean).join(' ');
 }
 
+/** Classes et couleurs d'un badge, partagées avec les bulles de la carte, construites hors de React. */
+export const CLASSES_BADGE = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium';
+export const couleursBadge = (color: string) => ({ backgroundColor: `${color}1a`, color });
+
 export function Badge({ children, color, title, className }: { children: ReactNode; color?: string; title?: string; className?: string }) {
   return (
-    <span
-      title={title}
-      className={cx('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium', className)}
-      style={color ? { backgroundColor: `${color}1a`, color } : undefined}
-    >
+    <span title={title} className={cx(CLASSES_BADGE, className)} style={color ? couleursBadge(color) : undefined}>
       {children}
     </span>
   );
@@ -29,10 +29,11 @@ export function StatutBadge({ statut, long = false }: { statut: Statut; long?: b
 }
 
 export const TEXTE_SUIVI = 'Collège suivi : portes ouvertes, inscriptions et passage au lycée relevés à la main';
+export const COULEUR_SUIVI = '#1d4ed8';
 
 export function SuiviBadge() {
   return (
-    <Badge color="#1d4ed8" title={TEXTE_SUIVI}>
+    <Badge color={COULEUR_SUIVI} title={TEXTE_SUIVI}>
       Suivi
     </Badge>
   );

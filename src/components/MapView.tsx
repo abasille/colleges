@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { GeoJSON, MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import type { CollegeResume, IndicateurKey } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
 import { MISSING_COLOR, sequential, STATUT_COLORS } from '../lib/colors';
-import { CADRAGE_ILE_DE_FRANCE, domaineDeCouleur, emprise, pointsDeLaCarte, type PointCarte } from '../lib/carte';
+import { CADRAGE_ILE_DE_FRANCE, cadrageInitial, domaineDeCouleur, emprise, pointsDeLaCarte, type PointCarte } from '../lib/carte';
 import { INDICATEURS, STATUT_LABELS } from '../lib/indicateurs';
 import { formatIndicateur, nomCourt } from '../lib/format';
 import type { ColorBy } from '../lib/url';
-import { TEXTE_SUIVI } from './ui';
+import { CLASSES_BADGE, COULEUR_SUIVI, couleursBadge, cx, TEXTE_SUIVI } from './ui';
 import { ContoursCommunes } from './ContoursCommunes';
 import { CouchePoints, type RappelsPoints } from './pointsColleges';
 
@@ -39,27 +39,34 @@ function FlyToSelected({ college }: { college: CollegeResume | null }) {
 /** Délai sans changement de filtre avant de recadrer : la carte ne saute pas à chaque frappe. */
 const DELAI_CADRAGE_MS = 600;
 
+const OPTIONS_CADRAGE: L.FitBoundsOptions = { padding: [32, 32], maxZoom: 15 };
+
 /**
- * Cadre la carte sur les collèges retenus quand les filtres changent. À l'ouverture, la carte garde
- * le cadrage de l'Île-de-France ; un changement qui ne déplace pas l'emprise ne la fait pas bouger.
+ * Cadre la carte sur les collèges retenus quand les filtres changent. À l'ouverture, la carte montre
+ * l'Île-de-France, ou directement les collèges retenus si le lien porte des filtres (cadrageInitial).
+ * Ensuite, un changement qui ne déplace pas l'emprise ne la fait pas bouger.
  */
 function CadrageSurRetenus({ retenus }: { retenus: CollegeResume[] }) {
   const map = useMap();
+  const filtres = useStore((s) => s.filters);
   const cible = useMemo(() => emprise(retenus), [retenus]);
+  // Calculé une seule fois, avec les filtres lus dans l'URL.
+  const [ouverture] = useState(() => cadrageInitial(filtres, retenus));
   const derniere = useRef<string | undefined>(undefined);
   useEffect(() => {
     const cle = JSON.stringify(cible);
     if (derniere.current === undefined) {
-      derniere.current = cle; // ouverture
+      derniere.current = cle;
+      if (ouverture !== CADRAGE_ILE_DE_FRANCE) map.fitBounds(ouverture, { ...OPTIONS_CADRAGE, animate: false });
       return;
     }
     if (!cible || cle === derniere.current) return;
     const t = window.setTimeout(() => {
       derniere.current = cle;
-      map.fitBounds(cible, { padding: [32, 32], maxZoom: 15 });
+      map.fitBounds(cible, OPTIONS_CADRAGE);
     }, DELAI_CADRAGE_MS);
     return () => window.clearTimeout(t);
-  }, [cible, map]);
+  }, [cible, map, ouverture]);
   return null;
 }
 
@@ -130,8 +137,8 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
       if (c.suivi) {
         // Même rendu que SuiviBadge (ui.tsx) : la bulle est construite hors de React.
         const badge = el.appendChild(document.createElement('span'));
-        badge.className = 'ml-1 inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium';
-        badge.style.cssText = 'background-color:#1d4ed81a;color:#1d4ed8';
+        badge.className = cx('ml-1', CLASSES_BADGE);
+        Object.assign(badge.style, couleursBadge(COULEUR_SUIVI));
         badge.title = TEXTE_SUIVI;
         badge.textContent = 'Suivi';
       }

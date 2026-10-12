@@ -1,7 +1,7 @@
 import type { CollegeResume } from '../types';
 import type { ColorBy } from './url';
 import { scaleColor, STATUT_COLORS } from './colors';
-import { domainOf } from './filters';
+import { countActive, domainOf, type Filters } from './filters';
 import { INDICATEURS } from './indicateurs';
 
 /** Emprise [[sud, ouest], [nord, est]], au format des bornes Leaflet. */
@@ -84,6 +84,15 @@ export function emprise(colleges: readonly Pick<CollegeResume, 'lat' | 'lon'>[])
     [sud, ouest],
     [nord, est],
   ];
+}
+
+/**
+ * Cadrage à l'ouverture : l'Île-de-France sans filtre ; sinon (lien partagé qui porte une commune,
+ * un département, une recherche…) les collèges retenus, s'il y en a.
+ */
+export function cadrageInitial(filtres: Filters, retenus: readonly Pick<CollegeResume, 'lat' | 'lon'>[]): Emprise {
+  const filtre = countActive(filtres) > 0 || filtres.q.trim() !== '';
+  return (filtre && emprise(retenus)) || CADRAGE_ILE_DE_FRANCE;
 }
 
 /**

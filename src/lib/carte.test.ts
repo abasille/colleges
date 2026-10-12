@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CollegeResume } from '../types';
-import { CADRAGE_ILE_DE_FRANCE, emprise, pointsDeLaCarte, rayonDuPoint, type EtatCarte } from './carte';
+import { DEFAULT_FILTERS } from './filters';
+import { CADRAGE_ILE_DE_FRANCE, cadrageInitial, emprise, pointsDeLaCarte, rayonDuPoint, type EtatCarte } from './carte';
 
 function college(uai: string, over: Partial<CollegeResume> = {}, ind: Partial<CollegeResume['indicateurs']> = {}): CollegeResume {
   return {
@@ -106,5 +107,17 @@ describe('cadrage de la carte', () => {
       expect(lon).toBeGreaterThan(ouest);
       expect(lon).toBeLessThan(est);
     }
+  });
+
+  it('s’ouvre sur les collèges retenus quand le lien partagé porte une sélection ou des filtres', () => {
+    const ivry = [college('A', { lat: 48.81, lon: 2.38 }), college('B', { lat: 48.82, lon: 2.39 })];
+    expect(cadrageInitial({ ...DEFAULT_FILTERS, communes: ['94041'] }, ivry)).toEqual([[48.81, 2.38], [48.82, 2.39]]);
+    expect(cadrageInitial({ ...DEFAULT_FILTERS, q: 'Rodin' }, ivry.slice(0, 1))).toEqual([[48.81, 2.38], [48.81, 2.38]]);
+  });
+
+  it('s’ouvre sur l’Île-de-France sans filtre, ou si aucun collège n’est retenu', () => {
+    const tous = [college('A', { lat: 48.81, lon: 2.38 }), college('B', { lat: 48.6, lon: 2.1 })];
+    expect(cadrageInitial(DEFAULT_FILTERS, tous)).toEqual(CADRAGE_ILE_DE_FRANCE);
+    expect(cadrageInitial({ ...DEFAULT_FILTERS, departements: ['77'] }, [])).toEqual(CADRAGE_ILE_DE_FRANCE);
   });
 });
