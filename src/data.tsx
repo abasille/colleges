@@ -5,6 +5,7 @@ import { findSecteur, lireDonneesSecteur, sourceSecteur } from './lib/secteur';
 import { haversineKm } from './lib/geo';
 import { applyFilters, sortColleges } from './lib/filters';
 import { fusionner } from './lib/fiche';
+import { getJson, telechargementsParCle } from './lib/telechargements';
 import { useStore } from './store';
 
 interface RawData {
@@ -30,12 +31,6 @@ export function useData(): AppData {
   return v;
 }
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`);
-  if (!res.ok) throw new Error(`${path} : HTTP ${res.status}`);
-  return (await res.json()) as T;
-}
-
 async function loadAll(): Promise<RawData> {
   const [dataset, events] = await Promise.all([
     getJson<Dataset>('colleges.json'),
@@ -46,22 +41,14 @@ async function loadAll(): Promise<RawData> {
 
 // ---------------------------------------------------------------- détail par département
 
-/** Détails déjà reçus, par département puis par UAI. */
-const detailsRecus = new Map<string, Map<string, CollegeDetail>>();
-/** Téléchargements en cours ou terminés, un seul par département. */
-const detailsDemandes = new Map<string, Promise<void>>();
+/** Détails par département, puis par UAI : un seul téléchargement par département. */
+const details = telechargementsParCle<Map<string, CollegeDetail>>();
 
-function chargerDetail(departement: string, version: string): Promise<void> {
-  let p = detailsDemandes.get(departement);
-  if (!p) {
-    // La version (date de génération) évite de mélanger un fichier léger et un détail de deux générations.
-    p = getJson<DetailDepartement>(`colleges-${departement}.json?v=${encodeURIComponent(version)}`).then((d) => {
-      detailsRecus.set(departement, new Map(d.colleges.map((c) => [c.uai, c])));
-    });
-    p.catch(() => detailsDemandes.delete(departement));
-    detailsDemandes.set(departement, p);
-  }
-  return p;
+function chargerDetail(departement: string, version: string): Promise<unknown> {
+  // La version (date de génération) évite de mélanger un fichier léger et un détail de deux générations.
+  return details.demander(departement, () =>
+    getJson<DetailDepartement>(`colleges-${departement}.json?v=${encodeURIComponent(version)}`).then((d) => new Map(d.colleges.map((c) => [c.uai, c]))),
+  );
 }
 
 export type EtatFiche =
@@ -81,7 +68,7 @@ export function useFiche(resume: CollegeResume): EtatFiche {
   const [, setRecu] = useState(0);
 
   useEffect(() => {
-    if (detailsRecus.has(departement)) return;
+    if (details.recu(departement)) return;
     let actif = true;
     chargerDetail(departement, dataset.generatedAt).then(
       () => actif && setRecu((n) => n + 1),
@@ -93,14 +80,13 @@ export function useFiche(resume: CollegeResume): EtatFiche {
   }, [departement, dataset.generatedAt, essai]);
 
   const reessayer = () => {
-    detailsRecus.delete(departement);
-    detailsDemandes.delete(departement);
+    details.oublier(departement);
     setEchec(null);
     setEssai((n) => n + 1);
   };
-  const details = detailsRecus.get(departement);
-  if (details) {
-    const detail = details.get(resume.uai);
+  const recus = details.recu(departement);
+  if (recus) {
+    const detail = recus.get(resume.uai);
     if (detail) return { etat: 'prete', college: fusionner(resume, detail) };
     return { etat: 'erreur', message: `${resume.uai} absent de colleges-${departement}.json`, reessayer };
   }
@@ -111,16 +97,12 @@ export function useFiche(resume: CollegeResume): EtatFiche {
 // ---------------------------------------------------------------- sectorisation
 
 /** Fichiers de sectorisation (polygones parisiens, carte scolaire) : un seul téléchargement par fichier. */
-const secteursDemandes = new Map<string, Promise<DonneesSecteur>>();
+const secteurs = telechargementsParCle<DonneesSecteur>();
 
 function chargerSecteur(source: SourceSecteur, version: string): Promise<DonneesSecteur> {
-  let p = secteursDemandes.get(source.fichier);
-  if (!p) {
-    p = getJson<unknown>(`${source.fichier}?v=${encodeURIComponent(version)}`).then((json) => lireDonneesSecteur(source, json));
-    p.catch(() => secteursDemandes.delete(source.fichier));
-    secteursDemandes.set(source.fichier, p);
-  }
-  return p;
+  return secteurs.demander(source.fichier, () =>
+    getJson<unknown>(`${source.fichier}?v=${encodeURIComponent(version)}`).then((json) => lireDonneesSecteur(source, json)),
+  );
 }
 
 type SecteursRecus = { fichier: string; donnees: DonneesSecteur } | { fichier: string; erreur: string };
