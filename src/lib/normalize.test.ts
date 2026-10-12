@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeNom, normalizeVoie, stripAccents } from './normalize';
+import { comparerFr, mots, normalizeNom, normalizeVoie, stripAccents } from './normalize';
 
 describe('stripAccents', () => {
   it('met en majuscules sans accents ni ligatures', () => {
     expect(stripAccents("Allée de l'Œuvre Sœur Thérèse")).toBe("ALLEE DE L'OEUVRE SOEUR THERESE");
+  });
+});
+
+describe('mots et tri', () => {
+  it('découpe en mots sans accents ni casse, tirets et apostrophes séparant les mots', () => {
+    expect(mots('Saint-Maur-des-Fossés')).toEqual(['saint', 'maur', 'des', 'fosses']);
+    expect(mots('Collège d’Alembert, Paris 13e')).toEqual(['college', 'd', 'alembert', 'paris', '13e']);
+  });
+
+  it('trie en français, sans tenir compte des accents, les nombres dans l’ordre', () => {
+    expect(['Paris 10e', 'Évry', 'Paris 2e', 'Ivry'].sort(comparerFr)).toEqual(['Évry', 'Ivry', 'Paris 2e', 'Paris 10e']);
   });
 });
 

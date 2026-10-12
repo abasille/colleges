@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fold } from '../src/lib/filters';
+import { mots } from '../src/lib/normalize';
 import { collegeAParis, libelleTerritoire } from '../src/lib/territoires';
 import type {
   Academie,
@@ -27,8 +27,6 @@ import { USER_AGENT, type WatchFile } from './watch-pages';
 import { ALLOW_ALL, DISALLOW_ALL, crawlDelay, isAllowed, parseRobots, productToken, type Robots } from './watch/robots';
 
 export type CollegeCherche = Pick<CollegeResume, 'uai' | 'nom' | 'statut' | 'communeLibelle' | 'departement' | 'academie' | 'suivi'>;
-
-const mots = (s: string): string[] => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
 
 /**
  * Collèges dont l'UAI est la requête ; sinon ceux dont le nom et la commune contiennent un mot

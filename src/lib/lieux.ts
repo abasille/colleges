@@ -1,17 +1,12 @@
 import type { CommunePresente, Departement } from '../types';
 import type { Filters } from './filters';
-import { fold } from './filters';
+import { comparerFr, mots } from './normalize';
 import { DEPARTEMENTS } from './territoires';
 
 /** Ce que propose le filtre « commune ou département » (à Paris, la commune est l'arrondissement). */
 export type Lieu = ({ type: 'commune' } & CommunePresente) | { type: 'departement'; code: Departement; libelle: string };
 
 type Choix = Pick<Filters, 'communes' | 'departements'>;
-
-/** Mots sans accents ni casse ; tirets et apostrophes (droites ou typographiques) séparent les mots. */
-const mots = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
-
-const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 
 /**
  * Communes du périmètre et départements dont les mots commencent par ceux de la saisie,
@@ -32,7 +27,7 @@ export function rechercherLieux(q: string, communes: readonly CommunePresente[],
   for (const c of communes) {
     if (!choix.communes.includes(c.code)) essayer({ type: 'commune', ...c }, mots(c.libelle));
   }
-  candidats.sort((a, b) => a.rang - b.rang || collator.compare(a.lieu.libelle, b.lieu.libelle));
+  candidats.sort((a, b) => a.rang - b.rang || comparerFr(a.lieu.libelle, b.lieu.libelle));
   return candidats.slice(0, limite).map((c) => c.lieu);
 }
 

@@ -1,5 +1,6 @@
 import type { CollegeResume, Departement, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
+import { comparerFr, fold } from './normalize';
 
 export type ValueKey = IndicateurKey | 'distance';
 export type SortKey = ValueKey | 'nom';
@@ -58,14 +59,6 @@ export function getValue(c: CollegeResume, key: ValueKey, ctx: Pick<FilterContex
   return c.indicateurs[key];
 }
 
-/** Minuscules, sans accents, pour la recherche par nom. */
-export function fold(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-}
-
 export function hasLyceeGeneral(c: CollegeResume): boolean {
   return c.continuite.secondeGtSurPlace;
 }
@@ -114,11 +107,9 @@ export function applyFilters(colleges: CollegeResume[], f: Filters, ctx: FilterC
   return colleges.filter((c) => matches(c, effectif, ctx));
 }
 
-const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
-
 /** Tri stable ; les valeurs manquantes sont toujours en dernier, quel que soit le sens. */
 export function sortColleges(colleges: CollegeResume[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): CollegeResume[] {
-  const byName = (a: CollegeResume, b: CollegeResume) => collator.compare(nomCourt(a.nom), nomCourt(b.nom));
+  const byName = (a: CollegeResume, b: CollegeResume) => comparerFr(nomCourt(a.nom), nomCourt(b.nom));
   const out = [...colleges];
   if (sort.key === 'nom') {
     out.sort((a, b) => (sort.dir === 'asc' ? byName(a, b) : byName(b, a)));

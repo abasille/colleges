@@ -13,6 +13,7 @@ import type { EventsResult } from './events';
 import { FAMILLES, type Anomalie, type ElementAnomalie, type FamilleAnomalie } from './anomalies';
 import { groupBy } from './lib/util';
 import { collegeAParis } from '../../src/lib/territoires';
+import { collegeDeduit } from '../../src/lib/secteur';
 
 export interface ReportData {
   generatedAt: string;
@@ -225,10 +226,8 @@ export function renderReport(d: ReportData): string {
   L.push(
     `- Carte scolaire nationale : ${rows.length} lignes après normalisation des voies (${carte.doublons} doublons retirés, ${carte.ecartees} écartées), ${carte.communes.size} communes, ${carte.uais.size} collèges. Une ligne sans voie (« secteur unique ») couvre toute la commune, ou le reste de la commune quand d'autres lignes listent des voies. Publiée par département hors Paris.`,
   );
-  const deduites = [...groupBy(cs.filter((c) => c.statut === 'public' && !collegeAParis(c) && !carte.communes.has(c.commune)), (c) => c.commune).values()]
-    .filter((l) => l.length === 1)
-    .map(([c]) => c)
-    .sort((a, b) => a.commune.localeCompare(b.commune));
+  const communesAbsentes = new Set(cs.filter((c) => !collegeAParis(c) && !carte.communes.has(c.commune)).map((c) => c.commune));
+  const deduites = [...communesAbsentes].sort().flatMap((commune) => collegeDeduit(commune, cs) ?? []);
   L.push(
     `- Communes absentes de la carte, rattachées par déduction à leur seul collège public (${deduites.length}) : ${deduites.map((c) => `${c.communeLibelle} (${c.commune}, ${c.nom})`).join(', ') || 'aucune'}. Une commune sans collège et absente de la carte (Coubron) n'a pas de secteur connu.`,
   );

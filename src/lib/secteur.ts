@@ -93,7 +93,7 @@ export function parseNumero(housenumber: string | null): number | null {
   return m ? Number(m[0]) : null;
 }
 
-const uaisDe = (plages: PlageCarteScolaire[]) => [...new Set(plages.map((p) => p[4]))].sort();
+const uaisDe = (plages: PlageCarteScolaire[]) => [...new Set(plages.map(([, , , , uai]) => uai))].sort();
 
 /** Plages de la voie qui contiennent le numéro (bornes et parité) ; sans numéro, toutes les plages de la voie. */
 function plagesDuNumero(plages: PlageCarteScolaire[], voie: string, n: number | null): PlageCarteScolaire[] {
@@ -114,16 +114,25 @@ const trouve = (uais: string[], methode: MethodeSecteur, message: string | null 
 export const MESSAGE_HORS_IDF = 'Adresse hors Île-de-France : pas de collège de secteur.';
 export const MENTION_DEDUIT = 'déduit : seul collège public de la commune';
 
+/**
+ * Collège de secteur déduit d'une commune absente de la carte scolaire nationale : son seul collège
+ * public, null s'il n'en a aucun ou plusieurs. Même règle dans l'application et dans le rapport.
+ */
+export function collegeDeduit<C extends Pick<CollegeResume, 'uai' | 'commune' | 'statut'>>(commune: string, colleges: readonly C[]): C | null {
+  const publics = colleges.filter((c) => c.statut === 'public' && c.commune === commune);
+  return publics.length === 1 ? publics[0] : null;
+}
+
 /** Adresse hors Paris : lignes de la carte scolaire nationale de sa commune. */
 function findSecteurCarte(adresse: Adresse, carte: CarteScolaireDepartement, colleges: readonly Pick<CollegeResume, 'uai' | 'commune' | 'statut'>[]): SecteurResult {
   const plages = carte.communes[adresse.citycode] ?? [];
   if (plages.length === 0) {
-    const publics = colleges.filter((c) => c.statut === 'public' && c.commune === adresse.citycode);
-    if (publics.length === 1) return trouve([publics[0].uai], 'deduit', MENTION_DEDUIT);
+    const deduit = collegeDeduit(adresse.citycode, colleges);
+    if (deduit) return trouve([deduit.uai], 'deduit', MENTION_DEDUIT);
     return introuvable('Secteur inconnu pour cette commune (absente de la carte scolaire nationale).');
   }
   // Lignes « secteur unique » (sans voie) : toute la commune, ou le reste de la commune hors des voies listées.
-  const reste = plages.filter((p) => p[0] === '');
+  const reste = plages.filter(([voie]) => voie === '');
   if (reste.length === plages.length) return trouve(uaisDe(reste), 'commune_entiere');
   if (!adresse.street) return introuvable('Précisez la rue : cette commune compte plusieurs secteurs.');
   const voie = normalizeVoie(adresse.street);
@@ -131,7 +140,7 @@ function findSecteurCarte(adresse: Adresse, carte: CarteScolaireDepartement, col
   const uais = uaisDe(plagesDuNumero(plages, voie, n));
   if (uais.length) return trouve(uais, 'adresse', n === null && uais.length > 1 ? 'Plusieurs secteurs sur cette voie : précisez le numéro.' : null);
   if (reste.length) return trouve(uaisDe(reste), 'commune_entiere', 'adresse absente des voies listées : collège du reste de la commune');
-  if (plages.some((p) => p[0] === voie)) return introuvable(`Numéro hors des plages de cette rue dans la carte scolaire.`);
+  if (plages.some(([v]) => v === voie)) return introuvable(`Numéro hors des plages de cette rue dans la carte scolaire.`);
   return introuvable('Rue introuvable dans la carte scolaire de cette commune.');
 }
 
