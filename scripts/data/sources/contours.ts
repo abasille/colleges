@@ -1,5 +1,4 @@
 // Contours des arrondissements et communes du périmètre (geo.api.gouv.fr).
-import type { ZoneCode } from '../../../src/types';
 import { fetchJson } from '../lib/fetch';
 import { simplifyGeometry, type Feature, type FeatureCollection, type SurfaceGeometry } from '../lib/geo';
 
@@ -17,29 +16,29 @@ export interface ContourBrut {
   geometry: SurfaceGeometry;
 }
 
-export async function loadContoursBruts(zones: { code: ZoneCode }[]): Promise<ContourBrut[]> {
+export async function loadContoursBruts(communes: string[]): Promise<ContourBrut[]> {
   const out: ContourBrut[] = [];
-  for (const z of zones) {
-    const f = await fetchJson<{ geometry: SurfaceGeometry; properties: { code: string } }>(contourUrl(z.code));
-    if (f.properties?.code !== z.code) throw new Error(`Contour ${z.code} : code inattendu ${f.properties?.code}`);
-    out.push({ code: z.code, geometry: f.geometry });
+  for (const code of communes) {
+    const f = await fetchJson<{ geometry: SurfaceGeometry; properties: { code: string } }>(contourUrl(code));
+    if (f.properties?.code !== code) throw new Error(`Contour ${code} : code inattendu ${f.properties?.code}`);
+    out.push({ code, geometry: f.geometry });
   }
   return out;
 }
 
-/** Contours simplifiés, dans l'ordre des zones (sans accès réseau). */
+/** Contours simplifiés, dans l'ordre des communes données (sans accès réseau). */
 export function simplifierContours(
   bruts: ContourBrut[],
-  zones: { code: ZoneCode; libelle: string }[],
+  communes: { code: string; libelle: string }[],
   opts: { tolerance: number; decimals: number },
-): FeatureCollection<{ code: ZoneCode; libelle: string }> {
-  const features: Feature<{ code: ZoneCode; libelle: string }>[] = [];
-  for (const z of zones) {
-    const brut = bruts.find((b) => b.code === z.code);
-    if (!brut) throw new Error(`Contour ${z.code} : absent des données chargées`);
+): FeatureCollection<{ code: string; libelle: string }> {
+  const features: Feature<{ code: string; libelle: string }>[] = [];
+  for (const c of communes) {
+    const brut = bruts.find((b) => b.code === c.code);
+    if (!brut) throw new Error(`Contour ${c.code} : absent des données chargées`);
     const geometry = simplifyGeometry(brut.geometry, opts.tolerance, opts.decimals);
-    if (!geometry) throw new Error(`Contour ${z.code} : géométrie vide après simplification`);
-    features.push({ type: 'Feature', properties: { code: z.code, libelle: z.libelle }, geometry });
+    if (!geometry) throw new Error(`Contour ${c.code} : géométrie vide après simplification`);
+    features.push({ type: 'Feature', properties: { code: c.code, libelle: c.libelle }, geometry });
   }
   return { type: 'FeatureCollection', features };
 }

@@ -1,4 +1,4 @@
-import type { College, IndicateurKey, Statut, ZoneCode } from '../types';
+import type { College, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
 
 export type ValueKey = IndicateurKey | 'distance';
@@ -13,7 +13,7 @@ export interface Sort {
 export interface Filters {
   q: string;
   statuts: Statut[]; // vide = tous
-  zones: ZoneCode[]; // vide = toutes
+  communes: string[]; // codes INSEE ; vide = toutes
   rep: 'tous' | 'rep' | 'hors_rep';
   accueilSixieme: boolean;
   masquerRecrutementParticulier: boolean;
@@ -28,7 +28,7 @@ export interface Filters {
 export const DEFAULT_FILTERS: Filters = {
   q: '',
   statuts: [],
-  zones: [],
+  communes: [],
   rep: 'tous',
   accueilSixieme: true,
   masquerRecrutementParticulier: false,
@@ -67,11 +67,11 @@ export function hasLyceeGeneral(c: College): boolean {
 export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
   if (f.q.trim()) {
     const words = fold(f.q).split(/\s+/).filter(Boolean);
-    const hay = fold(`${c.nom} ${c.zoneLibelle}`);
+    const hay = fold(`${c.nom} ${c.communeLibelle}`);
     if (!words.every((w) => hay.includes(w))) return false;
   }
   if (f.statuts.length && !f.statuts.includes(c.statut)) return false;
-  if (f.zones.length && !f.zones.includes(c.zone)) return false;
+  if (f.communes.length && !f.communes.includes(c.commune)) return false;
   if (f.rep === 'rep' && !c.rep) return false;
   if (f.rep === 'hors_rep' && c.rep) return false;
   if (f.accueilSixieme && !c.accueilSixieme) return false;
@@ -92,8 +92,11 @@ export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
   return true;
 }
 
+/** Les codes de commune absents des collèges donnés (lien ancien ou erroné) sont ignorés. */
 export function applyFilters(colleges: College[], f: Filters, ctx: FilterContext): College[] {
-  return colleges.filter((c) => matches(c, f, ctx));
+  const presentes = new Set(colleges.map((c) => c.commune));
+  const effectif = { ...f, communes: f.communes.filter((code) => presentes.has(code)) };
+  return colleges.filter((c) => matches(c, effectif, ctx));
 }
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
@@ -136,7 +139,7 @@ export function domainOf(colleges: College[], key: ValueKey, ctx: Pick<FilterCon
 export function countActive(f: Filters): number {
   let n = 0;
   if (f.statuts.length) n++;
-  if (f.zones.length) n++;
+  if (f.communes.length) n++;
   if (f.rep !== 'tous') n++;
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) n++;
   if (f.masquerRecrutementParticulier) n++;

@@ -13,13 +13,56 @@ describe('assemblerDataset : sélection des collèges', () => {
       config: { exclure: ['0750003C'] },
     });
     const a = assemblerDataset(e);
-    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.zone])).toEqual([
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.commune])).toEqual([
       ['0750001A', 'Collège Rodin', '75105'],
       ['0940002B', 'Collège Politzer', '94041'],
     ]);
     expect(a.rapport.exclus.map((r) => r.identifiant_de_l_etablissement)).toEqual(['0750003C']);
     // Même sélection pour le plan de chargement des sources interrogées par UAI.
     expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0750001A', '0940002B']);
+  });
+});
+
+describe('assemblerDataset : commune, département, académie', () => {
+  it('lit la commune, le département et l’académie dans l’annuaire, Versailles comprise', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', code_commune: '75113', nom_commune: 'Paris 13e  Arrondissement' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', code_commune: '75101', nom_commune: 'Paris' }),
+          etab({
+            identifiant_de_l_etablissement: '0920003C',
+            code_commune: '92012',
+            nom_commune: 'Boulogne-Billancourt',
+            code_departement: '092',
+            libelle_academie: 'Versailles',
+          }),
+          etab({
+            identifiant_de_l_etablissement: '0940004D',
+            code_commune: '94041',
+            nom_commune: 'Ivry-sur-Seine',
+            code_departement: '094',
+            libelle_academie: 'Créteil',
+          }),
+        ],
+        config: { communes: ['75101', '75113', '92012', '94041'] },
+      }),
+    );
+    const d = a.publication.dataset;
+    expect(d.colleges.map((c) => [c.uai, c.commune, c.communeLibelle, c.departement, c.academie])).toEqual([
+      ['0750001A', '75113', 'Paris 13e', '75', 'Paris'],
+      ['0750002B', '75101', 'Paris 1er', '75', 'Paris'],
+      ['0920003C', '92012', 'Boulogne-Billancourt', '92', 'Versailles'],
+      ['0940004D', '94041', 'Ivry-sur-Seine', '94', 'Créteil'],
+    ]);
+    // Les données publiées listent les communes présentes, triées par code.
+    expect(d.communes).toEqual([
+      { code: '75101', libelle: 'Paris 1er', departement: '75' },
+      { code: '75113', libelle: 'Paris 13e', departement: '75' },
+      { code: '92012', libelle: 'Boulogne-Billancourt', departement: '92' },
+      { code: '94041', libelle: 'Ivry-sur-Seine', departement: '94' },
+    ]);
+    expect(a.publication.contours.features.map((f) => f.properties)).toEqual(d.communes.map(({ code, libelle }) => ({ code, libelle })));
   });
 });
 
@@ -74,7 +117,7 @@ describe('assemblerDataset : références', () => {
             ligneIvac({ uai: '0940002B', academie: 'CRÉTEIL', candidats: 100, taux: 70 }),
             ligneIvac({ uai: '0780003C', academie: 'VERSAILLES', candidats: 200, taux: 80 }),
           ],
-          ips: [ips('0750001A', 'PARIS', 110.4), ips('0940002B', 'CRETEIL', 95.1)],
+          ips: [ips('0750001A', 'PARIS', 110.4), ips('0940002B', 'CRETEIL', 95.1), ips('0780003C', 'VERSAILLES', 104.7)],
         },
       }),
     );
@@ -82,9 +125,11 @@ describe('assemblerDataset : références', () => {
     expect(france.brevet).toBe(80); // (90×100 + 70×100 + 80×200) / 400
     expect(academies.Paris.brevet).toBe(90);
     expect(academies['Créteil'].brevet).toBe(70);
+    expect(academies.Versailles.brevet).toBe(80);
     expect(france.ips).toBe(103.2);
     expect(academies.Paris.ips).toBe(110.4);
     expect(academies['Créteil'].ips).toBe(95.1);
+    expect(academies.Versailles.ips).toBe(104.7);
   });
 });
 

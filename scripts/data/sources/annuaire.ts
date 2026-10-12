@@ -94,10 +94,9 @@ export interface Annuaire {
 }
 
 export async function loadAnnuaire(cfg: Config, continuite: Record<string, { lyceeUai?: string | null }>): Promise<AnnuaireBrut> {
-  const communes = cfg.zones.map((z) => z.code);
   const colleges = await odsExport<AnnuaireRow>(ANNUAIRE_ID, {
     select: FIELDS,
-    where: `code_commune in ${odsList(communes)} and code_nature in ${odsList(cfg.codesNature)}`,
+    where: `code_commune in ${odsList(cfg.communes)} and code_nature in ${odsList(cfg.codesNature)}`,
   });
   const lycees = await odsExport<AnnuaireRow>(ANNUAIRE_ID, {
     select: FIELDS,

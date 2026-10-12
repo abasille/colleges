@@ -2,12 +2,11 @@
 // Fichiers produits dans public/data/ :
 //   colleges.json            -> Dataset
 //   events.json              -> EventsFile
-//   contours.geojson         -> FeatureCollection, properties: { code: ZoneCode, libelle: string }
+//   contours.geojson         -> FeatureCollection, properties: { code: string, libelle: string } (communes présentes)
 //   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
 //   carte-scolaire-94.json   -> CarteScolaireRow[]
 
-export type ZoneCode = '75105' | '75106' | '75113' | '75114' | '94041' | '94081';
-export type Academie = 'Paris' | 'Créteil';
+export type Academie = 'Paris' | 'Créteil' | 'Versailles';
 export type Statut = 'public' | 'prive_sous_contrat' | 'hors_contrat';
 export type Niveau = '6e' | '5e' | '4e' | '3e';
 
@@ -76,7 +75,7 @@ export interface Continuite {
 export interface ScoreMaison {
   note: number; // /20, 1 décimale
   lettre: 'A' | 'B' | 'C' | 'D' | 'E';
-  rang: number; // rang dans la zone parmi les collèges notés
+  rang: number; // rang parmi tous les collèges notés du périmètre
   sur: number;
   partielle: boolean; // une composante manque
   composantes: { brevet: number | null; noteEcrit: number | null; va: number | null }; // /20 chacune
@@ -92,9 +91,11 @@ export interface College {
   nom: string; // ex. « Collège Claude Monet »
   statut: Statut;
   contrat: 'association' | 'simple' | null;
-  zone: ZoneCode;
-  zoneLibelle: string; // « Paris 13e », « Ivry-sur-Seine »
-  academie: Academie;
+  /** Code INSEE de la commune ; à Paris, celui de l'arrondissement (« 75113 »). */
+  commune: string;
+  communeLibelle: string; // « Paris 13e », « Ivry-sur-Seine »
+  departement: string; // « 75 », « 94 »
+  academie: Academie; // lue dans l'annuaire
   adresse: string;
   codePostal: string;
   lat: number;
@@ -163,10 +164,17 @@ export interface Source {
   millesime: string;
 }
 
+export interface CommunePresente {
+  code: string;
+  libelle: string;
+  departement: string;
+}
+
 export interface Dataset {
   generatedAt: string; // ISO
   sessions: { brevet: number[]; ips: number; effectifs: number };
-  zones: { code: ZoneCode; libelle: string; academie: Academie }[];
+  /** Communes où se trouve au moins un collège publié, triées par code. */
+  communes: CommunePresente[];
   /** Moyennes de référence pour les comparaisons de la fiche. */
   references: {
     france: Partial<Record<IndicateurKey, number>>;

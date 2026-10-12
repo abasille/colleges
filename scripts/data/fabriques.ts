@@ -68,10 +68,7 @@ export function ligneIvac(p: Partial<IvacRow>): IvacRow {
 /** Configuration : deux communes (Paris 5e, Ivry-sur-Seine), aucune exclusion. */
 export function config(p: Partial<Config> = {}): Config {
   return {
-    zones: [
-      { code: '75105', libelle: 'Paris 5e', academie: 'Paris' },
-      { code: '94041', libelle: 'Ivry-sur-Seine', academie: 'Créteil' },
-    ],
+    communes: ['75105', '94041'],
     codesNature: [340, 352],
     exclure: [],
     saisonCourante: '2026-27',
@@ -117,7 +114,7 @@ export function entree(
   return {
     config: cfg,
     corrections: { colleges: {}, continuite: {}, evenements: null, ...p.corrections },
-    sources: { ...sources, contours: p.sources?.contours ?? cfg.zones.map((z) => ({ code: z.code, geometry: carre(z.code) })) },
+    sources: { ...sources, contours: p.sources?.contours ?? cfg.communes.map((code) => ({ code, geometry: carre(code) })) },
     maintenant: new Date('2026-10-12T08:00:00Z'),
   };
 }

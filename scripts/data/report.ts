@@ -1,5 +1,5 @@
 // Rapport d'anomalies data/report.md (relu à chaque mise à jour des données).
-import type { CarteScolaireRow, College, Dataset, IndicateurKey } from '../../src/types';
+import type { Academie, CarteScolaireRow, College, Dataset, IndicateurKey } from '../../src/types';
 import { normalizeNom } from '../../src/lib/normalize';
 import type { Config } from './lib/config';
 import type { AnnuaireRow } from './sources/annuaire';
@@ -93,11 +93,16 @@ export function renderReport(d: ReportData): string {
   L.push('');
   L.push(
     table(
-      ['Zone', 'Public', 'Privé sous contrat', 'Hors contrat', 'Total'],
-      d.cfg.zones.map((z) => {
-        const l = cs.filter((c) => c.zone === z.code);
-        return [z.libelle, l.filter((c) => c.statut === 'public').length, l.filter((c) => c.statut === 'prive_sous_contrat').length, l.filter((c) => c.statut === 'hors_contrat').length, l.length];
-      }),
+      ['Commune', 'Public', 'Privé sous contrat', 'Hors contrat', 'Total'],
+      [...groupBy(cs, (c) => c.commune).entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, l]) => [
+          l[0].communeLibelle,
+          l.filter((c) => c.statut === 'public').length,
+          l.filter((c) => c.statut === 'prive_sous_contrat').length,
+          l.filter((c) => c.statut === 'hors_contrat').length,
+          l.length,
+        ]),
     ),
   );
   L.push('');
@@ -188,8 +193,14 @@ export function renderReport(d: ReportData): string {
 
   // Références
   L.push('', '## 5. Moyennes de référence', '');
-  const keys = [...new Set([...Object.keys(d.references.france), ...Object.keys(d.references.academies.Paris), ...Object.keys(d.references.academies['Créteil'])])] as IndicateurKey[];
-  L.push(table(['Indicateur', 'France', 'Académie de Paris', 'Académie de Créteil'], keys.map((k) => [k, d.references.france[k], d.references.academies.Paris[k], d.references.academies['Créteil'][k]])));
+  const academies = Object.keys(d.references.academies) as Academie[];
+  const keys = [...new Set([...Object.keys(d.references.france), ...academies.flatMap((a) => Object.keys(d.references.academies[a]))])] as IndicateurKey[];
+  L.push(
+    table(
+      ['Indicateur', 'France', ...academies.map((a) => `Académie de ${a}`)],
+      keys.map((k) => [k, d.references.france[k], ...academies.map((a) => d.references.academies[a][k])]),
+    ),
+  );
 
   // Absences par jeu
   L.push('', '## 6. Collèges absents de chaque jeu de données', '');
@@ -321,7 +332,7 @@ export function renderReport(d: ReportData): string {
   L.push(`${sp.geojson.features.length} secteurs publiés, ${sp.correspondances.length} noms de collèges. ${matched.size}/${d.collegesParisPublics.length} collèges publics parisiens du périmètre associés à un secteur.`);
   L.push(`Collèges publics parisiens du périmètre sans secteur : ${nonApparies.map((u) => nomCourt(byUai.get(u)!)).join(', ') || 'aucun'} (Rognoni n'a pas de secteur : recrutement sur dossier).`);
   const sansPerimetre = sp.geojson.features.filter((f) => f.properties.uais.length === 0).length;
-  L.push(`Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors zone) : ${sansPerimetre}. Noms ambigus : ${sp.correspondances.filter((m) => !m.match.uai && m.match.candidats.length > 1).length}.`);
+  L.push(`Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors périmètre) : ${sansPerimetre}. Noms ambigus : ${sp.correspondances.filter((m) => !m.match.uai && m.match.candidats.length > 1).length}.`);
   L.push('');
   L.push(
     table(
@@ -356,10 +367,10 @@ export function renderReport(d: ReportData): string {
   L.push(`${rows.length} lignes (${[...parInsee.entries()].map(([k, l]) => `${k} : ${l.length}`).join(', ')}), ${d.carte.doublons} doublons exacts retirés.`);
   const horsPerim = [...uaisCarte.keys()].filter((u) => !byUai.has(u));
   if (horsPerim.length) L.push(`UAI hors périmètre : ${horsPerim.join(', ')}.`);
-  const publics94 = cs.filter((c) => c.statut === 'public' && c.academie === 'Créteil');
+  const publics94 = cs.filter((c) => c.statut === 'public' && c.departement === '94');
   const sansRows = publics94.filter((c) => !uaisCarte.has(c.uai));
   L.push(`Collèges publics d'Ivry / Vitry sans adresse : ${sansRows.map(nomCourt).join(', ') || 'aucun'}.`);
-  const transfrontaliers = rows.filter((r) => byUai.get(r.uai) && byUai.get(r.uai)!.zone !== r.insee);
+  const transfrontaliers = rows.filter((r) => byUai.get(r.uai) && byUai.get(r.uai)!.commune !== r.insee);
   if (transfrontaliers.length) L.push(`Adresses d'une commune rattachées à un collège de l'autre : ${transfrontaliers.length} (${[...groupBy(transfrontaliers, (r) => `${r.insee} → ${byUai.get(r.uai)!.nom}`).entries()].map(([k, l]) => `${k} : ${l.length}`).join(' ; ')}).`);
   const parVoie = groupBy(rows, (r) => `${r.insee}|${r.voie}|${r.debut}|${r.fin}|${r.parite}`);
   const doubles = [...parVoie.entries()].filter(([, l]) => new Set(l.map((r) => r.uai)).size > 1);

@@ -28,10 +28,14 @@ interface Chip {
   patch: Partial<Filters>;
 }
 
-function chips(f: Filters, labelOption: (t: string) => string, zoneLabel: (z: string) => string): Chip[] {
+/** `labelCommune` rend null pour un code absent des données : ignoré au filtrage, il n'a pas de pastille. */
+function chips(f: Filters, labelOption: (t: string) => string, labelCommune: (code: string) => string | null): Chip[] {
   const out: Chip[] = [];
   for (const s of f.statuts) out.push({ id: `st-${s}`, label: STATUT_COURT[s], patch: { statuts: f.statuts.filter((x) => x !== s) } });
-  for (const z of f.zones) out.push({ id: `z-${z}`, label: zoneLabel(z), patch: { zones: f.zones.filter((x) => x !== z) } });
+  for (const code of f.communes) {
+    const label = labelCommune(code);
+    if (label) out.push({ id: `com-${code}`, label, patch: { communes: f.communes.filter((x) => x !== code) } });
+  }
   if (f.rep !== 'tous') out.push({ id: 'rep', label: f.rep === 'rep' ? 'REP' : 'Hors REP', patch: { rep: 'tous' } });
   if (!f.accueilSixieme) out.push({ id: 's6', label: 'Y compris sans entrée en 6e', patch: { accueilSixieme: true } });
   if (f.masquerRecrutementParticulier) out.push({ id: 'rp', label: 'Sans recrutement particulier', patch: { masquerRecrutementParticulier: false } });
@@ -58,8 +62,8 @@ export function ListPanel({ onOpen }: { onOpen?: () => void }) {
   const filtersOpen = useStore((s) => s.filtersOpen);
   const setFiltersOpen = useStore((s) => s.setFiltersOpen);
   const nActive = countActive(filters);
-  const zoneLabel = (z: string) => dataset.zones.find((x) => x.code === z)?.libelle ?? z;
-  const activeChips = chips(filters, (t) => dataset.optionLabels[t]?.label ?? t, zoneLabel);
+  const labelCommune = (code: string) => dataset.communes.find((x) => x.code === code)?.libelle ?? null;
+  const activeChips = chips(filters, (t) => dataset.optionLabels[t]?.label ?? t, labelCommune);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -194,7 +198,7 @@ function CollegeCard({ c, sortKey, distance, secteur, onOpen }: { c: College; so
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-1">
             <StatutBadge statut={c.statut} />
-            <span className="text-xs text-zinc-500">{c.zoneLibelle}</span>
+            <span className="text-xs text-zinc-500">{c.communeLibelle}</span>
             <CollegeTags c={c} secteur={secteur} />
           </div>
           <dl className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs">

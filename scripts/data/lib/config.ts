@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
-import type { Academie, ZoneCode } from '../../../src/types';
 
 export interface Config {
-  zones: { code: ZoneCode; libelle: string; academie: Academie }[];
+  /** Codes INSEE des communes chargées (l'arrondissement à Paris). Provisoire jusqu'à l'extension. */
+  communes: string[];
   codesNature: number[];
   exclure: string[];
   saisonCourante: string;

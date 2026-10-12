@@ -6,6 +6,7 @@ import type {
   BrevetSession,
   CarteScolaireRow,
   College,
+  CommunePresente,
   Dataset,
   EventsFile,
   IndicateurKey,
@@ -16,7 +17,6 @@ import type {
   SecteurParisProps,
   Source,
   Statut,
-  ZoneCode,
 } from '../../src/types';
 import { stripAccents } from '../../src/lib/normalize';
 import { ANNEE_AFFELNET, ANNEE_SECTEURS_PARIS, type Config } from './lib/config';
@@ -111,7 +111,7 @@ export interface Publication {
   /** events.json */
   evenements: EventsFile;
   /** contours.geojson */
-  contours: FeatureCollection<{ code: ZoneCode; libelle: string }>;
+  contours: FeatureCollection<{ code: string; libelle: string }>;
   /** secteurs-paris.geojson */
   secteursParis: FeatureCollection<SecteurParisProps>;
   /** carte-scolaire-94.json */
@@ -144,13 +144,24 @@ export interface Assemblage {
 /** Tolérance Douglas–Peucker des secteurs parisiens (degrés, ≈ 5,5 m) : fichier < 1 Mo. */
 const TOLERANCE_SECTEURS = 0.00005;
 const NIVEAUX: Niveau[] = ['6e', '5e', '4e', '3e'];
-const ACADEMIES: Academie[] = ['Paris', 'Créteil'];
+const ACADEMIES: Academie[] = ['Paris', 'Créteil', 'Versailles'];
 
+/** Académie d'après son libellé, quelle que soit la casse (« PARIS », « Créteil », « VERSAILLES »). */
 function academieDe(s: string | null | undefined): Academie | null {
-  const a = stripAccents(s ?? '').trim();
+  const a = stripAccents(s ?? '').trim().toUpperCase();
   if (a === 'PARIS') return 'Paris';
   if (a === 'CRETEIL') return 'Créteil';
+  if (a === 'VERSAILLES') return 'Versailles';
   return null;
+}
+
+/** Commune d'un établissement de l'annuaire ; à Paris, l'arrondissement (« Paris 13e », « Paris 1er »). */
+function communeDe(r: AnnuaireRow): CommunePresente {
+  const code = r.code_commune ?? '';
+  const n = Number(code.slice(3));
+  const libelle = code.startsWith('751') && n >= 1 && n <= 20 ? `Paris ${n === 1 ? '1er' : `${n}e`}` : (r.nom_commune ?? code);
+  const dep = r.code_departement ?? code.slice(0, 2);
+  return { code, libelle, departement: dep.length === 3 && dep.startsWith('0') ? dep.slice(1) : dep };
 }
 
 function statutDe(r: AnnuaireRow): { statut: Statut; contrat: College['contrat'] } {
@@ -259,11 +270,10 @@ export function lyceesLies(config: Config, corrections: Pick<Corrections, 'conti
 
 /**
  * Calcule tout ce qui sera écrit à partir des sources chargées.
- * Lève une erreur si un collège est dans une commune absente de la configuration, s'il n'a pas de coordonnées
- * ou si le contour d'une commune de la configuration manque.
+ * Lève une erreur si l'académie d'un collège est inconnue, s'il n'a pas de coordonnées
+ * ou si le contour d'une commune présente manque.
  */
 export function assemblerDataset({ config: cfg, corrections, sources: src, maintenant }: EntreeAssemblage): Assemblage {
-  const zoneByCode = new Map(cfg.zones.map((z) => [z.code, z]));
   const collegeOverrides = corrections.colleges;
   const contOverrides = corrections.continuite;
   const ann = selectionnerAnnuaire(cfg, src.annuaire);
@@ -294,7 +304,6 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const detections = detecterLiens(ann, src.cites);
   const voies = src.voiesLycees;
 
-  const contours = simplifierContours(src.contours, cfg.zones, { tolerance: 0.00002, decimals: 5 });
   const collegesParisPublics = ann.colleges.filter((c) => c.code_commune?.startsWith('751') && c.statut_public_prive === 'Public');
   const secteursParis = relierSecteursParis(
     src.secteursParis,
@@ -322,8 +331,9 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
 
   for (const r of ann.colleges) {
     const uai = r.identifiant_de_l_etablissement;
-    const zone = zoneByCode.get(r.code_commune as ZoneCode);
-    if (!zone) throw new Error(`${uai} : commune ${r.code_commune} hors configuration`);
+    const commune = communeDe(r);
+    const academie = academieDe(r.libelle_academie);
+    if (!academie) throw new Error(`${uai} : académie inconnue (${r.libelle_academie})`);
     const { statut, contrat } = statutDe(r);
     const ov = collegeOverrides[uai] ?? {};
 
@@ -431,7 +441,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
 
     // Affelnet (collèges publics parisiens)
     let affelnetSecteur1: College['affelnetSecteur1'] = null;
-    if (statut === 'public' && zone.academie === 'Paris') {
+    if (statut === 'public' && academie === 'Paris') {
       const reseau = affelnet.filter((a) => a.reseau === uai);
       if (reseau.length) {
         affelnetSecteur1 = reseau
@@ -484,9 +494,10 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       nom: ov.nom ?? r.nom_etablissement,
       statut,
       contrat,
-      zone: zone.code,
-      zoneLibelle: zone.libelle,
-      academie: zone.academie,
+      commune: commune.code,
+      communeLibelle: commune.libelle,
+      departement: commune.departement,
+      academie,
       adresse: r.adresse_1 ?? '',
       codePostal: r.code_postal ?? '',
       lat: round(lat, 6)!,
@@ -565,7 +576,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     });
   }
 
-  // Rang dans la zone
+  // Rang parmi les collèges notés du périmètre
   const rangs = classer([...scores.entries()].map(([uai, s]) => ({ uai, note: s.note })));
   for (const c of colleges) {
     const s = scores.get(c.uai);
@@ -574,7 +585,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   }
 
   // ---------------------------------------------------------------- références
-  const references: Dataset['references'] = { france: {}, academies: { Paris: {}, Créteil: {} } };
+  const references: Dataset['references'] = { france: {}, academies: { Paris: {}, Créteil: {}, Versailles: {} } };
   const setRef = (target: Partial<Record<IndicateurKey, number>>, values: Partial<Record<IndicateurKey, number | null>>) => {
     for (const [k, v] of Object.entries(values)) {
       const d = k === 'heuresParEleve' ? 2 : 1;
@@ -604,7 +615,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   setRef(references.france, moRef(moyens.national));
   for (const ac of ACADEMIES) setRef(references.academies[ac], moRef(moyens.national.filter((x) => academieDe(x.academie) === ac)));
   references.france = sortedObject(references.france);
-  references.academies = { Paris: sortedObject(references.academies.Paris), Créteil: sortedObject(references.academies['Créteil']) };
+  for (const ac of ACADEMIES) references.academies[ac] = sortedObject(references.academies[ac]);
 
   // ---------------------------------------------------------------- sources
   const dnbSessions = [...dnb.values()].flat().map((d) => d.session);
@@ -648,10 +659,14 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       ([ka, a], [kb, b]) => GROUPES.indexOf(a.groupe) - GROUPES.indexOf(b.groupe) || a.label.localeCompare(b.label, 'fr') || ka.localeCompare(kb),
     ),
   );
+  const communes = [...new Map(colleges.map((c) => [c.commune, { code: c.commune, libelle: c.communeLibelle, departement: c.departement }])).values()].sort(
+    (a, b) => a.code.localeCompare(b.code),
+  );
+  const contours = simplifierContours(src.contours, communes, { tolerance: 0.00002, decimals: 5 });
   const dataset: Dataset = {
     generatedAt: maintenant.toISOString(),
     sessions: { brevet: sessionsRef, ips: derniereIps, effectifs: derniersEffectifs },
-    zones: cfg.zones,
+    communes,
     references,
     optionLabels: optionLabelsObj,
     sources: sourcesPubliees,

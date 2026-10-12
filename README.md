@@ -1,6 +1,6 @@
 # Collèges · Paris 5e, 6e, 13e, 14e, Ivry-sur-Seine, Vitry-sur-Seine
 
-Carte et comparateur des 60 collèges publics et privés de ces six zones, construit à partir de données publiques.
+Carte et comparateur des 60 collèges publics et privés de ces six communes, construit à partir de données publiques.
 
 **Site** : https://abasille.github.io/colleges/
 

@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import type { Statut, ZoneCode } from '../types';
+import type { Statut } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
 import { domainOf, type Filters, type ValueKey } from '../lib/filters';
@@ -100,16 +100,16 @@ export function FilterPanel() {
         </Check>
       </Group>
 
-      <Group title="Zone">
+      <Group title="Commune">
         <div className="grid grid-cols-2 gap-x-2">
-          {dataset.zones.map((z) => (
+          {dataset.communes.map((commune) => (
             <Check
-              key={z.code}
-              checked={filters.zones.includes(z.code)}
-              onChange={() => setFilters({ zones: toggle<ZoneCode>(filters.zones, z.code) })}
-              count={colleges.filter((c) => c.zone === z.code).length}
+              key={commune.code}
+              checked={filters.communes.includes(commune.code)}
+              onChange={() => setFilters({ communes: toggle(filters.communes, commune.code) })}
+              count={colleges.filter((c) => c.commune === commune.code).length}
             >
-              {z.libelle}
+              {commune.libelle}
             </Check>
           ))}
         </div>

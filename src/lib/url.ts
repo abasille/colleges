@@ -1,4 +1,4 @@
-import type { IndicateurKey, Statut, ZoneCode } from '../types';
+import type { IndicateurKey, Statut } from '../types';
 import { DEFAULT_FILTERS, DEFAULT_SORT, type Filters, type Sort, type SortKey, type ValueKey } from './filters';
 import { INDICATEURS } from './indicateurs';
 
@@ -14,7 +14,8 @@ export interface UrlState {
 }
 
 const STATUTS: Statut[] = ['public', 'prive_sous_contrat', 'hors_contrat'];
-const ZONES: ZoneCode[] = ['75105', '75106', '75113', '75114', '94041', '94081'];
+/** Code INSEE de commune (2A/2B pour la Corse) ; un code bien formé mais inconnu est ignoré au filtrage. */
+const CODE_COMMUNE = /^(\d{2}|2[AB])\d{3}$/;
 const VALUE_KEYS = new Set<string>([...Object.keys(INDICATEURS), 'distance']);
 const SORT_KEYS = new Set<string>([...VALUE_KEYS, 'nom']);
 
@@ -33,7 +34,8 @@ export function parseUrlState(search: string): UrlState {
   const filters: Filters = {
     q: p.get('q') ?? '',
     statuts: list(p.get('st')).filter((s): s is Statut => STATUTS.includes(s as Statut)),
-    zones: list(p.get('z')).filter((s): s is ZoneCode => ZONES.includes(s as ZoneCode)),
+    // `z` : paramètre des communes depuis les premiers liens partagés, conservé tel quel.
+    communes: list(p.get('z')).filter((s) => CODE_COMMUNE.test(s)),
     rep: rep === 'rep' || rep === 'hors_rep' ? rep : 'tous',
     accueilSixieme: p.get('s6') !== '0',
     masquerRecrutementParticulier: p.get('rp') === '1',
@@ -65,7 +67,7 @@ export function serializeUrlState(s: UrlState): string {
   const f = s.filters;
   if (f.q) p.set('q', f.q);
   if (f.statuts.length) p.set('st', f.statuts.join(','));
-  if (f.zones.length) p.set('z', f.zones.join(','));
+  if (f.communes.length) p.set('z', f.communes.join(','));
   if (f.rep !== 'tous') p.set('rep', f.rep);
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) p.set('s6', f.accueilSixieme ? '1' : '0');
   if (f.masquerRecrutementParticulier) p.set('rp', '1');

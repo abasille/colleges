@@ -1,13 +1,13 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-07T22:45:03.272Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T16:08:09.909Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
 **60 collèges** : 37 public, 17 privé sous contrat, 6 hors contrat.
 Dont sous contrat simple : Collège privé Regain Tournesol (0754861B).
 
-| Zone | Public | Privé sous contrat | Hors contrat | Total |
+| Commune | Public | Privé sous contrat | Hors contrat | Total |
 |---|---|---|---|---|
 | Paris 5e | 5 | 2 | 1 | 8 |
 | Paris 6e | 2 | 6 | 1 | 9 |
@@ -117,19 +117,19 @@ Non notés (7) : Collège privé Regain Tournesol (Non publié (collège sous co
 
 ## 5. Moyennes de référence
 
-| Indicateur | France | Académie de Paris | Académie de Créteil |
-|---|---|---|---|
-| accesSixiemeTroisieme | 91.2 | 90.1 | 92.2 |
-| brevet | 88.3 | 92.3 | 84.5 |
-| brevetDernier | 87.1 | 91.9 | 82.6 |
-| elevesParClasse | 23.5 | 23.9 | 23.2 |
-| eval6Francais | 255.6 | 281.9 | 251.7 |
-| eval6Maths | 253.7 | 277 | 244.5 |
-| heuresParEleve | 1.17 | 1.14 | 1.18 |
-| ips | 106.2 | 129.6 | 103.3 |
-| mentions | 72.8 | 83.4 | 66.5 |
-| mentionsTB | 29.4 | 50 | 25.2 |
-| noteEcrit | 11.1 | 12.7 | 10.5 |
+| Indicateur | France | Académie de Paris | Académie de Créteil | Académie de Versailles |
+|---|---|---|---|---|
+| accesSixiemeTroisieme | 91.2 | 90.1 | 92.2 | 92.2 |
+| brevet | 88.3 | 92.3 | 84.5 | 86.1 |
+| brevetDernier | 87.1 | 91.9 | 82.6 | 84 |
+| elevesParClasse | 23.5 | 23.9 | 23.2 | 24.6 |
+| eval6Francais | 255.6 | 281.9 | 251.7 | 262.2 |
+| eval6Maths | 253.7 | 277 | 244.5 | 258.3 |
+| heuresParEleve | 1.17 | 1.14 | 1.18 | 1.11 |
+| ips | 106.2 | 129.6 | 103.3 |  |
+| mentions | 72.8 | 83.4 | 66.5 | 70.5 |
+| mentionsTB | 29.4 | 50 | 25.2 | 30.4 |
+| noteEcrit | 11.1 | 12.7 | 10.5 | 11 |
 
 ## 6. Collèges absents de chaque jeu de données
 
@@ -305,7 +305,7 @@ Liens : aucun 34, cite_scolaire 8, meme_etablissement_prive 17, groupe_scolaire_
 
 110 secteurs publiés, 113 noms de collèges. 23/24 collèges publics parisiens du périmètre associés à un secteur.
 Collèges publics parisiens du périmètre sans secteur : Collège Rognoni – École des enfants du spectacle (0750407K) (Rognoni n'a pas de secteur : recrutement sur dossier).
-Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors zone) : 87. Noms ambigus : 0.
+Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors périmètre) : 87. Noms ambigus : 0.
 
 | Secteur | Nom publié | Collège | Méthode | Adresse concordante |
 |---|---|---|---|---|
@@ -385,7 +385,7 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 
 | Fichier | Taille |
 |---|---|
-| public/data/colleges.json | 451 ko |
+| public/data/colleges.json | 453 ko |
 | public/data/contours.geojson | 8 ko |
 | public/data/secteurs-paris.geojson | 961 ko |
 | public/data/carte-scolaire-94.json | 85 ko |

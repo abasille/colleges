@@ -15,8 +15,9 @@ function college(uai: string, over: Partial<College> = {}, ind: Partial<College[
     nom: `Collège ${uai}`,
     statut: 'public',
     contrat: null,
-    zone: '75113',
-    zoneLibelle: 'Paris 13e',
+    commune: '75113',
+    communeLibelle: 'Paris 13e',
+    departement: '75',
     academie: 'Paris',
     adresse: '',
     codePostal: '75013',
@@ -62,9 +63,9 @@ const f = (over: Partial<Filters>): Filters => ({ ...DEFAULT_FILTERS, ...over })
 describe('filtres', () => {
   const cs = [
     college('0000001A', { nom: 'Collège Claude Monet', statut: 'public', optionTags: ['latin', 'lv:allemand'] }, { brevet: 95, ips: 120 }),
-    college('0000002B', { nom: 'Collège privé Sévigné', statut: 'prive_sous_contrat', zone: '75105', optionTags: ['latin'] }, { brevet: 99 }),
+    college('0000002B', { nom: 'Collège privé Sévigné', statut: 'prive_sous_contrat', commune: '75105', communeLibelle: 'Paris 5e', optionTags: ['latin'] }, { brevet: 99 }),
     college('0000003C', { nom: 'Collège Diagonale', statut: 'hors_contrat', accueilSixieme: false }),
-    college('0000004D', { nom: 'Collège Molière', zone: '94041', rep: 'REP' }, { brevet: 80, ips: 85 }),
+    college('0000004D', { nom: 'Collège Molière', commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94', academie: 'Créteil', rep: 'REP' }, { brevet: 80, ips: 85 }),
   ];
 
   it('masque par défaut les collèges sans entrée en 6e', () => {
@@ -87,10 +88,20 @@ describe('filtres', () => {
     expect(avec).toEqual(['0000001A', '0000002B']);
   });
 
-  it('filtre REP, statut et zone', () => {
+  it('filtre REP, statut et commune', () => {
     expect(applyFilters(cs, f({ rep: 'rep' }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
     expect(applyFilters(cs, f({ statuts: ['prive_sous_contrat'] }), ctx)).toHaveLength(1);
-    expect(applyFilters(cs, f({ zones: ['94041', '75105'] }), ctx)).toHaveLength(2);
+    expect(applyFilters(cs, f({ communes: ['94041', '75105'] }), ctx).map((c) => c.uai)).toEqual(['0000002B', '0000004D']);
+  });
+
+  it('ignore un code de commune inconnu', () => {
+    expect(applyFilters(cs, f({ communes: ['94041', '99999'] }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ communes: ['99999'] }), ctx)).toEqual(applyFilters(cs, DEFAULT_FILTERS, ctx));
+  });
+
+  it('trouve un collège par le nom de sa commune', () => {
+    expect(applyFilters(cs, f({ q: 'ivry' }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ q: 'paris 5e' }), ctx).map((c) => c.uai)).toEqual(['0000002B']);
   });
 
   it('trie en laissant les valeurs manquantes en dernier dans les deux sens', () => {
@@ -110,7 +121,7 @@ describe('filtres', () => {
 describe('état dans l’URL', () => {
   it('fait un aller-retour sans perte', () => {
     const state = {
-      filters: f({ q: 'monet', statuts: ['public'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
+      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
       sort: { key: 'brevet' as const, dir: 'desc' as const },
       selected: '0752539C',
       vue: 'calendrier' as const,
@@ -129,6 +140,18 @@ describe('état dans l’URL', () => {
     expect(s.filters.ranges).toEqual({});
     expect(s.sort.key).toBe('nom');
     expect(s.colorBy).toBe('statut');
+  });
+
+  it('un ancien lien filtré par commune donne la même sélection', () => {
+    const cs = [college('0000001A'), college('0000002B', { commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94' })];
+    const { filters } = parseUrlState('?z=75113');
+    expect(filters.communes).toEqual(['75113']);
+    expect(applyFilters(cs, filters, ctx).map((c) => c.uai)).toEqual(['0000001A']);
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?z=75113');
+  });
+
+  it('accepte tout code de commune bien formé et écarte les autres sans erreur', () => {
+    expect(parseUrlState('?z=92012,2A004,bidon,123').filters.communes).toEqual(['92012', '2A004']);
   });
 });
 

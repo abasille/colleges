@@ -66,7 +66,7 @@ function Header({ c, distance, secteur, onClose }: { c: College; distance: numbe
       ))}
       <div className="mt-2 space-y-0.5 text-sm text-zinc-700">
         <div>
-          {c.adresse}, {c.codePostal} {c.zoneLibelle.startsWith('Paris') ? 'Paris' : c.zoneLibelle}
+          {c.adresse}, {c.codePostal} {c.departement === '75' ? 'Paris' : c.communeLibelle}
           {distance !== null && <span className="text-zinc-500"> · à {formatDistance(distance)} de votre adresse</span>}
         </div>
         <div className="flex flex-wrap gap-x-3">
@@ -97,7 +97,7 @@ function Score({ c }: { c: College }) {
                 {s.partielle && <span className="ml-2 text-xs font-normal text-zinc-500">(partielle)</span>}
               </div>
               <div className="text-sm text-zinc-600">
-                {s.rang === 1 ? '1er' : `${s.rang}e`} sur {s.sur} dans la zone
+                {s.rang === 1 ? '1er' : `${s.rang}e`} sur {s.sur} collèges notés
               </div>
             </>
           ) : (

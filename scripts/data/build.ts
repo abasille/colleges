@@ -81,9 +81,9 @@ async function main() {
   const affelnet = await loadAffelnet();
 
   step('Contours et secteurs');
-  const contours = await loadContoursBruts(config.zones);
+  const contours = await loadContoursBruts(config.communes);
   const secteursParis = await loadSecteursParisBruts();
-  const carteScolaire = await loadCarteScolaireBrute(config.zones);
+  const carteScolaire = await loadCarteScolaireBrute(config.communes);
 
   // ---------------------------------------------------------------- assemblage
   step('Calculs');

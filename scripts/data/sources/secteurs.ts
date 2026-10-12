@@ -144,8 +144,8 @@ export interface CarteScolaireResult {
 }
 
 /** Lignes brutes de la carte scolaire pour les communes du Val-de-Marne de la configuration. */
-export async function loadCarteScolaireBrute(zones: { code: string }[]): Promise<Record<string, unknown>[]> {
-  const communes94 = zones.filter((z) => z.code.startsWith('94')).map((z) => z.code);
+export async function loadCarteScolaireBrute(communes: string[]): Promise<Record<string, unknown>[]> {
+  const communes94 = communes.filter((c) => c.startsWith('94'));
   return odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { where: `code_insee in ${odsList(communes94)}` });
 }
 
