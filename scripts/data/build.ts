@@ -15,6 +15,7 @@ import { loadEval6, loadHebergement, loadLabels, loadMoyens, loadPersonnel, load
 import { loadCites, loadVoiesLycees, type ContinuiteOverrides } from './sources/continuite';
 import { loadCarteScolaireBrute, loadSecteursParisBruts } from './sources/secteurs';
 import { loadAffelnet } from './sources/affelnet';
+import { loadContoursCommunes } from './sources/contours';
 import { geocoderEtablissements } from './sources/geocodage';
 import { lireEvenements } from './events';
 import { verifierSecteursParis, verifierVoies } from './controles';
@@ -45,6 +46,7 @@ async function main() {
     colleges: readJson<{ colleges: Record<string, CollegeOverride> }>('data/overrides/colleges.json').colleges,
     continuite: readJson<ContinuiteOverrides>('data/overrides/continuite.json').colleges,
     evenements: lireEvenements('data/overrides/events.json'),
+    suivis: Object.keys(readJson<{ colleges: Record<string, string> }>('data/overrides/suivis.json').colleges),
   };
 
   step("Annuaire de l'éducation");
@@ -88,6 +90,10 @@ async function main() {
   const secteursParis = await loadSecteursParisBruts();
   const carteScolaire = await loadCarteScolaireBrute();
 
+  step('Contours des communes (Etalab)');
+  const contours = await loadContoursCommunes(config.departements);
+  console.log(`  ${contours.length} communes et arrondissements`);
+
   // ---------------------------------------------------------------- assemblage
   step('Calculs');
   const a = assemblerDataset({
@@ -113,6 +119,7 @@ async function main() {
       geocodage,
       secteursParis,
       carteScolaire,
+      contours,
     },
     maintenant: new Date(),
   });

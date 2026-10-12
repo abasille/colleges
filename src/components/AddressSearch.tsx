@@ -160,8 +160,6 @@ function AdresseChoisie({ label, onClear }: { label: string; onClear: () => void
               </span>
             ))}
           </>
-        ) : secteur?.noms.length ? (
-          <>Collège de secteur : {secteur.noms.join(' ou ')} (hors périmètre)</>
         ) : (
           secteur?.message
         )}

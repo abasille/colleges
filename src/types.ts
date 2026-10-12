@@ -4,9 +4,11 @@
 //   colleges-<dép>.json      -> DetailDepartement (un par département, chargé à l'ouverture
 //                               de la première fiche du département ; ex. colleges-75.json)
 //   events.json              -> EventsFile
-//   contours.geojson         -> (plus publié pour l’instant ; l’application le tolère absent)
-//   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
-//   carte-scolaire-94.json   -> CarteScolaireRow[]
+//   contours-<dép>.geojson   -> FeatureCollection, properties: ContourCommuneProps (un par département,
+//                               chargé quand une commune du département est choisie dans le filtre)
+//   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps (chargé après
+//                               la saisie d'une adresse à Paris, voir sourceSecteur)
+//   carte-scolaire-94.json   -> CarteScolaireRow[] (chargé après une adresse à Ivry ou Vitry)
 
 export type Academie = 'Paris' | 'Créteil' | 'Versailles';
 export type Departement = '75' | '77' | '78' | '91' | '92' | '93' | '94' | '95';
@@ -117,6 +119,8 @@ export interface College {
   accueilSixieme: boolean;
   remarques: string[];
   demiPension: boolean | null;
+  /** Collège suivi : portes ouvertes, inscriptions, passage au lycée et étiquettes relevés à la main (ADR 0001). */
+  suivi: boolean;
 
   indicateurs: Indicateurs;
   /** Raison de l'absence d'un indicateur (« hors contrat : non publié », « effectif trop faible »…). */
@@ -178,6 +182,7 @@ export type ChampResume =
   | 'recrutementParticulier'
   | 'niveaux'
   | 'accueilSixieme'
+  | 'suivi'
   | 'indicateurs'
   | 'manquants'
   | 'optionTags';
@@ -199,6 +204,13 @@ export type CollegeDetail = { uai: string } & Omit<College, ChampResume | 'score
 export interface DetailDepartement {
   departement: string;
   colleges: CollegeDetail[];
+}
+
+/** contours-<dép>.geojson : une entité par commune présente (à Paris, par arrondissement). */
+export interface ContourCommuneProps {
+  /** Code INSEE, celui de `College.commune`. */
+  code: string;
+  libelle: string;
 }
 
 export interface Source {
@@ -271,9 +283,9 @@ export interface EventsFile {
 
 export interface SecteurParisProps {
   libelle: string;
-  /** UAI des collèges du secteur présents dans le périmètre (peut être vide). */
+  /** UAI des collèges publics parisiens du secteur (vide si aucun nom publié n'a été reconnu). */
   uais: string[];
-  /** Noms des collèges du secteur tels que publiés (y compris hors périmètre). */
+  /** Noms des collèges du secteur tels que publiés par la Ville. */
   noms: string[];
 }
 

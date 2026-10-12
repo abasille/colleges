@@ -1,29 +1,21 @@
 import { createContext, useContext, useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { CarteScolaireRow, College, CollegeDetail, CollegeResume, Dataset, DetailDepartement, EventsFile } from './types';
-import type { SecteurFeature, SecteurResult } from './lib/secteur';
-import { findSecteur } from './lib/secteur';
+import type { College, CollegeDetail, CollegeResume, Dataset, DetailDepartement, EventsFile } from './types';
+import type { Adresse, DonneesSecteur, SecteurResult, SourceSecteur } from './lib/secteur';
+import { findSecteur, lireDonneesSecteur, sourceSecteur } from './lib/secteur';
 import { haversineKm } from './lib/geo';
 import { applyFilters, sortColleges } from './lib/filters';
 import { fusionner } from './lib/fiche';
 import { useStore } from './store';
 
-export interface ContourFeature {
-  type: 'Feature';
-  geometry: GeoJSON.Geometry;
-  properties: { code: string; libelle: string };
-}
-
 interface RawData {
   dataset: Dataset;
   events: EventsFile;
-  contours: { type: 'FeatureCollection'; features: ContourFeature[] };
-  secteursParis: SecteurFeature[];
-  carte94: CarteScolaireRow[];
 }
 
 export interface AppData extends RawData {
   byUai: Map<string, CollegeResume>;
   distances: Map<string, number> | null;
+  /** null sans adresse ; message « Recherche… » pendant le téléchargement des secteurs. */
   secteur: SecteurResult | null;
   /** Collèges filtrés puis triés. */
   visibles: CollegeResume[];
@@ -45,14 +37,11 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 async function loadAll(): Promise<RawData> {
-  const [dataset, events, contours, secteurs, carte94] = await Promise.all([
+  const [dataset, events] = await Promise.all([
     getJson<Dataset>('colleges.json'),
     getJson<EventsFile>('events.json').catch(() => ({ saisonCourante: '2026-27', events: [], inscriptions: {} }) as EventsFile),
-    getJson<RawData['contours']>('contours.geojson').catch(() => ({ type: 'FeatureCollection' as const, features: [] })),
-    getJson<{ features: SecteurFeature[] }>('secteurs-paris.geojson').catch(() => ({ features: [] })),
-    getJson<CarteScolaireRow[]>('carte-scolaire-94.json').catch(() => []),
   ]);
-  return { dataset, events, contours, secteursParis: secteurs.features, carte94 };
+  return { dataset, events };
 }
 
 // ---------------------------------------------------------------- détail par département
@@ -119,6 +108,56 @@ export function useFiche(resume: CollegeResume): EtatFiche {
   return { etat: 'chargement' };
 }
 
+// ---------------------------------------------------------------- sectorisation
+
+/** Fichiers de sectorisation (polygones parisiens, carte scolaire) : un seul téléchargement par fichier. */
+const secteursDemandes = new Map<string, Promise<DonneesSecteur>>();
+
+function chargerSecteur(source: SourceSecteur, version: string): Promise<DonneesSecteur> {
+  let p = secteursDemandes.get(source.fichier);
+  if (!p) {
+    p = getJson<unknown>(`${source.fichier}?v=${encodeURIComponent(version)}`).then((json) => lireDonneesSecteur(source, json));
+    p.catch(() => secteursDemandes.delete(source.fichier));
+    secteursDemandes.set(source.fichier, p);
+  }
+  return p;
+}
+
+type SecteursRecus = { fichier: string; donnees: DonneesSecteur } | { fichier: string; erreur: string };
+
+/**
+ * Collège de secteur de l'adresse. Le fichier de sectorisation du département de l'adresse
+ * (sourceSecteur) n'est téléchargé qu'une fois l'adresse saisie : rien à l'ouverture du site.
+ */
+function useSecteur(adresse: Adresse | null, version: string | undefined): SecteurResult | null {
+  const source = adresse ? sourceSecteur(adresse) : null;
+  const fichier = source?.fichier ?? null;
+  const [recus, setRecus] = useState<SecteursRecus | null>(null);
+
+  useEffect(() => {
+    if (!adresse || !version) return;
+    const s = sourceSecteur(adresse);
+    if (!s) return;
+    let actif = true;
+    chargerSecteur(s, version).then(
+      (donnees) => actif && setRecus({ fichier: s.fichier, donnees }),
+      (e: unknown) => actif && setRecus({ fichier: s.fichier, erreur: e instanceof Error ? e.message : String(e) }),
+    );
+    return () => {
+      actif = false;
+    };
+    // Une autre adresse du même département réutilise le fichier déjà reçu ; après un échec, elle relance le téléchargement.
+  }, [adresse, version]);
+
+  return useMemo(() => {
+    if (!adresse) return null;
+    if (!fichier) return findSecteur(adresse, null);
+    if (recus?.fichier !== fichier) return { uais: [], methode: null, feature: null, message: 'Recherche du collège de secteur…' };
+    if ('erreur' in recus) return { uais: [], methode: null, feature: null, message: `Secteurs indisponibles (${recus.erreur}).` };
+    return findSecteur(adresse, recus.donnees);
+  }, [adresse, fichier, recus]);
+}
+
 // ---------------------------------------------------------------- fournisseur
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -128,23 +167,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const sort = useStore((s) => s.sort);
   const favorisList = useStore((s) => s.favoris);
   const adresse = useStore((s) => s.adresse);
+  const secteur = useSecteur(adresse, raw?.dataset.generatedAt);
 
   useEffect(() => {
     loadAll().then(setRaw, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
-  // Distances et collège de secteur ne dépendent que de l'adresse : ils ne sont pas recalculés
-  // quand un filtre ou le tri change.
-  const geo = useMemo(() => {
-    if (!raw || !adresse) return { distances: null, secteur: null };
-    const distances = new Map(raw.dataset.colleges.map((c) => [c.uai, haversineKm(adresse.lat, adresse.lon, c.lat, c.lon)]));
-    return { distances, secteur: findSecteur(adresse, raw.secteursParis, raw.carte94) };
-  }, [raw, adresse]);
+  // Distances et collège de secteur (useSecteur) ne dépendent que de l'adresse : ils ne sont pas
+  // recalculés quand un filtre ou le tri change.
+  const distances = useMemo(
+    () => (raw && adresse ? new Map(raw.dataset.colleges.map((c) => [c.uai, haversineKm(adresse.lat, adresse.lon, c.lat, c.lon)])) : null),
+    [raw, adresse],
+  );
   const byUai = useMemo(() => new Map(raw?.dataset.colleges.map((c) => [c.uai, c])), [raw]);
   // La recherche est mise à jour tout de suite ; la liste, la carte et le calendrier suivent sans bloquer la frappe.
   const filtresDiffere = useDeferredValue(filters);
   const triDiffere = useDeferredValue(sort);
-  const { distances, secteur } = geo;
   const visibles = useMemo(() => {
     if (!raw) return [];
     const ctx = { favoris: new Set(favorisList), distances };
