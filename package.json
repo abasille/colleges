@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Carte des collèges de Paris 5e, 6e, 13e, 14e, Ivry-sur-Seine et Vitry-sur-Seine",
+  "description": "Collèges d'Île-de-France : carte et comparateur des collèges publics et privés, à partir des données publiques",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

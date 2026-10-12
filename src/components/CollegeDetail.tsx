@@ -6,6 +6,7 @@ import { formatDistance, formatHeures, formatNombre, formatPeriode, todayISO } f
 import { EVENT_LABELS, INSCRIPTIONS_LABELS, LIEN_LABELS, PASSAGE_LABELS } from '../lib/indicateurs';
 import { EVENT_COLORS } from '../lib/colors';
 import { eventsForCollege, isPast, statutInscriptions } from '../lib/events';
+import { outilLyceeSecteur } from '../lib/lyceeSecteur';
 import { LineChart } from './LineChart';
 import { ScoreBadge } from './ScoreBadge';
 import { ScoreHelp } from './ScoreHelp';
@@ -334,24 +335,41 @@ function Continuite({ c }: { c: College }) {
           ))}
         </div>
       )}
-      {c.statut === 'public' && (
-        <div className="mt-3">
-          <div className="text-sm font-medium">
-            Lycées de secteur 1 (Affelnet 2026)
-            <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
-          </div>
-          {c.affelnetSecteur1 ? (
-            <ul className="mt-1 list-disc pl-5 text-sm">
-              {c.affelnetSecteur1.map((l) => (
-                <li key={l.uai}>{l.nom}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-zinc-500">Non disponible{c.academie === 'Créteil' ? ' pour le Val-de-Marne' : ''}.</p>
-          )}
-        </div>
-      )}
+      {c.statut === 'public' && <LyceeSecteur c={c} />}
     </Section>
+  );
+}
+
+function LyceeSecteur({ c }: { c: College }) {
+  const outil = outilLyceeSecteur(c);
+  if (outil) {
+    return (
+      <div className="mt-3">
+        <div className="text-sm font-medium">Lycée de secteur</div>
+        <p className="text-sm text-zinc-500">Non disponible.</p>
+        <p className="mt-1 text-xs text-zinc-600">{outil.texte}</p>
+        <ExternalLink href={outil.url} className="text-xs">
+          {outil.libelle}
+        </ExternalLink>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <div className="text-sm font-medium">
+        Lycées de secteur 1 (Affelnet 2026)
+        <InfoTip text="Lycées où l’élève est prioritaire si ce collège est son collège de secteur (le secteur dépend de l’adresse, pas du collège fréquenté)." />
+      </div>
+      {c.affelnetSecteur1 ? (
+        <ul className="mt-1 list-disc pl-5 text-sm">
+          {c.affelnetSecteur1.map((l) => (
+            <li key={l.uai}>{l.nom}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-zinc-500">Non disponible.</p>
+      )}
+    </div>
   );
 }
 
