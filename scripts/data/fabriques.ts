@@ -3,6 +3,7 @@
 import type { EntreeAssemblage, SourcesChargees } from './assembler';
 import type { Config } from './lib/config';
 import type { AnnuaireRow } from './sources/annuaire';
+import type { EffectifsRow } from './sources/effectifs';
 import type { IvacRow } from './sources/ivac';
 
 /** Fiche de l'annuaire : collège public du 5e arrondissement, ouvert. */
@@ -61,6 +62,21 @@ export function ligneIvac(p: Partial<IvacRow>): IvacRow {
     mentionsB: null,
     mentionsTB: null,
     mentionsGlobal: null,
+    ...p,
+  };
+}
+
+/** Effectifs d'une rentrée : 100 élèves par niveau, sans SEGPA ni ULIS. */
+export function ligneEffectifs(p: Partial<EffectifsRow>): EffectifsRow {
+  return {
+    annee: 2025,
+    uai: '0750000A',
+    nom: null,
+    total: 400,
+    segpa: 0,
+    ulis: 0,
+    parNiveau: { '6e': 100, '5e': 100, '4e': 100, '3e': 100 },
+    langues: { lv1: {}, lv2: {} },
     ...p,
   };
 }

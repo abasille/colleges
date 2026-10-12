@@ -163,6 +163,8 @@ export interface Assemblage {
 /** Tolérance Douglas–Peucker des secteurs parisiens (degrés, ≈ 5,5 m) : fichier < 1 Mo. */
 const TOLERANCE_SECTEURS = 0.00005;
 const NIVEAUX: Niveau[] = ['6e', '5e', '4e', '3e'];
+/** Libellé générique du recrutement particulier détecté (une correction manuelle peut donner le libellé précis). */
+const RECRUTEMENT_SANS_SECTEUR = 'sans secteur : recrutement sur dossier';
 
 /** Académie d'après son libellé, quelle que soit la casse (« PARIS », « Créteil », « VERSAILLES »). */
 function academieDe(s: string | null | undefined): Academie | null {
@@ -580,6 +582,15 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     let niveaux: Niveau[] = effLast ? NIVEAUX.filter((n) => effLast.parNiveau[n] !== 0) : NIVEAUX.slice();
     if (niveaux.length === 0) niveaux = NIVEAUX.slice();
     if (ov.niveaux) niveaux = NIVEAUX.filter((n) => ov.niveaux!.includes(n));
+    // Détections automatiques (une correction manuelle l'emporte toujours).
+    // Accueil en 6e : faux si l'effectif de 6e vaut 0 à la dernière rentrée connue du collège ; supposé vrai
+    // quand la donnée manque (hors contrat, 6e masquée).
+    const sansSixieme = effLast?.parNiveau['6e'] === 0;
+    const accueilSixieme = ov.niveaux ? niveaux.includes('6e') : !sansSixieme;
+    // Recrutement particulier : collège public absent de la carte scolaire alors que sa commune y figure.
+    const sansSecteur = statut === 'public' && presenceCarte.communes.has(commune.code) && !presenceCarte.uais.has(uai);
+    const recrutementParticulier =
+      ov.recrutementParticulier !== undefined ? ov.recrutementParticulier : sansSecteur ? RECRUTEMENT_SANS_SECTEUR : null;
 
     // Indicateurs
     const valeursScore = { brevet: agg.brevet, noteEcrit: agg.noteEcrit, vaTaux: agg.vaTaux, vaNote: agg.vaNote };
@@ -633,9 +644,9 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       mail: r.mail || null,
       ficheOnisep: r.fiche_onisep || null,
       rep: r.appartenance_education_prioritaire === 'REP+' ? 'REP+' : r.appartenance_education_prioritaire === 'REP' ? 'REP' : null,
-      recrutementParticulier: ov.recrutementParticulier ?? null,
+      recrutementParticulier,
       niveaux,
-      accueilSixieme: niveaux.includes('6e'),
+      accueilSixieme,
       suivi: suivis.has(uai),
       remarques: ov.remarques ?? [],
       demiPension,
@@ -678,6 +689,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       detection: det,
       sourceLangues: opt.sourceLangues,
       dispositifsInconnus: opt.inconnus,
+      etiquettesAuto: { recrutementParticulier: sansSecteur, sansSixieme },
       noms: {
         ivac: last?.nom ?? ivacRows[ivacRows.length - 1]?.nom ?? null,
         dnb: dnbRows[dnbRows.length - 1]?.nom ?? null,

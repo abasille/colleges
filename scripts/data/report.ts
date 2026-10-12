@@ -26,6 +26,8 @@ export interface ReportData {
     detection: { candidats: Candidat[]; choix: DetectionLien };
     sourceLangues: string;
     dispositifsInconnus: string[];
+    /** Étiquettes posées par les détections automatiques, avant correction manuelle (le collège publié tient compte de la correction). */
+    etiquettesAuto: { recrutementParticulier: boolean; sansSixieme: boolean };
     noms: Record<string, string | null>;
     presence: Record<string, boolean>;
     aVerifier: string | null;

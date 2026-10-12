@@ -75,6 +75,12 @@ describe('filtres', () => {
     expect(applyFilters(cs, DEFAULT_FILTERS, ctx).map((c) => c.uai)).not.toContain('0000003C');
   });
 
+  it('écarte le recrutement particulier quand la case est cochée', () => {
+    const rp = [college('0000001A'), college('0000002B', { recrutementParticulier: 'sans secteur : recrutement sur dossier' })];
+    expect(applyFilters(rp, f({ masquerRecrutementParticulier: true }), ctx).map((c) => c.uai)).toEqual(['0000001A']);
+    expect(applyFilters(rp, DEFAULT_FILTERS, ctx)).toHaveLength(2);
+  });
+
   it('cherche sans tenir compte des accents ni de la casse', () => {
     expect(applyFilters(cs, f({ q: 'sevigne' }), ctx).map((c) => c.uai)).toEqual(['0000002B']);
     expect(applyFilters(cs, f({ q: 'claude MONET' }), ctx)).toHaveLength(1);

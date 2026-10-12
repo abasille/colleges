@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assemblerDataset, etablissementsAGeocoder, uaisDuPerimetre } from './assembler';
-import { entree, etab, ligneCarte, ligneIvac } from './fabriques';
+import { entree, etab, ligneCarte, ligneEffectifs, ligneIvac } from './fabriques';
 
 describe('assemblerDataset : coordonnées', () => {
   it('sans coordonnées dans l’annuaire, publie celles du géocodage de l’adresse', () => {
@@ -264,6 +264,123 @@ describe('assemblerDataset : corrections manuelles', () => {
     const c = a.publication.dataset.colleges[0];
     const demiPension = a.publication.details[0].colleges[0].demiPension;
     expect([c.nom, demiPension, c.niveaux, c.accueilSixieme]).toEqual(['COLLEGE RODIN', false, ['6e', '5e', '4e', '3e'], true]);
+  });
+});
+
+describe('assemblerDataset : accueil en 6e', () => {
+  const prive = { statut_public_prive: 'Privé', type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES" };
+  const sans6e = { '6e': 0, '5e': 0, '4e': 0, '3e': 0 };
+
+  it('n’accueille pas en 6e sans élève de 6e à la dernière rentrée connue, public comme privé sous contrat', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', ...prive }),
+          etab({ identifiant_de_l_etablissement: '0750003C' }),
+        ],
+        sources: {
+          effectifs: [
+            ligneEffectifs({ uai: '0750001A', annee: 2024 }),
+            ligneEffectifs({ uai: '0750001A', annee: 2025, parNiveau: { '6e': 0, '5e': 0, '4e': 0, '3e': 80 } }),
+            ligneEffectifs({ uai: '0750002B', annee: 2025, total: 0, parNiveau: sans6e }),
+            ligneEffectifs({ uai: '0750003C', annee: 2024, parNiveau: { ...sans6e, '3e': 50 } }),
+            ligneEffectifs({ uai: '0750003C', annee: 2025 }),
+          ],
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.accueilSixieme])).toEqual([
+      ['0750001A', false],
+      ['0750002B', false],
+      ['0750003C', true],
+    ]);
+  });
+
+  it('accueille en 6e quand la donnée manque : hors contrat sans effectifs, ou 6e masquée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0750001A', statut_public_prive: 'Privé', type_contrat_prive: 'HORS CONTRAT' }),
+          etab({ identifiant_de_l_etablissement: '0750002B', ...prive }),
+        ],
+        sources: { effectifs: [ligneEffectifs({ uai: '0750002B', parNiveau: { '6e': null, '5e': 12, '4e': 9, '3e': 10 } })] },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.statut, c.accueilSixieme])).toEqual([
+      ['0750001A', 'hors_contrat', true],
+      ['0750002B', 'prive_sous_contrat', true],
+    ]);
+  });
+
+  it('une correction manuelle des niveaux l’emporte sur les effectifs', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0750001A' }), etab({ identifiant_de_l_etablissement: '0750002B' })],
+        sources: {
+          effectifs: [
+            ligneEffectifs({ uai: '0750001A', parNiveau: { ...sans6e, '3e': 40 } }),
+            ligneEffectifs({ uai: '0750002B' }),
+          ],
+        },
+        corrections: {
+          colleges: { '0750001A': { niveaux: ['6e', '5e', '4e', '3e'] }, '0750002B': { niveaux: ['4e', '3e'] } },
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.niveaux, c.accueilSixieme])).toEqual([
+      ['0750001A', ['6e', '5e', '4e', '3e'], true],
+      ['0750002B', ['4e', '3e'], false],
+    ]);
+  });
+});
+
+describe('assemblerDataset : recrutement particulier', () => {
+  // Ivry (94041) figure dans la carte, Vitry (94081) n'y figure pas.
+  const carteScolaire = [ligneCarte({ code_insee: '94041', code_rne: '0940001A' })];
+  const ivry = { code_commune: '94041', nom_commune: 'Ivry-sur-Seine', code_departement: '094', libelle_academie: 'Créteil' };
+  const vitry = { ...ivry, code_commune: '94081', nom_commune: 'Vitry-sur-Seine' };
+
+  it('pose l’étiquette générique sur un collège public absent de la carte alors que sa commune y figure', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ identifiant_de_l_etablissement: '0940001A', ...ivry }),
+          etab({ identifiant_de_l_etablissement: '0940002B', ...ivry }),
+          etab({ identifiant_de_l_etablissement: '0940003C', ...ivry, statut_public_prive: 'Privé', type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES" }),
+        ],
+        sources: { carteScolaire },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.recrutementParticulier])).toEqual([
+      ['0940001A', null],
+      ['0940002B', 'sans secteur : recrutement sur dossier'],
+      ['0940003C', null],
+    ]);
+  });
+
+  it('ne se déclenche jamais dans une commune absente de la carte', () => {
+    const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0940004D', ...vitry })], sources: { carteScolaire } }));
+    expect(a.publication.dataset.colleges[0].recrutementParticulier).toBeNull();
+  });
+
+  it('une correction manuelle l’emporte : libellé précis, ou étiquette retirée', () => {
+    const a = assemblerDataset(
+      entree({
+        colleges: [etab({ identifiant_de_l_etablissement: '0940002B', ...ivry }), etab({ identifiant_de_l_etablissement: '0940005E', ...ivry })],
+        sources: { carteScolaire },
+        corrections: {
+          colleges: {
+            '0940002B': { recrutementParticulier: 'École expérimentale (admission sur dossier)' },
+            '0940005E': { recrutementParticulier: null },
+          },
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.recrutementParticulier])).toEqual([
+      ['0940002B', 'École expérimentale (admission sur dossier)'],
+      ['0940005E', null],
+    ]);
   });
 });
 
