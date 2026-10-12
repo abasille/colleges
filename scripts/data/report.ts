@@ -346,10 +346,11 @@ export function renderReport(d: ReportData): string {
   const sp = d.secteursParis;
   const matched = new Set(sp.correspondances.filter((m) => m.match.uai).map((m) => m.match.uai!));
   const nonApparies = d.collegesParisPublics.filter((u) => !matched.has(u));
-  L.push(`${sp.geojson.features.length} secteurs publiés, ${sp.correspondances.length} noms de collèges. ${matched.size}/${d.collegesParisPublics.length} collèges publics parisiens du périmètre associés à un secteur.`);
-  L.push(`Collèges publics parisiens du périmètre sans secteur : ${nonApparies.map((u) => nomCourt(byUai.get(u)!)).join(', ') || 'aucun'} (Rognoni n'a pas de secteur : recrutement sur dossier).`);
-  const sansPerimetre = sp.geojson.features.filter((f) => f.properties.uais.length === 0).length;
-  L.push(`Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors périmètre) : ${sansPerimetre}. Noms ambigus : ${sp.correspondances.filter((m) => !m.match.uai && m.match.candidats.length > 1).length}.`);
+  L.push(`${sp.geojson.features.length} secteurs publiés, ${sp.correspondances.length} noms de collèges. ${matched.size}/${d.collegesParisPublics.length} collèges publics parisiens associés à un secteur.`);
+  L.push(`Collèges publics parisiens sans secteur : ${nonApparies.map((u) => nomCourt(byUai.get(u)!)).join(', ') || 'aucun'} (Rognoni n'a pas de secteur : recrutement sur dossier).`);
+  L.push(
+    `Secteurs non reliés à un collège : ${sp.secteursSansCollege.map((s) => `${s.libelle} (${s.noms.join(', ') || 'aucun nom publié'})`).join(', ') || 'aucun'}. Noms publiés sans collège : ${sp.correspondances.filter((m) => !m.match.uai).map((m) => `${m.nom} (${m.libelle})`).join(', ') || 'aucun'}. Noms ambigus : ${sp.correspondances.filter((m) => !m.match.uai && m.match.candidats.length > 1).length}.`,
+  );
   L.push('');
   L.push(
     table(
