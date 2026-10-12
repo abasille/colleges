@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T18:04:15.404Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T18:22:58.125Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 Trois parties : les totaux, les anomalies (décompte et collèges concernés), le détail des seuls collèges suivis.
 
@@ -100,15 +100,15 @@ Moyennes de référence :
 
 | Fichier | Taille |
 |---|---|
-| public/data/colleges.json | 1197 ko |
-| public/data/colleges-75.json | 862 ko |
-| public/data/colleges-77.json | 680 ko |
-| public/data/colleges-78.json | 654 ko |
-| public/data/colleges-91.json | 555 ko |
-| public/data/colleges-92.json | 621 ko |
-| public/data/colleges-93.json | 718 ko |
-| public/data/colleges-94.json | 601 ko |
-| public/data/colleges-95.json | 633 ko |
+| public/data/colleges.json | 1061 ko |
+| public/data/colleges-75.json | 893 ko |
+| public/data/colleges-77.json | 690 ko |
+| public/data/colleges-78.json | 671 ko |
+| public/data/colleges-91.json | 563 ko |
+| public/data/colleges-92.json | 637 ko |
+| public/data/colleges-93.json | 729 ko |
+| public/data/colleges-94.json | 611 ko |
+| public/data/colleges-95.json | 644 ko |
 | public/data/secteurs-paris.geojson | 962 ko |
 | public/data/carte-scolaire-77.json | 432 ko |
 | public/data/carte-scolaire-78.json | 432 ko |
