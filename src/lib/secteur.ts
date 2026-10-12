@@ -1,7 +1,7 @@
-import type { CarteScolaireDepartement, CollegeResume, Departement, PlageCarteScolaire, SecteurParisProps } from '../types';
+import type { CarteScolaireDepartement, CollegeResume, PlageCarteScolaire, SecteurParisProps } from '../types';
 import { distanceToGeometryM, pointInGeometry, type AreaGeometry } from './geo';
 import { normalizeVoie } from './normalize';
-import { DEPARTEMENTS } from './territoires';
+import { departementDuCode, inseeAParis } from './territoires';
 
 export interface SecteurFeature {
   type: 'Feature';
@@ -52,10 +52,10 @@ export type DonneesSecteur = { type: 'polygones'; features: SecteurFeature[] } |
 
 /** Fichier à télécharger pour trouver le collège de secteur d'une adresse ; null hors Île-de-France. */
 export function sourceSecteur(adresse: Pick<Adresse, 'citycode'>): SourceSecteur | null {
-  const departement = adresse.citycode.slice(0, 2);
-  if (departement === '75') return { fichier: 'secteurs-paris.geojson', type: 'polygones' };
-  if (departement in DEPARTEMENTS) return { fichier: `carte-scolaire-${departement as Departement}.json`, type: 'carte' };
-  return null;
+  const departement = departementDuCode(adresse.citycode);
+  if (!departement) return null;
+  if (inseeAParis(adresse.citycode)) return { fichier: 'secteurs-paris.geojson', type: 'polygones' };
+  return { fichier: `carte-scolaire-${departement}.json`, type: 'carte' };
 }
 
 /** Lit le JSON d'un fichier de sectorisation. */

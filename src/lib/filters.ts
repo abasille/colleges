@@ -83,7 +83,7 @@ export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boole
   }
   if (f.statuts.length && !f.statuts.includes(c.statut)) return false;
   if (f.communes.length || f.departements.length) {
-    const retenu = f.communes.includes(c.commune) || (f.departements as readonly string[]).includes(c.departement);
+    const retenu = f.communes.includes(c.commune) || f.departements.includes(c.departement);
     if (!retenu) return false;
   }
   if (f.rep === 'rep' && !c.rep) return false;

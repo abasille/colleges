@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CarteScolaireDepartement, College, CollegeEvent, CollegeResume, EventsFile } from '../types';
+import type { CarteScolaireDepartement, College, CollegeEvent, CollegeResume, CommunePresente, EventsFile } from '../types';
 import { applyFilters, DEFAULT_FILTERS, sortColleges, type Filters } from './filters';
 import { parseUrlState, serializeUrlState } from './url';
 import { haversineKm, pointInGeometry } from './geo';
@@ -209,7 +209,7 @@ describe('état dans l’URL', () => {
 });
 
 describe('commune ou département', () => {
-  const communes = [
+  const communes: CommunePresente[] = [
     { code: '75101', libelle: 'Paris 1er', departement: '75' },
     { code: '75113', libelle: 'Paris 13e', departement: '75' },
     { code: '91228', libelle: 'Évry-Courcouronnes', departement: '91' },

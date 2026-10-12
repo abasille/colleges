@@ -1,5 +1,4 @@
 import { useId, useMemo, useRef, useState } from 'react';
-import type { Departement } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
 import { avecLieu, libellePastille, lieuxChoisis, rechercherLieux, sansLieu, type Lieu } from '../lib/lieux';
@@ -106,7 +105,7 @@ export function LieuFilter() {
             >
               <span className="min-w-0 flex-1 truncate">{l.libelle}</span>
               <span className="shrink-0 text-xs text-zinc-500">
-                {l.type === 'departement' ? `département ${l.code}` : (DEPARTEMENTS[l.departement as Departement] ?? l.departement)}
+                {l.type === 'departement' ? `département ${l.code}` : DEPARTEMENTS[l.departement]}
               </span>
               <span className="w-8 shrink-0 text-right text-xs tabular-nums text-zinc-400">{effectifs.get(cle(l)) ?? 0}</span>
             </li>

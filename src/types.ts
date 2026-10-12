@@ -103,7 +103,7 @@ export interface College {
   /** Code INSEE de la commune ; à Paris, celui de l'arrondissement (« 75113 »). */
   commune: string;
   communeLibelle: string; // « Paris 13e », « Ivry-sur-Seine »
-  departement: string; // « 75 », « 94 »
+  departement: Departement;
   academie: Academie; // lue dans l'annuaire
   adresse: string;
   codePostal: string;
@@ -202,7 +202,7 @@ export type CollegeDetail = { uai: string } & Omit<College, ChampResume | 'score
 
 /** colleges-<dép>.json : détail des collèges d'un département, triés par UAI. */
 export interface DetailDepartement {
-  departement: string;
+  departement: Departement;
   colleges: CollegeDetail[];
 }
 
@@ -224,7 +224,7 @@ export interface Source {
 export interface CommunePresente {
   code: string;
   libelle: string;
-  departement: string;
+  departement: Departement;
 }
 
 export interface Dataset {
@@ -301,6 +301,6 @@ export type PlageCarteScolaire = [voie: string, debut: number | null, fin: numbe
 
 /** Carte scolaire compacte d'un département : plages d'adresses par code INSEE de commune. */
 export interface CarteScolaireDepartement {
-  departement: string;
+  departement: Departement;
   communes: Record<string, PlageCarteScolaire[]>;
 }

@@ -7,6 +7,7 @@ import { EVENT_LABELS, INSCRIPTIONS_LABELS, LIEN_LABELS, PASSAGE_LABELS } from '
 import { EVENT_COLORS } from '../lib/colors';
 import { eventsForCollege, isPast, statutInscriptions } from '../lib/events';
 import { outilLyceeSecteur } from '../lib/lyceeSecteur';
+import { collegeAParis } from '../lib/territoires';
 import { LineChart } from './LineChart';
 import { ScoreBadge } from './ScoreBadge';
 import { ScoreHelp } from './ScoreHelp';
@@ -116,7 +117,7 @@ function Header({
       ))}
       <div className="mt-2 space-y-0.5 text-sm text-zinc-700">
         <div>
-          {fiche ? `${fiche.adresse}, ${fiche.codePostal} ${c.departement === '75' ? 'Paris' : c.communeLibelle}` : c.communeLibelle}
+          {fiche ? `${fiche.adresse}, ${fiche.codePostal} ${collegeAParis(c) ? 'Paris' : c.communeLibelle}` : c.communeLibelle}
           {distance !== null && <span className="text-zinc-500"> · à {formatDistance(distance)} de votre adresse</span>}
         </div>
         {fiche && (

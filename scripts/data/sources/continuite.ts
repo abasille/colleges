@@ -5,6 +5,7 @@
 //  2. passage garanti : saisi à la main dans data/overrides/continuite.json.
 import type { College, Continuite, LienLycee, Lycee, Passage, Statut } from '../../../src/types';
 import { normalizeVoie } from '../../../src/lib/normalize';
+import { inseeAParis } from '../../../src/lib/territoires';
 import { odsExport, odsExportParLots, odsList } from '../lib/fetch';
 import { annee, groupBy, num, uniq } from '../lib/util';
 import { NATURES_LYCEE } from '../lib/config';
@@ -213,7 +214,7 @@ export function voiesLibelles(v: VoiesLycee | undefined, row: AnnuaireRow | unde
 
 export function adresseLycee(r: AnnuaireRow | undefined): string | null {
   if (!r?.adresse_1) return null;
-  const commune = r.code_commune?.startsWith('751') ? 'Paris' : (r.nom_commune ?? '');
+  const commune = inseeAParis(r.code_commune ?? '') ? 'Paris' : (r.nom_commune ?? '');
   return `${r.adresse_1}, ${r.code_postal ?? ''} ${commune}`.replace(/\s+/g, ' ').trim();
 }
 

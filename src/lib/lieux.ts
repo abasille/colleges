@@ -4,7 +4,7 @@ import { fold } from './filters';
 import { DEPARTEMENTS } from './territoires';
 
 /** Ce que propose le filtre « commune ou département » (à Paris, la commune est l'arrondissement). */
-export type Lieu = { type: 'commune'; code: string; libelle: string; departement: string } | { type: 'departement'; code: Departement; libelle: string };
+export type Lieu = ({ type: 'commune' } & CommunePresente) | { type: 'departement'; code: Departement; libelle: string };
 
 type Choix = Pick<Filters, 'communes' | 'departements'>;
 
@@ -30,7 +30,7 @@ export function rechercherLieux(q: string, communes: readonly CommunePresente[],
     if (!choix.departements.includes(code)) essayer({ type: 'departement', code, libelle }, [...mots(libelle), code]);
   }
   for (const c of communes) {
-    if (!choix.communes.includes(c.code)) essayer({ type: 'commune', code: c.code, libelle: c.libelle, departement: c.departement }, mots(c.libelle));
+    if (!choix.communes.includes(c.code)) essayer({ type: 'commune', ...c }, mots(c.libelle));
   }
   candidats.sort((a, b) => a.rang - b.rang || collator.compare(a.lieu.libelle, b.lieu.libelle));
   return candidats.slice(0, limite).map((c) => c.lieu);
@@ -45,7 +45,7 @@ export function lieuxChoisis(choix: Choix, communes: readonly CommunePresente[])
   const out: Lieu[] = choix.departements.map((code) => ({ type: 'departement', code, libelle: DEPARTEMENTS[code] }));
   for (const code of choix.communes) {
     const c = parCode.get(code);
-    if (c) out.push({ type: 'commune', code: c.code, libelle: c.libelle, departement: c.departement });
+    if (c) out.push({ type: 'commune', ...c });
   }
   return out;
 }

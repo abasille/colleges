@@ -22,5 +22,25 @@ export function estTerritoire(v: unknown): v is Territoire {
 
 /** « Académie de Paris », « Val-de-Marne ». */
 export function libelleTerritoire(t: Territoire): string {
-  return t in DEPARTEMENTS ? DEPARTEMENTS[t as Departement] : `Académie de ${t}`;
+  return estDepartement(t) ? DEPARTEMENTS[t] : `Académie de ${t}`;
+}
+
+export function estDepartement(v: unknown): v is Departement {
+  return typeof v === 'string' && Object.hasOwn(DEPARTEMENTS, v);
+}
+
+/** Département d'un code INSEE de commune (ou d'arrondissement), null hors Île-de-France. */
+export function departementDuCode(codeInsee: string): Departement | null {
+  const d = codeInsee.slice(0, 2);
+  return estDepartement(d) ? d : null;
+}
+
+/** Une commune, un arrondissement ou une adresse (par son code INSEE) à Paris. */
+export function inseeAParis(codeInsee: string): boolean {
+  return departementDuCode(codeInsee) === '75';
+}
+
+/** Un collège à Paris : le département 75, qui forme à lui seul l'académie de Paris. */
+export function collegeAParis(c: { departement: Departement }): boolean {
+  return c.departement === '75';
 }

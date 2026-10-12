@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fold } from '../src/lib/filters';
-import { libelleTerritoire } from '../src/lib/territoires';
+import { collegeAParis, libelleTerritoire } from '../src/lib/territoires';
 import type {
   Academie,
   CollegeDetail,
@@ -62,12 +62,12 @@ export interface EtatTerritoire {
  * (à Paris, rectorat et direction départementale ne font qu'un : « Paris »).
  */
 export function datesOfficielles(
-  college: { academie: Academie; departement: string },
+  college: { academie: Academie; departement: Departement },
   events: CollegeEvent[],
   saison: string,
 ): EtatTerritoire[] {
   const territoires: Territoire[] =
-    college.academie === 'Paris' ? ['Paris'] : [college.academie, college.departement as Departement];
+    collegeAParis(college) ? ['Paris'] : [college.academie, college.departement];
   return territoires.map((territoire) => {
     const saisons = events.filter((e) => e.type === 'officiel' && e.territoire === territoire).map((e) => e.saison);
     return {

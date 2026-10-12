@@ -3,6 +3,7 @@
 import type { College, IndicateurKey } from '../../src/types';
 import { normalizeNom } from '../../src/lib/normalize';
 import { groupBy } from './lib/util';
+import { collegeAParis } from '../../src/lib/territoires';
 import type { ReportData } from './report';
 
 export type FamilleAnomalie = 'jointures' | 'secteursParis' | 'ecartsParis' | 'sansSecteur' | 'doublons' | 'manquantes' | 'corrections' | 'controles';
@@ -82,7 +83,7 @@ export function detecterAnomalies(d: DonneesAnomalies): Anomalie[] {
   for (const [cle, libelle] of jeux) {
     ajouter('jointures', `absent-${cle}`, `Absents du jeu « ${libelle} »`, nonHorsContrat.filter((x) => !x.presence[cle]).map((x) => college(x.college)));
   }
-  const parisPublics = cs.filter((c) => c.statut === 'public' && c.academie === 'Paris');
+  const parisPublics = d.collegesParisPublics.flatMap((uai) => byUai.get(uai) ?? []);
   ajouter(
     'jointures',
     'absent-affelnet',
@@ -157,7 +158,7 @@ export function detecterAnomalies(d: DonneesAnomalies): Anomalie[] {
     'Collèges publics parisiens sans secteur de la Ville',
     d.collegesParisPublics.filter((u) => !relieParis.has(u)).map((u) => parUai(u)),
   );
-  const publicsHorsParis = cs.filter((c) => c.statut === 'public' && c.departement !== '75');
+  const publicsHorsParis = cs.filter((c) => c.statut === 'public' && !collegeAParis(c));
   ajouter(
     'sansSecteur',
     'absents-carte',

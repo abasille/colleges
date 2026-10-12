@@ -11,12 +11,12 @@ describe('lycée de secteur hors de Paris', () => {
   });
 
   it('renvoie vers la page de sectorisation de la direction départementale dans l’académie de Créteil', () => {
-    const attendus = {
-      '77': ['https://www.dsden77.ac-creteil.fr/spip.php?article1162', 'Seine-et-Marne'],
-      '93': ['https://www.dsden93.ac-creteil.fr/spip/spip.php?article2376', 'Seine-Saint-Denis'],
-      '94': ['https://www.dsden94.ac-creteil.fr/spip.php?article5005', 'Val-de-Marne'],
-    } as const;
-    for (const [departement, [url, nom]] of Object.entries(attendus)) {
+    const attendus = [
+      ['77', 'https://www.dsden77.ac-creteil.fr/spip.php?article1162', 'Seine-et-Marne'],
+      ['93', 'https://www.dsden93.ac-creteil.fr/spip/spip.php?article2376', 'Seine-Saint-Denis'],
+      ['94', 'https://www.dsden94.ac-creteil.fr/spip.php?article5005', 'Val-de-Marne'],
+    ] as const;
+    for (const [departement, url, nom] of attendus) {
       const outil = outilLyceeSecteur({ academie: 'Créteil', departement });
       expect(outil?.url).toBe(url);
       expect(outil?.libelle).toContain(nom);

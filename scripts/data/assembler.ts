@@ -11,6 +11,7 @@ import type {
   CommunePresente,
   ContourCommuneProps,
   Dataset,
+  Departement,
   DetailDepartement,
   EventsFile,
   IndicateurKey,
@@ -23,7 +24,7 @@ import type {
   Statut,
 } from '../../src/types';
 import { stripAccents } from '../../src/lib/normalize';
-import { ACADEMIES } from '../../src/lib/territoires';
+import { ACADEMIES, collegeAParis, estDepartement, inseeAParis } from '../../src/lib/territoires';
 import { ANNEE_AFFELNET, ANNEE_CONTOURS, ANNEE_SECTEURS_PARIS, type Config } from './lib/config';
 import { formatNombre, groupBy, niceCase, ratioOfSums, round, sortedObject, weightedMean } from './lib/util';
 import type { Feature, FeatureCollection } from './lib/geo';
@@ -134,7 +135,7 @@ export interface Publication {
 }
 
 export interface ContoursDepartement {
-  departement: string;
+  departement: Departement;
   contours: FeatureCollection<ContourCommuneProps>;
 }
 
@@ -186,8 +187,10 @@ function departementDe(r: AnnuaireRow): string {
 function communeDe(r: AnnuaireRow): CommunePresente {
   const code = r.code_commune ?? '';
   const n = Number(code.slice(3));
-  const libelle = code.startsWith('751') && n >= 1 && n <= 20 ? `Paris ${n === 1 ? '1er' : `${n}e`}` : (r.nom_commune ?? code);
-  return { code, libelle, departement: departementDe(r) };
+  const libelle = inseeAParis(code) && n >= 1 && n <= 20 ? `Paris ${n === 1 ? '1er' : `${n}e`}` : (r.nom_commune ?? code);
+  const departement = departementDe(r);
+  if (!estDepartement(departement)) throw new Error(`${r.identifiant_de_l_etablissement} : département ${departement} hors Île-de-France`);
+  return { code, libelle, departement };
 }
 
 function statutDe(r: AnnuaireRow): { statut: Statut; contrat: College['contrat'] } {
@@ -420,7 +423,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const detections = detecterLiens(ann, src.cites);
   const voies = src.voiesLycees;
 
-  const collegesParisPublics = ann.colleges.filter((c) => c.code_commune?.startsWith('751') && c.statut_public_prive === 'Public');
+  const collegesParisPublics = ann.colleges.filter((c) => inseeAParis(c.code_commune ?? '') && c.statut_public_prive === 'Public');
   const secteursParis = relierSecteursParis(
     src.secteursParis,
     collegesParisPublics.map((c) => ({ uai: c.identifiant_de_l_etablissement, nom: c.nom_etablissement, adresse: c.adresse_1 })),
@@ -432,7 +435,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const presenceCarte = { uais: carte.uais, communes: carte.communes };
   // Contrôle croisé à Paris (ADR 0002) : UAI des polygones de la Ville absents de la carte, et inversement.
   const uaisPolygones = new Set(secteursParis.geojson.features.flatMap((f) => f.properties.uais));
-  const uaisCarteParis = new Set(carte.rows.filter((r) => r.insee.startsWith('75')).map((r) => r.uai));
+  const uaisCarteParis = new Set(carte.rows.filter((r) => inseeAParis(r.insee)).map((r) => r.uai));
   const ecartsParis = {
     polygonesSeuls: [...uaisPolygones].filter((u) => !uaisCarteParis.has(u)).sort(),
     carteSeule: [...uaisCarteParis].filter((u) => !uaisPolygones.has(u)).sort(),
@@ -567,7 +570,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
 
     // Affelnet (collèges publics parisiens)
     let affelnetSecteur1: College['affelnetSecteur1'] = null;
-    if (statut === 'public' && academie === 'Paris') {
+    if (statut === 'public' && collegeAParis(commune)) {
       const reseau = affelnet.filter((a) => a.reseau === uai);
       if (reseau.length) {
         affelnetSecteur1 = reseau
@@ -822,8 +825,8 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     if (f) contoursPublies.push({ type: 'Feature', properties: { code: c.code, libelle: c.libelle }, geometry: f.geometry });
     else contoursManquants.push(c);
   }
-  const departementDe = new Map(communes.map((c) => [c.code, c.departement]));
-  const contours: ContoursDepartement[] = [...groupBy(contoursPublies, (f) => departementDe.get(f.properties.code)!).entries()]
+  const departementDeCommune = new Map(communes.map((c) => [c.code, c.departement]));
+  const contours: ContoursDepartement[] = [...groupBy(contoursPublies, (f) => departementDeCommune.get(f.properties.code)!).entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([departement, features]) => ({ departement, contours: { type: 'FeatureCollection', features } }));
   const publication: Publication = {
@@ -862,7 +865,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
         const raison = ann.exclus.some((x) => x.identifiant_de_l_etablissement === uai)
           ? 'écarté par data/config.json'
           : r
-            ? `hors sélection de l'annuaire (département ${communeDe(r).departement}, nature ${r.code_nature}, état ${r.etat})`
+            ? `hors sélection de l'annuaire (département ${departementDe(r)}, nature ${r.code_nature}, état ${r.etat})`
             : "absent de l'annuaire des collèges";
         return { uai, nom: r?.nom_etablissement ?? null, raison };
       }),
@@ -888,7 +891,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   return {
     publication,
     fichiers,
-    controles: { voiesCarteScolaire: carte.brut.filter((r) => !r.insee.startsWith('75')), secteursParis: secteursParis.geojson },
+    controles: { voiesCarteScolaire: carte.brut.filter((r) => !inseeAParis(r.insee)), secteursParis: secteursParis.geojson },
     rapport,
   };
 }

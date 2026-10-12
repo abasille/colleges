@@ -12,6 +12,7 @@ import type { VerifSecteur, VerifVoie } from './controles';
 import type { EventsResult } from './events';
 import { FAMILLES, type Anomalie, type ElementAnomalie, type FamilleAnomalie } from './anomalies';
 import { groupBy } from './lib/util';
+import { collegeAParis } from '../../src/lib/territoires';
 
 export interface ReportData {
   generatedAt: string;
@@ -206,7 +207,7 @@ export function renderReport(d: ReportData): string {
       d.colleges.filter((x) => x.college.continuite.lien !== x.detection.choix.lien || (x.college.continuite.lycee?.uai ?? null) !== x.detection.choix.lyceeUai).length
     }.`,
   );
-  const parisPublics = cs.filter((c) => c.statut === 'public' && c.academie === 'Paris');
+  const parisPublics = d.collegesParisPublics.flatMap((uai) => byUai.get(uai) ?? []);
   L.push(
     `- Affelnet Paris : ${d.affelnet.lignes} lignes ArcGIS ; ${parisPublics.filter((c) => c.affelnetSecteur1 !== null).length}/${parisPublics.length} collèges publics parisiens avec une liste de lycées de secteur 1 (${parisPublics.filter((c) => c.affelnetSecteur1?.length).length} non vides).`,
   );
@@ -224,7 +225,7 @@ export function renderReport(d: ReportData): string {
   L.push(
     `- Carte scolaire nationale : ${rows.length} lignes après normalisation des voies (${carte.doublons} doublons retirés, ${carte.ecartees} écartées), ${carte.communes.size} communes, ${carte.uais.size} collèges. Une ligne sans voie (« secteur unique ») couvre toute la commune, ou le reste de la commune quand d'autres lignes listent des voies. Publiée par département hors Paris.`,
   );
-  const deduites = [...groupBy(cs.filter((c) => c.statut === 'public' && c.departement !== '75' && !carte.communes.has(c.commune)), (c) => c.commune).values()]
+  const deduites = [...groupBy(cs.filter((c) => c.statut === 'public' && !collegeAParis(c) && !carte.communes.has(c.commune)), (c) => c.commune).values()]
     .filter((l) => l.length === 1)
     .map(([c]) => c)
     .sort((a, b) => a.commune.localeCompare(b.commune));
@@ -351,7 +352,7 @@ export function renderReport(d: ReportData): string {
     const secteursDe = groupBy(relies, (m) => m.match.uai!);
     const secteur = (c: College) => {
       if (c.statut !== 'public') return '—';
-      if (c.departement === '75') return [...new Set((secteursDe.get(c.uai) ?? []).map((m) => m.libelle))].join(', ') || 'aucun';
+      if (collegeAParis(c)) return [...new Set((secteursDe.get(c.uai) ?? []).map((m) => m.libelle))].join(', ') || 'aucun';
       return carte.uais.has(c.uai) ? 'carte nationale' : 'absent de la carte';
     };
     L.push(

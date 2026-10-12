@@ -1,7 +1,8 @@
 // Sectorisation : polygones des secteurs parisiens (opendata.paris.fr, ODbL, sans UAI -> jointure par nom)
 // et carte scolaire nationale des collèges publics (fr-en-carte-scolaire-colleges-publics, plages d'adresses).
-import type { CarteScolaireDepartement, PariteCarteScolaire, PlageCarteScolaire, SecteurParisProps } from '../../../src/types';
+import type { CarteScolaireDepartement, Departement, PariteCarteScolaire, PlageCarteScolaire, SecteurParisProps } from '../../../src/types';
 import { normalizeNom, normalizeVoie } from '../../../src/lib/normalize';
+import { departementDuCode } from '../../../src/lib/territoires';
 import { fetchJson, odsExport, odsExportUrl, ODS_PARIS } from '../lib/fetch';
 import { num } from '../lib/util';
 import { ANNEE_SECTEURS_PARIS } from '../lib/config';
@@ -187,7 +188,7 @@ const COLONNES_CARTE = ['code_insee', 'libelle_commune', 'type_et_libelle', 'n_d
  * Le filtre porte sur la commune de l'adresse (code INSEE) et non sur le département du collège :
  * quelques communes franciliennes relèvent d'un collège d'un département voisin.
  */
-export async function loadCarteScolaireBrute(departements: readonly string[]): Promise<Record<string, unknown>[]> {
+export async function loadCarteScolaireBrute(departements: readonly Departement[]): Promise<Record<string, unknown>[]> {
   const out: Record<string, unknown>[] = [];
   for (const d of [...departements].sort()) {
     out.push(...(await odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { select: COLONNES_CARTE, where: `startswith(code_insee, "${d}")` })));
@@ -207,8 +208,8 @@ const comparerLignes = (a: CarteScolaireRow, b: CarteScolaireRow) =>
  * Normalise les voies, garde les lignes « secteur unique » (voie vide), écarte les lignes sans UAI ou hors
  * des départements et les doublons, trie, puis regroupe par département et par commune (sans accès réseau).
  */
-export function compacterCarteScolaire(raw: Record<string, unknown>[], departements: readonly string[]): CarteScolaireResult {
-  const garder = new Set(departements);
+export function compacterCarteScolaire(raw: Record<string, unknown>[], departements: readonly Departement[]): CarteScolaireResult {
+  const garder = new Set<string>(departements);
   const seen = new Set<string>();
   const rows: CarteScolaireRow[] = [];
   const brut: CarteScolaireResult['brut'] = [];
@@ -225,7 +226,8 @@ export function compacterCarteScolaire(raw: Record<string, unknown>[], departeme
       parite: parite === 'P' || parite === 'I' ? parite : 'PI',
       uai: String(r.code_rne ?? ''),
     };
-    if (!row.uai || !garder.has(row.insee.slice(0, 2))) {
+    const departement = departementDuCode(row.insee);
+    if (!row.uai || !departement || !garder.has(departement)) {
       ecartees++;
       continue;
     }
@@ -241,7 +243,7 @@ export function compacterCarteScolaire(raw: Record<string, unknown>[], departeme
   rows.sort(comparerLignes);
   const parDepartement = new Map<string, CarteScolaireDepartement>([...departements].sort().map((d) => [d, { departement: d, communes: {} }]));
   for (const r of rows) {
-    const communes = parDepartement.get(r.insee.slice(0, 2))!.communes;
+    const communes = parDepartement.get(departementDuCode(r.insee)!)!.communes;
     const plage: PlageCarteScolaire = [r.voie, r.debut, r.fin, r.parite, r.uai];
     (communes[r.insee] ??= []).push(plage);
   }
