@@ -42,6 +42,7 @@ function chips(f: Filters, labelOption: (t: string) => string, labelCommune: (co
   if (f.lyceeGeneral) out.push({ id: 'ly', label: 'Lycée sur place', patch: { lyceeGeneral: false } });
   if (f.passageGaranti) out.push({ id: 'pg', label: 'Passage garanti', patch: { passageGaranti: false } });
   if (f.favoris) out.push({ id: 'fav', label: '★ Favoris', patch: { favoris: false } });
+  if (f.suivis) out.push({ id: 'sv', label: 'Collèges suivis', patch: { suivis: false } });
   for (const o of f.options) out.push({ id: `o-${o}`, label: labelOption(o), patch: { options: f.options.filter((x) => x !== o) } });
   for (const [k, r] of Object.entries(f.ranges) as [ValueKey, [number, number]][]) {
     const fmt = (v: number) => (k === 'distance' ? formatDistance(v) : formatIndicateur(k, v));

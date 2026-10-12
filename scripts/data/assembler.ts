@@ -73,6 +73,8 @@ export interface Corrections {
   continuite: Record<string, ContinuiteOverride>;
   /** data/overrides/events.json non validé ; null si le fichier n'existe pas. */
   evenements: EvenementsBruts | null;
+  /** UAI des collèges suivis (data/overrides/suivis.json, clés de `colleges`) ; un UAI hors périmètre est ignoré. */
+  suivis: string[];
 }
 
 /** Lignes déjà chargées de chaque source (réseau ou cache), telles que les rendent les chargeurs. */
@@ -252,6 +254,7 @@ function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } 
     recrutementParticulier,
     niveaux,
     accueilSixieme,
+    suivi,
     indicateurs,
     manquants,
     optionTags,
@@ -273,6 +276,7 @@ function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } 
     recrutementParticulier,
     niveaux,
     accueilSixieme,
+    suivi,
     indicateurs,
     manquants,
     score: score && { note: score.note, lettre: score.lettre, rang: score.rang, sur: score.sur, partielle: score.partielle },
@@ -369,6 +373,7 @@ export function lyceesLies(config: Config, corrections: Pick<Corrections, 'conti
 export function assemblerDataset({ config: cfg, corrections, sources: src, maintenant }: EntreeAssemblage): Assemblage {
   const collegeOverrides = corrections.colleges;
   const contOverrides = corrections.continuite;
+  const suivis = new Set(corrections.suivis);
   const ann = selectionnerAnnuaire(cfg, src.annuaire);
   const perimetre = new Set(ann.colleges.map((r) => r.identifiant_de_l_etablissement));
 
@@ -604,6 +609,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
       recrutementParticulier: ov.recrutementParticulier ?? null,
       niveaux,
       accueilSixieme: niveaux.includes('6e'),
+      suivi: suivis.has(uai),
       remarques: ov.remarques ?? [],
       demiPension,
       indicateurs,

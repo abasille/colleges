@@ -6,6 +6,7 @@ import { domainOf, type Filters, type ValueKey } from '../lib/filters';
 import { INDICATEURS, INDICATEURS_FILTRABLES, STATUT_LABELS } from '../lib/indicateurs';
 import { formatDistance, formatIndicateur } from '../lib/format';
 import { DualRange } from './DualRange';
+import { InfoTip } from './ui';
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -97,6 +98,10 @@ export function FilterPanel() {
         </Check>
         <Check checked={filters.favoris} onChange={(v) => setFilters({ favoris: v })}>
           Favoris seulement ★
+        </Check>
+        <Check checked={filters.suivis} onChange={(v) => setFilters({ suivis: v })} count={colleges.filter((c) => c.suivi).length}>
+          Collèges suivis
+          <InfoTip text="Portes ouvertes, inscriptions et passage au lycée ne sont relevés que pour ces collèges." />
         </Check>
       </Group>
 

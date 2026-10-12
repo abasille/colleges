@@ -9,6 +9,7 @@ import { domainOf } from '../lib/filters';
 import { INDICATEURS, STATUT_LABELS } from '../lib/indicateurs';
 import { formatIndicateur, nomCourt } from '../lib/format';
 import type { ColorBy } from '../lib/url';
+import { SuiviBadge } from './ui';
 
 const COLOR_OPTIONS: { key: ColorBy; label: string }[] = [
   { key: 'statut', label: 'Statut' },
@@ -141,6 +142,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
             >
               <Tooltip direction="top" offset={[0, -8]}>
                 <strong>{nomCourt(c.nom)}</strong>
+                {c.suivi && <> <SuiviBadge /></>}
                 {colorBy !== 'statut' && <> · {formatIndicateur(colorBy, c.indicateurs[colorBy])}</>}
               </Tooltip>
             </Marker>

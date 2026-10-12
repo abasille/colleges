@@ -34,6 +34,7 @@ function college(uai: string, over: Partial<College> = {}, ind: Partial<College[
     accueilSixieme: true,
     remarques: [],
     demiPension: true,
+    suivi: false,
     indicateurs: {
       note: null, brevet: null, brevetDernier: null, noteEcrit: null, vaTaux: null, vaNote: null, mentionsTB: null,
       mentions: null, accesSixiemeTroisieme: null, ips: null, effectif: null, elevesParClasse: null,
@@ -95,6 +96,18 @@ describe('filtres', () => {
     expect(applyFilters(cs, f({ communes: ['94041', '75105'] }), ctx).map((c) => c.uai)).toEqual(['0000002B', '0000004D']);
   });
 
+  it('n’affiche que les collèges suivis quand la case est cochée', () => {
+    const suivis = [college('0000001A', { suivi: true }), college('0000002B'), college('0000003C', { suivi: true })];
+    expect(applyFilters(suivis, f({ suivis: true }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000003C']);
+    expect(applyFilters(suivis, f({ suivis: false }), ctx)).toHaveLength(3);
+  });
+
+  it('ne compte pas un collège non suivi comme « passage garanti » : son passage au lycée n’est pas renseigné', () => {
+    const garanti: College['continuite'] = { lien: 'meme_etablissement_prive', lycee: null, secondeGtSurPlace: true, passage: 'garanti', passageTexte: '', sources: [] };
+    const cs2 = [college('0000001A', { suivi: true, continuite: garanti }), college('0000002B', { continuite: garanti }), college('0000003C', { suivi: true })];
+    expect(applyFilters(cs2, f({ passageGaranti: true }), ctx).map((c) => c.uai)).toEqual(['0000001A']);
+  });
+
   it('ignore un code de commune inconnu', () => {
     expect(applyFilters(cs, f({ communes: ['94041', '99999'] }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
     expect(applyFilters(cs, f({ communes: ['99999'] }), ctx)).toEqual(applyFilters(cs, DEFAULT_FILTERS, ctx));
@@ -122,13 +135,20 @@ describe('filtres', () => {
 describe('état dans l’URL', () => {
   it('fait un aller-retour sans perte', () => {
     const state = {
-      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
+      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true, suivis: true }),
       sort: { key: 'brevet' as const, dir: 'desc' as const },
       selected: '0752539C',
       vue: 'calendrier' as const,
       colorBy: 'ips' as const,
     };
     expect(parseUrlState(serializeUrlState(state))).toEqual(state);
+  });
+
+  it('garde la case « collèges suivis » dans l’URL', () => {
+    const { filters } = parseUrlState('?sv=1');
+    expect(filters.suivis).toBe(true);
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?sv=1');
+    expect(parseUrlState('').filters.suivis).toBe(false);
   });
 
   it('produit une URL vide pour l’état par défaut', () => {

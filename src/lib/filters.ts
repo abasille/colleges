@@ -20,6 +20,8 @@ export interface Filters {
   lyceeGeneral: boolean;
   passageGaranti: boolean;
   favoris: boolean;
+  /** Seulement les collèges suivis (relevé manuel des portes ouvertes, du passage au lycée…). */
+  suivis: boolean;
   options: string[]; // ET logique
   ranges: Partial<Record<ValueKey, [number, number]>>;
   inclureSansDonnee: boolean;
@@ -35,6 +37,7 @@ export const DEFAULT_FILTERS: Filters = {
   lyceeGeneral: false,
   passageGaranti: false,
   favoris: false,
+  suivis: false,
   options: [],
   ranges: {},
   inclureSansDonnee: false,
@@ -64,6 +67,11 @@ export function hasLyceeGeneral(c: CollegeResume): boolean {
   return c.continuite.lien !== 'aucun' && c.continuite.secondeGtSurPlace;
 }
 
+/** Passage garanti par écrit ; seul un collège suivi a un passage au lycée renseigné (ADR 0001). */
+export function aPassageGaranti(c: CollegeResume): boolean {
+  return c.suivi && c.continuite.passage === 'garanti';
+}
+
 export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boolean {
   if (f.q.trim()) {
     const words = fold(f.q).split(/\s+/).filter(Boolean);
@@ -77,8 +85,9 @@ export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boole
   if (f.accueilSixieme && !c.accueilSixieme) return false;
   if (f.masquerRecrutementParticulier && c.recrutementParticulier) return false;
   if (f.lyceeGeneral && !hasLyceeGeneral(c)) return false;
-  if (f.passageGaranti && c.continuite.passage !== 'garanti') return false;
+  if (f.passageGaranti && !aPassageGaranti(c)) return false;
   if (f.favoris && !ctx.favoris.has(c.uai)) return false;
+  if (f.suivis && !c.suivi) return false;
   if (f.options.length && !f.options.every((o) => c.optionTags.includes(o))) return false;
   for (const [key, range] of Object.entries(f.ranges) as [ValueKey, [number, number]][]) {
     if (!range) continue;
@@ -146,6 +155,7 @@ export function countActive(f: Filters): number {
   if (f.lyceeGeneral) n++;
   if (f.passageGaranti) n++;
   if (f.favoris) n++;
+  if (f.suivis) n++;
   n += f.options.length;
   n += Object.keys(f.ranges).length;
   return n;

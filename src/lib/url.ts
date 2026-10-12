@@ -42,6 +42,7 @@ export function parseUrlState(search: string): UrlState {
     lyceeGeneral: p.get('ly') === '1',
     passageGaranti: p.get('pg') === '1',
     favoris: p.get('fav') === '1',
+    suivis: p.get('sv') === '1',
     options: list(p.get('opt')),
     ranges,
     inclureSansDonnee: p.get('nd') === '1',
@@ -74,6 +75,7 @@ export function serializeUrlState(s: UrlState): string {
   if (f.lyceeGeneral) p.set('ly', '1');
   if (f.passageGaranti) p.set('pg', '1');
   if (f.favoris) p.set('fav', '1');
+  if (f.suivis) p.set('sv', '1');
   if (f.options.length) p.set('opt', f.options.join(','));
   for (const [k, r] of Object.entries(f.ranges)) if (r) p.set(`r.${k}`, `${r[0]}~${r[1]}`);
   if (f.inclureSansDonnee) p.set('nd', '1');
