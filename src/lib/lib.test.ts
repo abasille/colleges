@@ -9,6 +9,7 @@ import { decodeShare, encodeShare, mergeShare } from './share';
 import { calendarEvents, isUrgent, statutInscriptions, territoiresPresents, upcomingForFavoris } from './events';
 import { libelleTerritoire } from './territoires';
 import { formatIndicateur, nomCourt } from './format';
+import { lieuxChoisis, rechercherLieux } from './lieux';
 
 function college(uai: string, over: Partial<College> = {}, ind: Partial<College['indicateurs']> = {}): College {
   return {
@@ -100,6 +101,17 @@ describe('filtres', () => {
     expect(applyFilters(cs, f({ communes: ['99999'] }), ctx)).toEqual(applyFilters(cs, DEFAULT_FILTERS, ctx));
   });
 
+  it('filtre par département', () => {
+    expect(applyFilters(cs, f({ departements: ['94'] }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
+    expect(applyFilters(cs, f({ departements: ['75'] }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000002B']);
+  });
+
+  it('réunit les communes et les départements choisis', () => {
+    expect(applyFilters(cs, f({ communes: ['75105'], departements: ['94'] }), ctx).map((c) => c.uai)).toEqual(['0000002B', '0000004D']);
+    // Une commune déjà couverte par son département ne restreint rien.
+    expect(applyFilters(cs, f({ communes: ['75105'], departements: ['75'] }), ctx).map((c) => c.uai)).toEqual(['0000001A', '0000002B']);
+  });
+
   it('trouve un collège par le nom de sa commune', () => {
     expect(applyFilters(cs, f({ q: 'ivry' }), ctx).map((c) => c.uai)).toEqual(['0000004D']);
     expect(applyFilters(cs, f({ q: 'paris 5e' }), ctx).map((c) => c.uai)).toEqual(['0000002B']);
@@ -122,7 +134,7 @@ describe('filtres', () => {
 describe('état dans l’URL', () => {
   it('fait un aller-retour sans perte', () => {
     const state = {
-      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
+      filters: f({ q: 'monet', statuts: ['public'], communes: ['75113', '92012'], departements: ['94', '78'], options: ['latin'], ranges: { brevet: [90, 100] }, accueilSixieme: false, favoris: true }),
       sort: { key: 'brevet' as const, dir: 'desc' as const },
       selected: '0752539C',
       vue: 'calendrier' as const,
@@ -153,6 +165,64 @@ describe('état dans l’URL', () => {
 
   it('accepte tout code de commune bien formé et écarte les autres sans erreur', () => {
     expect(parseUrlState('?z=92012,2A004,bidon,123').filters.communes).toEqual(['92012', '2A004']);
+  });
+
+  it('enregistre les départements dans leur propre paramètre', () => {
+    const filters = f({ communes: ['92012'], departements: ['94'] });
+    expect(serializeUrlState({ ...parseUrlState(''), filters })).toBe('?z=92012&d=94');
+  });
+
+  it('ignore sans erreur un code inconnu, de commune ou de département', () => {
+    const cs = [college('0000001A'), college('0000002B', { commune: '94041', communeLibelle: 'Ivry-sur-Seine', departement: '94' })];
+    const { filters } = parseUrlState('?z=99999&d=94,13,2A,bidon');
+    expect(filters.departements).toEqual(['94']);
+    expect(applyFilters(cs, filters, ctx).map((c) => c.uai)).toEqual(['0000002B']);
+    // Rien de connu : toute l'Île-de-France.
+    expect(applyFilters(cs, parseUrlState('?z=99999&d=13').filters, ctx)).toHaveLength(2);
+  });
+});
+
+describe('commune ou département', () => {
+  const communes = [
+    { code: '75101', libelle: 'Paris 1er', departement: '75' },
+    { code: '75113', libelle: 'Paris 13e', departement: '75' },
+    { code: '91228', libelle: 'Évry-Courcouronnes', departement: '91' },
+    { code: '94041', libelle: 'Ivry-sur-Seine', departement: '94' },
+    { code: '94068', libelle: 'Saint-Maur-des-Fossés', departement: '94' },
+    { code: '94081', libelle: 'Vitry-sur-Seine', departement: '94' },
+    { code: '95018', libelle: 'Argenteuil', departement: '95' },
+  ];
+  const libelles = (q: string, choix?: Parameters<typeof rechercherLieux>[2]) => rechercherLieux(q, communes, choix).map((l) => l.libelle);
+
+  it('trouve une commune sans tenir compte des accents ni de la casse', () => {
+    expect(libelles('evry')).toEqual(['Évry-Courcouronnes']);
+    expect(libelles('VITRY')).toEqual(['Vitry-sur-Seine']);
+    expect(libelles('saint maur')).toEqual(['Saint-Maur-des-Fossés']);
+  });
+
+  it('trouve un arrondissement de Paris comme une commune', () => {
+    expect(rechercherLieux('Paris 13e', communes)).toEqual([{ type: 'commune', code: '75113', libelle: 'Paris 13e', departement: '75' }]);
+  });
+
+  it('propose aussi les départements, en tête', () => {
+    expect(libelles('paris')).toEqual(['Paris', 'Paris 1er', 'Paris 13e']);
+    expect(rechercherLieux('val de marne', communes)).toEqual([{ type: 'departement', code: '94', libelle: 'Val-de-Marne' }]);
+    expect(libelles('val d’oise')).toEqual(['Val-d’Oise']);
+    expect(libelles("val d'oise")).toEqual(['Val-d’Oise']);
+    expect(libelles('94')).toEqual(['Val-de-Marne']);
+  });
+
+  it('ne propose pas ce qui est déjà choisi', () => {
+    expect(libelles('paris', { communes: ['75113'], departements: ['75'] })).toEqual(['Paris 1er']);
+  });
+
+  it('liste les choix connus pour les pastilles, sans les codes inconnus', () => {
+    const choix = lieuxChoisis({ communes: ['94041', '99999', '75113'], departements: ['95'] }, communes);
+    expect(choix.map((l) => `${l.type} ${l.code} ${l.libelle}`)).toEqual(['departement 95 Val-d’Oise', 'commune 94041 Ivry-sur-Seine', 'commune 75113 Paris 13e']);
+  });
+
+  it('ne propose rien pour une saisie vide', () => {
+    expect(rechercherLieux('  ', communes)).toEqual([]);
   });
 });
 

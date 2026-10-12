@@ -6,6 +6,7 @@ import { domainOf, type Filters, type ValueKey } from '../lib/filters';
 import { INDICATEURS, INDICATEURS_FILTRABLES, STATUT_LABELS } from '../lib/indicateurs';
 import { formatDistance, formatIndicateur } from '../lib/format';
 import { DualRange } from './DualRange';
+import { LieuFilter } from './LieuFilter';
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -100,19 +101,8 @@ export function FilterPanel() {
         </Check>
       </Group>
 
-      <Group title="Commune">
-        <div className="grid grid-cols-2 gap-x-2">
-          {dataset.communes.map((commune) => (
-            <Check
-              key={commune.code}
-              checked={filters.communes.includes(commune.code)}
-              onChange={() => setFilters({ communes: toggle(filters.communes, commune.code) })}
-              count={colleges.filter((c) => c.commune === commune.code).length}
-            >
-              {commune.libelle}
-            </Check>
-          ))}
-        </div>
+      <Group title="Commune ou département">
+        <LieuFilter />
       </Group>
 
       <Group title="Continuité jusqu’au bac">

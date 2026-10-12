@@ -1,4 +1,4 @@
-import type { CollegeResume, IndicateurKey, Statut } from '../types';
+import type { CollegeResume, Departement, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
 
 export type ValueKey = IndicateurKey | 'distance';
@@ -13,7 +13,9 @@ export interface Sort {
 export interface Filters {
   q: string;
   statuts: Statut[]; // vide = tous
-  communes: string[]; // codes INSEE ; vide = toutes
+  // Sélection géographique : union des communes et des départements choisis ; les deux vides = toute l'Île-de-France.
+  communes: string[]; // codes INSEE (arrondissement à Paris)
+  departements: Departement[];
   rep: 'tous' | 'rep' | 'hors_rep';
   accueilSixieme: boolean;
   masquerRecrutementParticulier: boolean;
@@ -29,6 +31,7 @@ export const DEFAULT_FILTERS: Filters = {
   q: '',
   statuts: [],
   communes: [],
+  departements: [],
   rep: 'tous',
   accueilSixieme: true,
   masquerRecrutementParticulier: false,
@@ -71,7 +74,10 @@ export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boole
     if (!words.every((w) => hay.includes(w))) return false;
   }
   if (f.statuts.length && !f.statuts.includes(c.statut)) return false;
-  if (f.communes.length && !f.communes.includes(c.commune)) return false;
+  if (f.communes.length || f.departements.length) {
+    const retenu = f.communes.includes(c.commune) || (f.departements as readonly string[]).includes(c.departement);
+    if (!retenu) return false;
+  }
   if (f.rep === 'rep' && !c.rep) return false;
   if (f.rep === 'hors_rep' && c.rep) return false;
   if (f.accueilSixieme && !c.accueilSixieme) return false;
@@ -139,7 +145,7 @@ export function domainOf(colleges: CollegeResume[], key: ValueKey, ctx: Pick<Fil
 export function countActive(f: Filters): number {
   let n = 0;
   if (f.statuts.length) n++;
-  if (f.communes.length) n++;
+  if (f.communes.length || f.departements.length) n++;
   if (f.rep !== 'tous') n++;
   if (f.accueilSixieme !== DEFAULT_FILTERS.accueilSixieme) n++;
   if (f.masquerRecrutementParticulier) n++;
