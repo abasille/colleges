@@ -21,10 +21,10 @@ export function ScoreHelp() {
         Chaque composante est convertie en <strong>centile national</strong> : un collège à 15/20 fait mieux que 75 % des collèges de France. La note est la
         moyenne des composantes disponibles (« partielle » s’il en manque une, non calculée s’il en manque deux).
       </p>
-      <p>Lettres : A ≥ 16 · B ≥ 12 · C ≥ 8 · D ≥ 4 · E &lt; 4. Le rang est calculé parmi tous les collèges couverts par l’outil qui ont une note.</p>
+      <p>Lettres : A ≥ 16 · B ≥ 12 · C ≥ 8 · D ≥ 4 · E &lt; 4. Le rang est calculé parmi tous les collèges d’Île-de-France qui ont une note (public et privé sous contrat).</p>
       <p className="text-zinc-600">
         L’<strong>IPS</strong> (milieu social des élèves) n’entre pas dans la note : un IPS élevé n’est ni un mérite ni un défaut du collège. Il est affiché et
-        filtrable à part. Les collèges hors contrat ne publient pas ces indicateurs.
+        filtrable à part. Aucune donnée n’est publiée pour les collèges hors contrat : ils n’ont ni note ni rang.
       </p>
     </div>
   );

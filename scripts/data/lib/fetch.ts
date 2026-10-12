@@ -136,3 +136,40 @@ export async function odsExport<T = Record<string, unknown>>(dataset: string, q:
 export function odsList(values: Iterable<string | number>): string {
   return `(${[...values].map((v) => (typeof v === 'number' ? String(v) : `"${v}"`)).join(',')})`;
 }
+
+/**
+ * Longueur d'URL à ne pas dépasser. Opendatasoft accepte plus long (22 ko testés), mais 8 ko est
+ * la limite courante des serveurs et des proxys : on reste en dessous avec de la marge.
+ */
+export const LONGUEUR_URL_MAX = 8000;
+
+/** Valeurs par lot d'un filtre `champ in (...)` : 300 UAI font une URL d'environ 5,3 ko. */
+export const TAILLE_LOT = 300;
+
+/**
+ * Filtres `champ in (...)` découpés en lots de `taille` valeurs, triées et sans doublon :
+ * le découpage ne dépend que de la liste (clés de cache stables d'une exécution à l'autre).
+ */
+export function filtresParLots(champ: string, valeurs: Iterable<string>, taille = TAILLE_LOT): string[] {
+  const tri = [...new Set(valeurs)].sort();
+  const out: string[] = [];
+  for (let i = 0; i < tri.length; i += taille) out.push(`${champ} in ${odsList(tri.slice(i, i + taille))}`);
+  return out;
+}
+
+/**
+ * Export filtré par une liste de valeurs (souvent des UAI), une requête par lot ; `q.where`
+ * s'ajoute au filtre de chaque lot. Liste vide : aucune requête.
+ */
+export async function odsExportParLots<T = Record<string, unknown>>(
+  dataset: string,
+  champ: string,
+  valeurs: Iterable<string>,
+  q: OdsQuery = {},
+): Promise<T[]> {
+  const out: T[] = [];
+  for (const filtre of filtresParLots(champ, valeurs)) {
+    out.push(...(await odsExport<T>(dataset, { ...q, where: q.where ? `${filtre} and ${q.where}` : filtre })));
+  }
+  return out;
+}

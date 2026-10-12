@@ -34,13 +34,14 @@ import {
   choisirLien,
   construireContinuite,
   detecterCandidats,
+  indexerLycees,
   type CiteRow,
   type ContinuiteOverride,
   type VoiesLycee,
 } from './sources/continuite';
 import { compacterCarteScolaire, relierSecteursParis, type SecteurParisBrut } from './sources/secteurs';
 import type { AffelnetRow } from './sources/affelnet';
-import { simplifierContours, type ContourBrut } from './sources/contours';
+import type { CoordonneesGeocodees } from './sources/geocodage';
 import { agregerIvac, INDICATEURS, raisonsManquantes, referencesIvac } from './indicateurs';
 import { classer, composantes, distribution, noteMaison, type Distributions } from './score';
 import { construireOptions, GROUPES, optionTags, type OptionLabel } from './options';
@@ -90,7 +91,8 @@ export interface SourcesChargees {
   /** Voies des lycées liés (voir `lyceesLies`). */
   voiesLycees: Map<string, VoiesLycee>;
   affelnet: AffelnetRow[];
-  contours: ContourBrut[];
+  /** Adresses géocodées des collèges sans coordonnées dans l'annuaire (voir `etablissementsAGeocoder`), par UAI. */
+  geocodage: Map<string, CoordonneesGeocodees>;
   secteursParis: SecteurParisBrut[];
   /** Lignes brutes de fr-en-carte-scolaire-colleges-publics. */
   carteScolaire: Record<string, unknown>[];
@@ -110,8 +112,6 @@ export interface Publication {
   dataset: Dataset;
   /** events.json */
   evenements: EventsFile;
-  /** contours.geojson */
-  contours: FeatureCollection<{ code: string; libelle: string }>;
   /** secteurs-paris.geojson */
   secteursParis: FeatureCollection<SecteurParisProps>;
   /** carte-scolaire-94.json */
@@ -155,13 +155,18 @@ function academieDe(s: string | null | undefined): Academie | null {
   return null;
 }
 
+/** Département d'un établissement de l'annuaire, sur deux caractères (« 075 » -> « 75 »). */
+function departementDe(r: AnnuaireRow): string {
+  const dep = r.code_departement ?? (r.code_commune ?? '').slice(0, 2);
+  return dep.length === 3 && dep.startsWith('0') ? dep.slice(1) : dep;
+}
+
 /** Commune d'un établissement de l'annuaire ; à Paris, l'arrondissement (« Paris 13e », « Paris 1er »). */
 function communeDe(r: AnnuaireRow): CommunePresente {
   const code = r.code_commune ?? '';
   const n = Number(code.slice(3));
   const libelle = code.startsWith('751') && n >= 1 && n <= 20 ? `Paris ${n === 1 ? '1er' : `${n}e`}` : (r.nom_commune ?? code);
-  const dep = r.code_departement ?? code.slice(0, 2);
-  return { code, libelle, departement: dep.length === 3 && dep.startsWith('0') ? dep.slice(1) : dep };
+  return { code, libelle, departement: departementDe(r) };
 }
 
 function statutDe(r: AnnuaireRow): { statut: Statut; contrat: College['contrat'] } {
@@ -227,15 +232,46 @@ const featureCollection = (b: string) => `{"type":"FeatureCollection","features"
 
 // ---------------------------------------------------------------- sélection et plan de chargement
 
-/** Sélection du périmètre dans l'annuaire : exclusions manuelles, tri par UAI, index de tous les établissements. */
+/** Ligne du site principal parmi les lignes d'un même UAI : l'annexe passe après (puis ordre stable par nom et adresse). */
+function sitePrincipal(lignes: AnnuaireRow[]): AnnuaireRow {
+  const annexe = (r: AnnuaireRow) => Number(/^\s*annexe\b/i.test(r.nom_etablissement));
+  return lignes
+    .slice()
+    .sort(
+      (a, b) =>
+        annexe(a) - annexe(b) ||
+        a.nom_etablissement.localeCompare(b.nom_etablissement) ||
+        (a.adresse_1 ?? '').localeCompare(b.adresse_1 ?? ''),
+    )[0];
+}
+
+/**
+ * Sélection du périmètre dans l'annuaire : département de la configuration, code nature retenu,
+ * établissement ouvert ; doublons d'UAI fusionnés (site principal) ; exclusions manuelles ; tri par UAI ;
+ * index de tous les établissements.
+ */
 function selectionnerAnnuaire(config: Config, brut: AnnuaireBrut): Annuaire {
+  const departements = new Set(config.departements);
+  const natures = new Set(config.codesNature);
   const exclure = new Set(config.exclure);
+  const parUai = groupBy(
+    brut.colleges.filter((r) => departements.has(departementDe(r)) && natures.has(r.code_nature) && r.etat === 'OUVERT'),
+    (r) => r.identifiant_de_l_etablissement,
+  );
+  const retenus: AnnuaireRow[] = [];
+  const doublons: Annuaire['doublons'] = [];
+  for (const lignes of parUai.values()) {
+    const garde = sitePrincipal(lignes);
+    retenus.push(garde);
+    if (lignes.length > 1) doublons.push({ garde, ecartes: lignes.filter((r) => r !== garde) });
+  }
   const byUai = new Map<string, AnnuaireRow>();
-  for (const r of [...brut.lycees, ...brut.colleges, ...brut.complements]) byUai.set(r.identifiant_de_l_etablissement, r);
+  for (const r of [...brut.lycees, ...retenus, ...brut.complements]) byUai.set(r.identifiant_de_l_etablissement, r);
   const sort = (a: AnnuaireRow, b: AnnuaireRow) => a.identifiant_de_l_etablissement.localeCompare(b.identifiant_de_l_etablissement);
   return {
-    colleges: brut.colleges.filter((r) => !exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
-    exclus: brut.colleges.filter((r) => exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
+    colleges: retenus.filter((r) => !exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
+    exclus: retenus.filter((r) => exclure.has(r.identifiant_de_l_etablissement)).sort(sort),
+    doublons: doublons.sort((a, b) => sort(a.garde, b.garde)),
     lycees: brut.lycees.slice().sort(sort),
     byUai,
   };
@@ -246,10 +282,16 @@ export function uaisDuPerimetre(config: Config, annuaire: AnnuaireBrut): string[
   return selectionnerAnnuaire(config, annuaire).colleges.map((r) => r.identifiant_de_l_etablissement);
 }
 
+/** Collèges du périmètre sans coordonnées dans l'annuaire : adresses à géocoder. */
+export function etablissementsAGeocoder(config: Config, annuaire: AnnuaireBrut): AnnuaireRow[] {
+  return selectionnerAnnuaire(config, annuaire).colleges.filter((r) => r.latitude === null || r.longitude === null);
+}
+
 function detecterLiens(ann: Annuaire, cites: CiteRow[]) {
+  const index = indexerLycees(ann.lycees, cites);
   return new Map(
     ann.colleges.map((c) => {
-      const cands = detecterCandidats(c, ann.lycees, cites);
+      const cands = detecterCandidats(c, index);
       return [c.identifiant_de_l_etablissement, { candidats: cands, choix: choisirLien(c, cands) }] as const;
     }),
   );
@@ -270,8 +312,7 @@ export function lyceesLies(config: Config, corrections: Pick<Corrections, 'conti
 
 /**
  * Calcule tout ce qui sera écrit à partir des sources chargées.
- * Lève une erreur si l'académie d'un collège est inconnue, s'il n'a pas de coordonnées
- * ou si le contour d'une commune présente manque.
+ * Lève une erreur si l'académie d'un collège est inconnue ou s'il n'a pas de coordonnées.
  */
 export function assemblerDataset({ config: cfg, corrections, sources: src, maintenant }: EntreeAssemblage): Assemblage {
   const collegeOverrides = corrections.colleges;
@@ -482,8 +523,9 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     // Raisons des valeurs manquantes
     const manquants = raisonsManquantes(indicateurs, { statut, contrat, ivacRef, derniere: last });
 
-    const lat = r.latitude ?? onisep.structures.get(uai)?.lat ?? null;
-    const lon = r.longitude ?? onisep.structures.get(uai)?.lon ?? null;
+    const geocode = src.geocodage.get(uai);
+    const lat = r.latitude ?? onisep.structures.get(uai)?.lat ?? geocode?.lat ?? null;
+    const lon = r.longitude ?? onisep.structures.get(uai)?.lon ?? geocode?.lon ?? null;
     if (lat === null || lon === null) throw new Error(`${uai} : coordonnées manquantes`);
     const persoRows = (personnelByUai.get(uai) ?? []).sort((a, b) =>
       String(b.annee_de_la_rentree_scolaire).localeCompare(String(a.annee_de_la_rentree_scolaire)),
@@ -648,7 +690,6 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     { id: 'secteurs-paris', label: 'Secteurs scolaires des collèges (Ville de Paris)', url: 'https://opendata.paris.fr/explore/dataset/secteurs-scolaires-colleges/', licence: 'ODbL', millesime: ANNEE_SECTEURS_PARIS },
     { id: 'carte-scolaire', label: 'Carte scolaire des collèges publics (plages d’adresses)', url: ed('fr-en-carte-scolaire-colleges-publics'), licence: LO, millesime: `extraction du ${today}` },
     { id: 'affelnet', label: 'Affectation en 2nde : lycées de secteur (académie de Paris)', url: 'https://services9.arcgis.com/ekT8MJFiVh8nvlV5/arcgis/rest/services/Affectation_Lyc%C3%A9es/FeatureServer/0', licence: 'Données publiques de l’académie de Paris (licence non précisée)', millesime: `rentrée ${ANNEE_AFFELNET}` },
-    { id: 'contours', label: 'Contours des communes et arrondissements (geo.api.gouv.fr)', url: 'https://geo.api.gouv.fr/decoupage-administratif', licence: LO, millesime: `extraction du ${today}` },
     { id: 'geocodage', label: 'Géocodage des adresses (Géoplateforme IGN, dans le navigateur)', url: 'https://data.geopf.fr/geocodage', licence: LO, millesime: 'en direct' },
   ];
 
@@ -662,7 +703,6 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const communes = [...new Map(colleges.map((c) => [c.commune, { code: c.commune, libelle: c.communeLibelle, departement: c.departement }])).values()].sort(
     (a, b) => a.code.localeCompare(b.code),
   );
-  const contours = simplifierContours(src.contours, communes, { tolerance: 0.00002, decimals: 5 });
   const dataset: Dataset = {
     generatedAt: maintenant.toISOString(),
     sessions: { brevet: sessionsRef, ips: derniereIps, effectifs: derniersEffectifs },
@@ -675,13 +715,11 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const publication: Publication = {
     dataset,
     evenements: events.file,
-    contours,
     secteursParis: secteursParis.geojson,
     carteScolaire: carte.rows,
   };
   const fichiers: FichierPublie[] = [
     { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset, null, 1) + '\n' },
-    { chemin: 'contours.geojson', contenu: jsonParLigne(publication.contours.features, featureCollection) },
     { chemin: 'secteurs-paris.geojson', contenu: jsonParLigne(publication.secteursParis.features, featureCollection) },
     { chemin: 'carte-scolaire-94.json', contenu: jsonParLigne(publication.carteScolaire) },
     { chemin: 'events.json', contenu: JSON.stringify(publication.evenements, null, 1) + '\n' },
@@ -692,6 +730,11 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     generatedAt: dataset.generatedAt,
     cfg,
     exclus: ann.exclus,
+    doublons: ann.doublons,
+    geocodes: ann.colleges
+      .filter((r) => (r.latitude === null || r.longitude === null) && !onisep.structures.get(r.identifiant_de_l_etablissement)?.lat && src.geocodage.has(r.identifiant_de_l_etablissement))
+      .map((r) => ({ uai: r.identifiant_de_l_etablissement, adresse: `${r.adresse_1 ?? ''} ${r.code_postal ?? ''}`.trim(), ...src.geocodage.get(r.identifiant_de_l_etablissement)! }))
+      .map(({ uai, adresse, label, score }) => ({ uai, adresse, label, score })),
     colleges: rapportColleges,
     sessionsRef,
     derniereSession,

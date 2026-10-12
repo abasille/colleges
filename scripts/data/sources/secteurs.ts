@@ -143,10 +143,12 @@ export interface CarteScolaireResult {
   doublons: number;
 }
 
-/** Lignes brutes de la carte scolaire pour les communes du Val-de-Marne de la configuration. */
-export async function loadCarteScolaireBrute(communes: string[]): Promise<Record<string, unknown>[]> {
-  const communes94 = communes.filter((c) => c.startsWith('94'));
-  return odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { where: `code_insee in ${odsList(communes94)}` });
+/** Communes couvertes par la carte scolaire publiée (Ivry, Vitry) : provisoire, la carte par département viendra ensuite. */
+export const COMMUNES_CARTE_SCOLAIRE = ['94041', '94081'];
+
+/** Lignes brutes de la carte scolaire des communes couvertes (COMMUNES_CARTE_SCOLAIRE). */
+export async function loadCarteScolaireBrute(): Promise<Record<string, unknown>[]> {
+  return odsExport<Record<string, unknown>>(CARTE_SCOLAIRE_ID, { where: `code_insee in ${odsList(COMMUNES_CARTE_SCOLAIRE)}` });
 }
 
 /** Normalise les voies, écarte les lignes sans voie ni UAI et les doublons exacts, trie (sans accès réseau). */

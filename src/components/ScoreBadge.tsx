@@ -23,7 +23,7 @@ export function ScoreBadge({ score, small = false }: { score: ScoreMaison | null
   }
   return (
     <span
-      title={`Note maison ${formatNombre(score.note, 1)}/20${score.partielle ? ' (partielle)' : ''} – rang ${score.rang}/${score.sur}`}
+      title={`Note maison ${formatNombre(score.note, 1)}/20${score.partielle ? ' (partielle)' : ''} – rang ${score.rang} sur ${score.sur} en Île-de-France`}
       className={cx('flex items-center justify-center rounded-md font-bold text-white', small ? 'h-6 w-6 text-xs' : 'h-12 w-12 text-2xl')}
       style={{ backgroundColor: LETTRE_COLORS[score.lettre] }}
     >

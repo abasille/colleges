@@ -65,10 +65,10 @@ export function ligneIvac(p: Partial<IvacRow>): IvacRow {
   };
 }
 
-/** Configuration : deux communes (Paris 5e, Ivry-sur-Seine), aucune exclusion. */
+/** Configuration : les huit départements d'Île-de-France, aucune exclusion. */
 export function config(p: Partial<Config> = {}): Config {
   return {
-    communes: ['75105', '94041'],
+    departements: ['75', '77', '78', '91', '92', '93', '94', '95'],
     codesNature: [340, 352],
     exclure: [],
     saisonCourante: '2026-27',
@@ -95,7 +95,7 @@ export function sourcesVides(): SourcesChargees {
     cites: [],
     voiesLycees: new Map(),
     affelnet: [],
-    contours: [],
+    geocodage: new Map(),
     secteursParis: [],
     carteScolaire: [],
   };
@@ -114,24 +114,7 @@ export function entree(
   return {
     config: cfg,
     corrections: { colleges: {}, continuite: {}, evenements: null, ...p.corrections },
-    sources: { ...sources, contours: p.sources?.contours ?? cfg.communes.map((code) => ({ code, geometry: carre(code) })) },
+    sources,
     maintenant: new Date('2026-10-12T08:00:00Z'),
-  };
-}
-
-/** Petit carré (géométrie de contour valide après simplification). */
-function carre(code: string): { type: 'Polygon'; coordinates: [number, number][][] } {
-  const x = Number(code.slice(-2)) / 100;
-  return {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [2 + x, 48],
-        [2.1 + x, 48],
-        [2.1 + x, 48.1],
-        [2 + x, 48.1],
-        [2 + x, 48],
-      ],
-    ],
   };
 }

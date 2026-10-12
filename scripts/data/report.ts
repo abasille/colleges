@@ -16,6 +16,10 @@ export interface ReportData {
   fetchWarnings: string[];
   cfg: Config;
   exclus: AnnuaireRow[];
+  /** UAI présents sur plusieurs lignes de l'annuaire, fusionnés sur le site principal. */
+  doublons: { garde: AnnuaireRow; ecartes: AnnuaireRow[] }[];
+  /** Collèges sans coordonnées dans l'annuaire, placés par le géocodage de leur adresse. */
+  geocodes: { uai: string; adresse: string; label: string; score: number }[];
   colleges: {
     college: College;
     annuaire: AnnuaireRow;
@@ -93,11 +97,13 @@ export function renderReport(d: ReportData): string {
   L.push('');
   L.push(
     table(
-      ['Commune', 'Public', 'Privé sous contrat', 'Hors contrat', 'Total'],
-      [...groupBy(cs, (c) => c.commune).entries()]
+      ['Département', 'Académie', 'Communes', 'Public', 'Privé sous contrat', 'Hors contrat', 'Total'],
+      [...groupBy(cs, (c) => c.departement).entries()]
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, l]) => [
-          l[0].communeLibelle,
+        .map(([dep, l]) => [
+          dep,
+          [...new Set(l.map((c) => c.academie))].join(', '),
+          new Set(l.map((c) => c.commune)).size,
           l.filter((c) => c.statut === 'public').length,
           l.filter((c) => c.statut === 'prive_sous_contrat').length,
           l.filter((c) => c.statut === 'hors_contrat').length,
@@ -105,6 +111,12 @@ export function renderReport(d: ReportData): string {
         ]),
     ),
   );
+  L.push('');
+  const parAcademie = groupBy(cs, (c) => c.academie);
+  L.push(`Par académie : ${[...parAcademie.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([a, l]) => `${a} ${l.length}`).join(', ')}. Communes : ${new Set(cs.map((c) => c.commune)).size}.`);
+  for (const x of d.doublons) {
+    L.push(`UAI ${x.garde.identifiant_de_l_etablissement} présent sur plusieurs lignes de l'annuaire : gardé « ${x.garde.nom_etablissement} » (${x.garde.adresse_1 ?? '?'}), écarté ${x.ecartes.map((r) => `« ${r.nom_etablissement} » (${r.adresse_1 ?? '?'})`).join(', ')}.`);
+  }
   L.push('');
   if (d.exclus.length) {
     L.push(`Collèges (natures ${d.cfg.codesNature.join(', ')}) écartés par \`data/config.json\` : ${d.exclus.map((r) => `${r.nom_etablissement} (${r.identifiant_de_l_etablissement})`).join(', ')}.`);
@@ -115,6 +127,9 @@ export function renderReport(d: ReportData): string {
   }
   const fermes = d.colleges.filter((x) => x.annuaire.etat && x.annuaire.etat !== 'OUVERT');
   if (fermes.length) L.push(`⚠️ Établissements non « OUVERT » dans l'annuaire : ${fermes.map((x) => nomCourt(x.college)).join(', ')}.`);
+  for (const g of d.geocodes) {
+    L.push(`Sans coordonnées dans l'annuaire, placé par le géocodage de son adresse : ${nomCourt(byUai.get(g.uai)!)} — « ${g.adresse} » → « ${g.label} » (score ${g.score.toFixed(2)}).`);
+  }
   const geoloc = d.colleges.filter((x) => x.annuaire.precision_localisation && !/num[ée]ro de rue/i.test(x.annuaire.precision_localisation));
   if (geoloc.length) L.push(`Géolocalisation approximative (annuaire) : ${geoloc.map((x) => `${nomCourt(x.college)} — ${x.annuaire.precision_localisation}`).join(' ; ')}.`);
   const dpConflits = d.colleges.filter((x) => x.demiPension.demiPensionnaires !== null && (x.demiPension.demiPensionnaires > 0) !== x.demiPension.restauration);
@@ -367,7 +382,7 @@ export function renderReport(d: ReportData): string {
   L.push(`${rows.length} lignes (${[...parInsee.entries()].map(([k, l]) => `${k} : ${l.length}`).join(', ')}), ${d.carte.doublons} doublons exacts retirés.`);
   const horsPerim = [...uaisCarte.keys()].filter((u) => !byUai.has(u));
   if (horsPerim.length) L.push(`UAI hors périmètre : ${horsPerim.join(', ')}.`);
-  const publics94 = cs.filter((c) => c.statut === 'public' && c.departement === '94');
+  const publics94 = cs.filter((c) => c.statut === 'public' && parInsee.has(c.commune));
   const sansRows = publics94.filter((c) => !uaisCarte.has(c.uai));
   L.push(`Collèges publics d'Ivry / Vitry sans adresse : ${sansRows.map(nomCourt).join(', ') || 'aucun'}.`);
   const transfrontaliers = rows.filter((r) => byUai.get(r.uai) && byUai.get(r.uai)!.commune !== r.insee);

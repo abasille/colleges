@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 
 export interface Config {
-  /** Codes INSEE des communes chargées (l'arrondissement à Paris). Provisoire jusqu'à l'extension. */
-  communes: string[];
+  /** Départements du périmètre, sur deux caractères (« 75 », « 92 »…). */
+  departements: string[];
   codesNature: number[];
   exclure: string[];
   saisonCourante: string;

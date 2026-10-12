@@ -15,11 +15,11 @@ import { loadEval6, loadHebergement, loadLabels, loadMoyens, loadPersonnel, load
 import { loadCites, loadVoiesLycees, type ContinuiteOverrides } from './sources/continuite';
 import { loadCarteScolaireBrute, loadSecteursParisBruts } from './sources/secteurs';
 import { loadAffelnet } from './sources/affelnet';
-import { loadContoursBruts } from './sources/contours';
+import { geocoderEtablissements } from './sources/geocodage';
 import { lireEvenements } from './events';
 import { verifierSecteursParis, verifierVoies } from './controles';
 import { renderReport } from './report';
-import { assemblerDataset, lyceesLies, uaisDuPerimetre, type Corrections, type CollegeOverride } from './assembler';
+import { assemblerDataset, etablissementsAGeocoder, lyceesLies, uaisDuPerimetre, type Corrections, type CollegeOverride } from './assembler';
 
 const args = new Set(process.argv.slice(2));
 const OFFLINE = args.has('--offline');
@@ -50,7 +50,11 @@ async function main() {
   step("Annuaire de l'éducation");
   const annuaire = await loadAnnuaire(config, corrections.continuite);
   const uais = uaisDuPerimetre(config, annuaire);
-  console.log(`  ${uais.length} collèges dans le périmètre, ${annuaire.lycees.length} lycées (75, 94)`);
+  console.log(`  ${uais.length} collèges dans le périmètre, ${annuaire.lycees.length} lycées (${config.departements.join(', ')})`);
+
+  const aGeocoder = etablissementsAGeocoder(config, annuaire);
+  const geocodage = await geocoderEtablissements(aGeocoder);
+  if (aGeocoder.length) console.log(`  ${aGeocoder.length} sans coordonnées dans l'annuaire, ${geocodage.size} géocodés par leur adresse`);
 
   step('IVAC (France entière)');
   const ivac = await loadIvacNational();
@@ -74,16 +78,15 @@ async function main() {
   const pix = await loadPix(uais);
 
   step('Continuité (cités scolaires, lycées)');
-  const cites = await loadCites();
+  const cites = await loadCites(config.departements);
   const voiesLycees = await loadVoiesLycees(lyceesLies(config, corrections, annuaire, cites));
 
   step('Affelnet Paris');
   const affelnet = await loadAffelnet();
 
-  step('Contours et secteurs');
-  const contours = await loadContoursBruts(config.communes);
+  step('Secteurs');
   const secteursParis = await loadSecteursParisBruts();
-  const carteScolaire = await loadCarteScolaireBrute(config.communes);
+  const carteScolaire = await loadCarteScolaireBrute();
 
   // ---------------------------------------------------------------- assemblage
   step('Calculs');
@@ -107,7 +110,7 @@ async function main() {
       cites,
       voiesLycees,
       affelnet,
-      contours,
+      geocodage,
       secteursParis,
       carteScolaire,
     },

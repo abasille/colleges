@@ -1,8 +1,46 @@
 import { describe, expect, it } from 'vitest';
-import { assemblerDataset, uaisDuPerimetre } from './assembler';
+import { assemblerDataset, etablissementsAGeocoder, uaisDuPerimetre } from './assembler';
 import { entree, etab, ligneIvac } from './fabriques';
 
+describe('assemblerDataset : coordonnées', () => {
+  it('sans coordonnées dans l’annuaire, publie celles du géocodage de l’adresse', () => {
+    const e = entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A' }),
+        etab({
+          identifiant_de_l_etablissement: '0756898R',
+          statut_public_prive: 'Privé',
+          type_contrat_prive: 'HORS CONTRAT',
+          adresse_1: '12 rue Charles Pouillet',
+          code_postal: '75017',
+          latitude: null,
+          longitude: null,
+        }),
+      ],
+      sources: { geocodage: new Map([['0756898R', { lat: 48.8851234, lon: 2.3123456, label: '12 Rue Charles Pouillet 75017 Paris', score: 0.97 }]]) },
+    });
+    expect(etablissementsAGeocoder(e.config, e.sources.annuaire).map((r) => r.identifiant_de_l_etablissement)).toEqual(['0756898R']);
+    const c = assemblerDataset(e).publication.dataset.colleges.find((x) => x.uai === '0756898R')!;
+    expect([c.lat, c.lon]).toEqual([48.885123, 2.312346]);
+  });
+});
+
 describe('assemblerDataset : sélection des collèges', () => {
+  it('garde les collèges ouverts des départements configurés, de nature 340 ou 352', () => {
+    const e = entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A' }),
+        etab({ identifiant_de_l_etablissement: '0920002B', code_commune: '92012', code_departement: '092', libelle_academie: 'Versailles', code_nature: 352 }),
+        etab({ identifiant_de_l_etablissement: '0600003C', code_commune: '60057', code_departement: '060', libelle_academie: 'Amiens' }),
+        etab({ identifiant_de_l_etablissement: '0750004D', code_nature: 300 }),
+        etab({ identifiant_de_l_etablissement: '0750005E', etat: 'A FERMER' }),
+      ],
+      config: { departements: ['75', '92'] },
+    });
+    expect(assemblerDataset(e).publication.dataset.colleges.map((c) => c.uai)).toEqual(['0750001A', '0920002B']);
+    expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0750001A', '0920002B']);
+  });
+
   it('garde les collèges de l’annuaire, triés par UAI, sauf les exclusions manuelles', () => {
     const e = entree({
       colleges: [
@@ -20,6 +58,23 @@ describe('assemblerDataset : sélection des collèges', () => {
     expect(a.rapport.exclus.map((r) => r.identifiant_de_l_etablissement)).toEqual(['0750003C']);
     // Même sélection pour le plan de chargement des sources interrogées par UAI.
     expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0750001A', '0940002B']);
+  });
+});
+
+describe('assemblerDataset : doublons d’UAI', () => {
+  it('fusionne les lignes d’un même UAI en gardant le site principal, pas l’annexe', () => {
+    const site = { identifiant_de_l_etablissement: '0951509Z', code_commune: '95585', code_departement: '095', libelle_academie: 'Versailles' };
+    const e = entree({
+      colleges: [
+        etab({ ...site, nom_etablissement: 'Annexe Oscar Romero du collège La Salle - Saint-Rosaire de Sarcelles', nom_commune: 'Garges-lès-Gonesse', adresse_1: '5 rue Gambetta' }),
+        etab({ ...site, nom_etablissement: 'Collège La Salle - Saint-Rosaire', nom_commune: 'Sarcelles', adresse_1: '53 rue Pierre Brossolette' }),
+      ],
+    });
+    const a = assemblerDataset(e);
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.communeLibelle, c.adresse])).toEqual([
+      ['0951509Z', 'Collège La Salle - Saint-Rosaire', 'Sarcelles', '53 rue Pierre Brossolette'],
+    ]);
+    expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0951509Z']);
   });
 });
 
@@ -45,7 +100,6 @@ describe('assemblerDataset : commune, département, académie', () => {
             libelle_academie: 'Créteil',
           }),
         ],
-        config: { communes: ['75101', '75113', '92012', '94041'] },
       }),
     );
     const d = a.publication.dataset;
@@ -62,24 +116,74 @@ describe('assemblerDataset : commune, département, académie', () => {
       { code: '92012', libelle: 'Boulogne-Billancourt', departement: '92' },
       { code: '94041', libelle: 'Ivry-sur-Seine', departement: '94' },
     ]);
-    expect(a.publication.contours.features.map((f) => f.properties)).toEqual(d.communes.map(({ code, libelle }) => ({ code, libelle })));
+  });
+});
+
+describe('assemblerDataset : lycée sur place', () => {
+  it('détecte le lycée sur place hors de Paris : cité scolaire publique et même établissement privé', () => {
+    const versailles = { code_departement: '092', libelle_academie: 'Versailles' };
+    const a = assemblerDataset(
+      entree({
+        colleges: [
+          etab({ ...versailles, identifiant_de_l_etablissement: '0920001A', code_commune: '92012', adresse_1: '1 rue A' }),
+          etab({
+            ...versailles,
+            identifiant_de_l_etablissement: '0920002B',
+            code_commune: '92040',
+            statut_public_prive: 'Privé',
+            type_contrat_prive: "CONTRAT D'ASSOCIATION TOUTES CLASSES",
+            adresse_1: '2 rue B',
+            siren_siret: '77568540300029',
+          }),
+          etab({ ...versailles, identifiant_de_l_etablissement: '0920003C', code_commune: '92050', adresse_1: '3 rue C' }),
+        ],
+        sources: {
+          annuaire: {
+            colleges: [],
+            complements: [],
+            lycees: [
+              etab({ ...versailles, identifiant_de_l_etablissement: '0920101A', code_nature: 300, code_commune: '92012', nom_etablissement: 'Lycée A' }),
+              etab({
+                ...versailles,
+                identifiant_de_l_etablissement: '0920102B',
+                code_nature: 300,
+                code_commune: '92040',
+                statut_public_prive: 'Privé',
+                siren_siret: '77568540300011',
+                nom_etablissement: 'Lycée B',
+              }),
+              etab({ ...versailles, identifiant_de_l_etablissement: '0920103C', code_nature: 300, code_commune: '92050', adresse_1: '3 rue C' }),
+            ],
+          },
+          cites: [
+            { code_cite_scolaire: '09201', uai: '0920001A', code_nature: '340', appellation_officielle: null },
+            { code_cite_scolaire: '09201', uai: '0920101A', code_nature: '300', appellation_officielle: null },
+          ],
+        },
+      }),
+    );
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.continuite.lien, c.continuite.lycee?.nom ?? null])).toEqual([
+      ['0920001A', 'cite_scolaire', 'Lycée A'],
+      ['0920002B', 'meme_etablissement_prive', 'Lycée B'],
+      ['0920003C', 'aucun', null], // public à la même adresse qu'un lycée, sans cité scolaire
+    ]);
   });
 });
 
 describe('assemblerDataset : rang', () => {
-  it('classe les collèges notés du périmètre entre eux ; un collège hors périmètre ne compte pas', () => {
+  it('classe les collèges notés de tout le périmètre entre eux, toutes académies confondues ; un collège hors périmètre ne compte pas', () => {
     const resultats = (uai: string, taux: number, noteEcrit: number) => ligneIvac({ uai, candidats: 100, taux, noteEcrit });
     const a = assemblerDataset(
       entree({
         colleges: [
           etab({ identifiant_de_l_etablissement: '0750001A' }),
-          etab({ identifiant_de_l_etablissement: '0750002B' }),
+          etab({ identifiant_de_l_etablissement: '0950002B', code_commune: '95585', code_departement: '095', libelle_academie: 'Versailles' }),
           etab({ identifiant_de_l_etablissement: '0750003C' }),
         ],
         sources: {
           ivac: [
             resultats('0750001A', 95, 14),
-            resultats('0750002B', 70, 9),
+            resultats('0950002B', 70, 9),
             resultats('0920009Z', 99, 16), // hors périmètre : distribution nationale seulement
           ],
         },
@@ -88,8 +192,8 @@ describe('assemblerDataset : rang', () => {
     const scores = Object.fromEntries(a.publication.dataset.colleges.map((c) => [c.uai, c.score && { rang: c.score.rang, sur: c.score.sur }]));
     expect(scores).toEqual({
       '0750001A': { rang: 1, sur: 2 },
-      '0750002B': { rang: 2, sur: 2 },
       '0750003C': null, // aucun résultat : pas de note
+      '0950002B': { rang: 2, sur: 2 },
     });
   });
 });
@@ -166,7 +270,7 @@ describe('assemblerDataset : corrections manuelles', () => {
 describe('assemblerDataset : fichiers publiés', () => {
   it('sérialise la publication dans public/data, horodatée par l’horloge injectée', () => {
     const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })] }));
-    expect(a.fichiers.map((f) => f.chemin)).toEqual(['colleges.json', 'contours.geojson', 'secteurs-paris.geojson', 'carte-scolaire-94.json', 'events.json']);
+    expect(a.fichiers.map((f) => f.chemin)).toEqual(['colleges.json', 'secteurs-paris.geojson', 'carte-scolaire-94.json', 'events.json']);
     const colleges = JSON.parse(a.fichiers[0].contenu) as { generatedAt: string; colleges: { uai: string }[] };
     expect(colleges.generatedAt).toBe('2026-10-12T08:00:00.000Z');
     expect(colleges.colleges.map((c) => c.uai)).toEqual(['0750001A']);

@@ -1,5 +1,5 @@
 // Indice de position sociale (IPS) des collèges, 2016-17 -> dernière rentrée.
-import { odsExport, odsList } from '../lib/fetch';
+import { odsExportParLots } from '../lib/fetch';
 import { annee, num } from '../lib/util';
 
 export const IPS_IDS = ['fr-en-ips-colleges-ap2023', 'fr-en-ips-colleges-ap2022', 'fr-en-ips_colleges'] as const;
@@ -22,7 +22,7 @@ export async function loadIps(uais: string[]): Promise<IpsRow[]> {
   const out: IpsRow[] = [];
   const seen = new Set<string>();
   for (const id of IPS_IDS) {
-    const raw = await odsExport<Record<string, unknown>>(id, { where: `uai in ${odsList(uais)}` });
+    const raw = await odsExportParLots(id, 'uai', uais);
     for (const r of raw) {
       const a = annee(r.rentree_scolaire);
       const uai = String(r.uai ?? '');

@@ -1,6 +1,6 @@
 // Annuaire de l'éducation : identité, géolocalisation, contacts des collèges du périmètre
-// et des lycées de Paris / Val-de-Marne (pour la détection des lycées rattachés).
-import { odsExport, odsList } from '../lib/fetch';
+// et des lycées des mêmes départements (pour la détection des lycées rattachés).
+import { odsExport, odsExportParLots, odsList } from '../lib/fetch';
 import { NATURES_LYCEE, type Config } from '../lib/config';
 
 export const ANNUAIRE_ID = 'fr-en-annuaire-education';
@@ -75,32 +75,40 @@ const FIELDS = [
 
 /** Lignes de l'annuaire telles que chargées, sans sélection. */
 export interface AnnuaireBrut {
-  /** Établissements des communes et codes nature de la configuration (exclusions non appliquées). */
+  /** Établissements des départements et codes nature de la configuration, tous états (sélection non appliquée). */
   colleges: AnnuaireRow[];
-  /** Lycées (natures NATURES_LYCEE) de Paris et du Val-de-Marne. */
+  /** Lycées (natures NATURES_LYCEE) des départements de la configuration. */
   lycees: AnnuaireRow[];
   /** Lycées cités par les corrections de continuité mais absents des deux listes précédentes. */
   complements: AnnuaireRow[];
 }
 
 export interface Annuaire {
-  /** Collèges du périmètre (exclusions appliquées), triés par UAI. */
+  /** Collèges du périmètre (sélection, doublons fusionnés, exclusions appliquées), triés par UAI. */
   colleges: AnnuaireRow[];
   /** Établissements de nature collège du périmètre écartés par la configuration. */
   exclus: AnnuaireRow[];
-  /** Lycées (natures NATURES_LYCEE) de Paris et du Val-de-Marne, triés par UAI. */
+  /** UAI présents sur plusieurs lignes : la ligne gardée (site principal) et les lignes écartées (annexes). */
+  doublons: { garde: AnnuaireRow; ecartes: AnnuaireRow[] }[];
+  /** Lycées (natures NATURES_LYCEE) des départements de la configuration, triés par UAI. */
   lycees: AnnuaireRow[];
   byUai: Map<string, AnnuaireRow>;
 }
 
+/** Code département tel que l'écrit l'annuaire (« 075 », « 092 »). */
+export function departementAnnuaire(dep: string): string {
+  return dep.padStart(3, '0');
+}
+
 export async function loadAnnuaire(cfg: Config, continuite: Record<string, { lyceeUai?: string | null }>): Promise<AnnuaireBrut> {
+  const departements = odsList(cfg.departements.map(departementAnnuaire));
   const colleges = await odsExport<AnnuaireRow>(ANNUAIRE_ID, {
     select: FIELDS,
-    where: `code_commune in ${odsList(cfg.communes)} and code_nature in ${odsList(cfg.codesNature)}`,
+    where: `code_departement in ${departements} and code_nature in ${odsList(cfg.codesNature)}`,
   });
   const lycees = await odsExport<AnnuaireRow>(ANNUAIRE_ID, {
     select: FIELDS,
-    where: `code_departement in ("075","094") and code_nature in ${odsList(NATURES_LYCEE)}`,
+    where: `code_departement in ${departements} and code_nature in ${odsList(NATURES_LYCEE)}`,
   });
   const charges = new Set([...colleges, ...lycees].map((r) => r.identifiant_de_l_etablissement));
   const manquants = Object.values(continuite)
@@ -109,13 +117,9 @@ export async function loadAnnuaire(cfg: Config, continuite: Record<string, { lyc
   return { colleges, lycees, complements: await loadAnnuaireUais(manquants) };
 }
 
-/** Fiches de l'annuaire pour des UAI précis (lycées hors Paris / Val-de-Marne cités dans les corrections). */
+/** Fiches de l'annuaire pour des UAI précis (lycées hors périmètre cités dans les corrections). */
 export async function loadAnnuaireUais(uais: string[]): Promise<AnnuaireRow[]> {
-  if (uais.length === 0) return [];
-  return odsExport<AnnuaireRow>(ANNUAIRE_ID, {
-    select: FIELDS,
-    where: `identifiant_de_l_etablissement in ${odsList([...uais].sort())}`,
-  });
+  return odsExportParLots<AnnuaireRow>(ANNUAIRE_ID, 'identifiant_de_l_etablissement', uais, { select: FIELDS });
 }
 
 export function flag(v: number | string | null | undefined): boolean {

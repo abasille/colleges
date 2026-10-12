@@ -2,7 +2,7 @@
 // Fichiers produits dans public/data/ :
 //   colleges.json            -> Dataset
 //   events.json              -> EventsFile
-//   contours.geojson         -> FeatureCollection, properties: { code: string, libelle: string } (communes présentes)
+//   contours.geojson         -> (plus publié pour l’instant ; l’application le tolère absent)
 //   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
 //   carte-scolaire-94.json   -> CarteScolaireRow[]
 

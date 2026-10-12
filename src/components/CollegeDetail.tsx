@@ -57,6 +57,12 @@ function Header({ c, distance, secteur, onClose }: { c: College; distance: numbe
         <CollegeTags c={c} secteur={secteur} />
         {c.continuite.secondeGtSurPlace && <Badge color="#0369a1">Lycée général sur place</Badge>}
       </div>
+      {c.statut === 'hors_contrat' && (
+        <p className="mt-2 rounded bg-violet-50 px-2 py-1 text-xs text-violet-900">
+          Collège hors contrat : le ministère ne publie aucune donnée sur ces établissements (résultats au brevet, valeur ajoutée, IPS, effectifs,
+          encadrement…). Seules les informations de l’annuaire sont affichées.
+        </p>
+      )}
       {c.recrutementParticulier && <p className="mt-2 rounded bg-pink-50 px-2 py-1 text-xs text-pink-900">{c.recrutementParticulier}</p>}
       {!niveauxComplets && <p className="mt-2 text-xs text-zinc-600">Classes : {c.niveaux.join(', ') || 'non précisé'}</p>}
       {c.remarques.map((r) => (
@@ -97,11 +103,13 @@ function Score({ c }: { c: College }) {
                 {s.partielle && <span className="ml-2 text-xs font-normal text-zinc-500">(partielle)</span>}
               </div>
               <div className="text-sm text-zinc-600">
-                {s.rang === 1 ? '1er' : `${s.rang}e`} sur {s.sur} collèges notés
+                {s.rang === 1 ? '1er' : `${formatNombre(s.rang)}e`} sur {formatNombre(s.sur)} en Île-de-France
               </div>
             </>
           ) : (
-            <div className="text-sm text-zinc-600">Non calculée : {c.statut === 'hors_contrat' ? 'les hors contrat ne publient pas ces indicateurs.' : 'données insuffisantes.'}</div>
+            <div className="text-sm text-zinc-600">
+              Non calculée : {c.statut === 'hors_contrat' ? 'aucune donnée n’est publiée pour les collèges hors contrat.' : 'données insuffisantes.'}
+            </div>
           )}
         </div>
         <button type="button" onClick={() => setHelp(true)} className="rounded-full border border-zinc-300 px-2 text-sm text-zinc-600 hover:bg-zinc-50" aria-label="Comment est calculée la note ?">
