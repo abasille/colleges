@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import { GeoJSON, MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
-import type { College, IndicateurKey } from '../types';
+import type { CollegeResume, IndicateurKey } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
 import { MISSING_COLOR, scaleColor, sequential, STATUT_COLORS } from '../lib/colors';
@@ -31,7 +31,7 @@ function markerIcon(color: string, opts: { selected: boolean; favori: boolean; s
 
 const homeIcon = L.divIcon({ className: 'home-marker', iconSize: [24, 24], iconAnchor: [12, 20], html: '🏠' });
 
-function FlyToSelected({ college }: { college: College | null }) {
+function FlyToSelected({ college }: { college: CollegeResume | null }) {
   const map = useMap();
   useEffect(() => {
     if (!college) return;
@@ -41,7 +41,7 @@ function FlyToSelected({ college }: { college: College | null }) {
   return null;
 }
 
-function FitOnLoad({ colleges }: { colleges: College[] }) {
+function FitOnLoad({ colleges }: { colleges: CollegeResume[] }) {
   const map = useMap();
   const done = useRef(false);
   useEffect(() => {
@@ -75,7 +75,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
   const colleges = dataset.colleges;
 
   const domain = useMemo(() => (colorBy === 'statut' ? null : domainOf(colleges, colorBy, { distances: null })), [colleges, colorBy]);
-  const colorOf = (c: College) => {
+  const colorOf = (c: CollegeResume) => {
     if (colorBy === 'statut') return STATUT_COLORS[c.statut];
     return scaleColor(c.indicateurs[colorBy], domain, INDICATEURS[colorBy].plusHautMieux === false);
   };

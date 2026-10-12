@@ -1,6 +1,8 @@
 // Contrat de données entre le script `npm run data` (scripts/data) et l'application.
 // Fichiers produits dans public/data/ :
-//   colleges.json            -> Dataset
+//   colleges.json            -> Dataset (fichier léger, JSON minifié, chargé au démarrage)
+//   colleges-<dép>.json      -> DetailDepartement (un par département, chargé à l'ouverture
+//                               de la première fiche du département ; ex. colleges-75.json)
 //   events.json              -> EventsFile
 //   contours.geojson         -> FeatureCollection, properties: { code: string, libelle: string } (communes présentes)
 //   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
@@ -86,6 +88,7 @@ export interface LibelleValeur {
   valeur: string;
 }
 
+/** Collège complet, tel qu'affiché dans la fiche : publié en deux parties, CollegeResume et CollegeDetail. */
 export interface College {
   uai: string;
   nom: string; // ex. « Collège Claude Monet »
@@ -156,6 +159,45 @@ export interface College {
   pix: LibelleValeur[];
 }
 
+/** Champs du collège publiés dans le fichier léger (liste, carte, filtres, tris, couleurs). */
+export type ChampResume =
+  | 'uai'
+  | 'nom'
+  | 'statut'
+  | 'contrat'
+  | 'commune'
+  | 'communeLibelle'
+  | 'departement'
+  | 'academie'
+  | 'lat'
+  | 'lon'
+  | 'rep'
+  | 'recrutementParticulier'
+  | 'niveaux'
+  | 'accueilSixieme'
+  | 'indicateurs'
+  | 'manquants'
+  | 'optionTags';
+
+/** Collège dans le fichier léger : sans historiques ni détail de la fiche. */
+export type CollegeResume = Pick<College, ChampResume> & {
+  score: Omit<ScoreMaison, 'composantes'> | null;
+  /** Catégorie de lycée sur place et de passage (filtres « lycée général », « passage garanti »). */
+  continuite: Pick<Continuite, 'lien' | 'secondeGtSurPlace' | 'passage'>;
+};
+
+/** Collège dans le fichier de son département : le reste de la fiche. */
+export type CollegeDetail = { uai: string } & Omit<College, ChampResume | 'score'> & {
+    /** Composantes de la note maison, null si le collège n'est pas noté. */
+    composantes: ScoreMaison['composantes'] | null;
+  };
+
+/** colleges-<dép>.json : détail des collèges d'un département, triés par UAI. */
+export interface DetailDepartement {
+  departement: string;
+  colleges: CollegeDetail[];
+}
+
 export interface Source {
   id: string;
   label: string;
@@ -182,7 +224,7 @@ export interface Dataset {
   };
   optionLabels: Record<string, { label: string; groupe: string }>;
   sources: Source[];
-  colleges: College[];
+  colleges: CollegeResume[];
 }
 
 // --- Événements (portes ouvertes, inscriptions, dates officielles) ---

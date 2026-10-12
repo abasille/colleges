@@ -6,8 +6,11 @@ import type {
   BrevetSession,
   CarteScolaireRow,
   College,
+  CollegeDetail,
+  CollegeResume,
   CommunePresente,
   Dataset,
+  DetailDepartement,
   EventsFile,
   IndicateurKey,
   Indicateurs,
@@ -106,8 +109,10 @@ export interface EntreeAssemblage {
 
 /** Contenu des fichiers publiés (public/data/), avant sérialisation. */
 export interface Publication {
-  /** colleges.json */
+  /** colleges.json : fichier léger, chargé au démarrage. */
   dataset: Dataset;
+  /** colleges-<dép>.json : un par département, triés par code. */
+  details: DetailDepartement[];
   /** events.json */
   evenements: EventsFile;
   /** contours.geojson */
@@ -224,6 +229,53 @@ function jsonParLigne(items: unknown[], wrap?: (body: string) => string): string
 }
 
 const featureCollection = (b: string) => `{"type":"FeatureCollection","features":${b}}`;
+
+/** Sépare un collège entre le fichier léger et le fichier de détail de son département. */
+function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } {
+  const {
+    uai,
+    nom,
+    statut,
+    contrat,
+    commune,
+    communeLibelle,
+    departement,
+    academie,
+    lat,
+    lon,
+    rep,
+    recrutementParticulier,
+    niveaux,
+    accueilSixieme,
+    indicateurs,
+    manquants,
+    optionTags,
+    score,
+    ...reste
+  } = c;
+  const resume: CollegeResume = {
+    uai,
+    nom,
+    statut,
+    contrat,
+    commune,
+    communeLibelle,
+    departement,
+    academie,
+    lat,
+    lon,
+    rep,
+    recrutementParticulier,
+    niveaux,
+    accueilSixieme,
+    indicateurs,
+    manquants,
+    score: score && { note: score.note, lettre: score.lettre, rang: score.rang, sur: score.sur, partielle: score.partielle },
+    continuite: { lien: c.continuite.lien, secondeGtSurPlace: c.continuite.secondeGtSurPlace, passage: c.continuite.passage },
+    optionTags,
+  };
+  return { resume, detail: { uai, ...reste, composantes: score?.composantes ?? null } };
+}
 
 // ---------------------------------------------------------------- sélection et plan de chargement
 
@@ -663,6 +715,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     (a, b) => a.code.localeCompare(b.code),
   );
   const contours = simplifierContours(src.contours, communes, { tolerance: 0.00002, decimals: 5 });
+  const decoupes = colleges.map(decouper);
   const dataset: Dataset = {
     generatedAt: maintenant.toISOString(),
     sessions: { brevet: sessionsRef, ips: derniereIps, effectifs: derniersEffectifs },
@@ -670,17 +723,22 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     references,
     optionLabels: optionLabelsObj,
     sources: sourcesPubliees,
-    colleges,
+    colleges: decoupes.map((x) => x.resume),
   };
+  const details: DetailDepartement[] = [...groupBy(decoupes, (x) => x.resume.departement).entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([departement, xs]) => ({ departement, colleges: xs.map((x) => x.detail) }));
   const publication: Publication = {
     dataset,
+    details,
     evenements: events.file,
     contours,
     secteursParis: secteursParis.geojson,
     carteScolaire: carte.rows,
   };
   const fichiers: FichierPublie[] = [
-    { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset, null, 1) + '\n' },
+    { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset) + '\n' },
+    ...publication.details.map((d) => ({ chemin: `colleges-${d.departement}.json`, contenu: JSON.stringify(d) + '\n' })),
     { chemin: 'contours.geojson', contenu: jsonParLigne(publication.contours.features, featureCollection) },
     { chemin: 'secteurs-paris.geojson', contenu: jsonParLigne(publication.secteursParis.features, featureCollection) },
     { chemin: 'carte-scolaire-94.json', contenu: jsonParLigne(publication.carteScolaire) },

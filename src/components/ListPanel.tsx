@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { College, IndicateurKey } from '../types';
+import type { CollegeResume, IndicateurKey } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
 import { countActive, DEFAULT_FILTERS, type Filters, type SortKey, type ValueKey } from '../lib/filters';
@@ -159,7 +159,7 @@ export function ListPanel({ onOpen }: { onOpen?: () => void }) {
 
 const SHOWN: IndicateurKey[] = ['brevet', 'ips', 'vaTaux'];
 
-function CollegeCard({ c, sortKey, distance, secteur, onOpen }: { c: College; sortKey: SortKey; distance: number | null; secteur: boolean; onOpen?: () => void }) {
+function CollegeCard({ c, sortKey, distance, secteur, onOpen }: { c: CollegeResume; sortKey: SortKey; distance: number | null; secteur: boolean; onOpen?: () => void }) {
   const selected = useStore((s) => s.selected === c.uai);
   const select = useStore((s) => s.select);
   const ref = useRef<HTMLLIElement>(null);

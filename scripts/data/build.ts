@@ -138,7 +138,10 @@ async function main() {
   console.log('\nFichiers écrits :');
   for (const [p, n] of Object.entries(tailles)) console.log(`  ${p.padEnd(36)} ${(n / 1024).toFixed(0).padStart(6)} ko`);
   console.log(`  data/report.md`);
-  console.log(`\n${a.publication.dataset.colleges.length} collèges en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  const nbColleges = a.publication.dataset.colleges.length;
+  const leger = tailles[`${OUT}/colleges.json`];
+  console.log(`\nFichier léger (chargé au démarrage) : ${(leger / 1024).toFixed(0)} ko, ${Math.round(leger / Math.max(1, nbColleges))} octets par collège`);
+  console.log(`\n${nbColleges} collèges en ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
 main().catch((e) => {
