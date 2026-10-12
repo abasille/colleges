@@ -3,7 +3,7 @@ import type { College, CollegeEvent, EventsFile } from '../types';
 import { applyFilters, DEFAULT_FILTERS, sortColleges, type Filters } from './filters';
 import { parseUrlState, serializeUrlState } from './url';
 import { haversineKm, pointInGeometry } from './geo';
-import { findSecteur94, findSecteurParis, parseNumero } from './secteur';
+import { findSecteur, findSecteur94, parseNumero, sourceSecteur, type Adresse, type DonneesSecteur } from './secteur';
 import { buildIcs, foldLine } from './ics';
 import { decodeShare, encodeShare, mergeShare } from './share';
 import { calendarEvents, isUrgent, statutInscriptions, territoiresPresents, upcomingForFavoris } from './events';
@@ -343,21 +343,40 @@ describe('formats', () => {
   });
 });
 
-describe('secteur parisien le plus proche', () => {
-  const carre = (x: number, uai: string) => ({
+describe('collège de secteur à Paris', () => {
+  const carre = (x: number, libelle: string, uais: string[]) => ({
     type: 'Feature' as const,
-    geometry: { type: 'Polygon' as const, coordinates: [[[x, 48.8], [x + 0.001, 48.8], [x + 0.001, 48.801], [x, 48.801], [x, 48.8]]] as [number, number][][] },
-    properties: { libelle: uai, uais: [uai], noms: [uai] },
+    geometry: { type: 'Polygon' as const, coordinates: [[[x, 48.86], [x + 0.001, 48.86], [x + 0.001, 48.861], [x, 48.861], [x, 48.86]]] as [number, number][][] },
+    properties: { libelle, uais, noms: [libelle] },
   });
-  const features = [carre(2.35, 'A'), carre(2.36, 'B')];
-  it('retient le polygone qui contient l’adresse', () => {
-    expect(findSecteurParis({ lon: 2.3605, lat: 48.8005 }, features)?.properties.libelle).toBe('B');
+  const polygones: DonneesSecteur = { type: 'polygones', features: [carre(2.39, 'DOISNEAU', ['0750001A']), carre(2.4, 'COLETTE BESSON', ['0750002B'])] };
+  const adresse = (lon: number): Adresse => ({ label: 'Paris 20e', lat: 48.8605, lon, citycode: '75120', street: 'Rue des Pyrénées', housenumber: '300' });
+
+  it('donne le collège du polygone qui contient l’adresse, avec le polygone et la méthode « polygone »', () => {
+    const r = findSecteur(adresse(2.4005), polygones);
+    expect(r).toMatchObject({ uais: ['0750002B'], methode: 'polygone', message: null });
+    expect(r.feature?.properties.libelle).toBe('COLETTE BESSON');
   });
-  it('se rabat sur le polygone le plus proche dans la rue', () => {
-    // 0,0002° de longitude ≈ 15 m à l'est du carré A
-    expect(findSecteurParis({ lon: 2.3512, lat: 48.8005 }, features)?.properties.libelle).toBe('A');
+
+  it('dans la rue, retient le polygone le plus proche à moins de 60 m', () => {
+    // 0,0002° de longitude ≈ 15 m à l'est du premier carré
+    const r = findSecteur(adresse(2.3912), polygones);
+    expect(r).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
+    expect(r.feature?.properties.libelle).toBe('DOISNEAU');
   });
-  it('ne rattache pas une adresse trop éloignée', () => {
-    expect(findSecteurParis({ lon: 2.3555, lat: 48.8005 }, features)).toBeNull();
+
+  it('au-delà de 60 m de tout polygone, le secteur est introuvable', () => {
+    // À cette latitude, 0,0001° de longitude ≈ 7,3 m : ≈ 51 m du premier carré, retenu ; ≈ 66 m, non
+    expect(findSecteur(adresse(2.3917), polygones)).toMatchObject({ uais: ['0750001A'], methode: 'polygone' });
+    const loin = findSecteur(adresse(2.3919), polygones);
+    expect(loin).toMatchObject({ uais: [], methode: null, feature: null });
+    expect(loin.message).toBeTruthy();
+  });
+
+  it('les polygones ne sont téléchargés que pour une adresse à Paris', () => {
+    expect(sourceSecteur({ citycode: '75120' })).toEqual({ fichier: 'secteurs-paris.geojson', type: 'polygones' });
+    expect(sourceSecteur({ citycode: '75105' })?.fichier).toBe('secteurs-paris.geojson');
+    expect(sourceSecteur({ citycode: '92012' })?.fichier).not.toBe('secteurs-paris.geojson');
+    expect(sourceSecteur({ citycode: '94041' })?.fichier).not.toBe('secteurs-paris.geojson');
   });
 });

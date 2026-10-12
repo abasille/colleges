@@ -325,3 +325,31 @@ describe('assemblerDataset : fichier léger et détails par département', () =>
     expect(JSON.parse(fichier('colleges-94.json'))).toEqual({ departement: '94', colleges: [expect.objectContaining({ uai: '0940003C' })] });
   });
 });
+
+describe('assemblerDataset : secteurs parisiens', () => {
+  /** Secteur publié par la Ville : un carré d'environ 100 m, collèges désignés par leur nom. */
+  const secteur = (libelle: string, ...noms: string[]) => ({
+    properties: { libelle, annee_scol: '2026-2027', ...Object.fromEntries(noms.map((n, i) => [`lib_etab_${i + 1}`, n])) },
+    geometry: { type: 'Polygon' as const, coordinates: [[[2.39, 48.86], [2.3913, 48.86], [2.3913, 48.8609], [2.39, 48.8609], [2.39, 48.86]]] as [number, number][][] },
+  });
+  const e = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Robert Doisneau', code_commune: '75120', code_postal: '75020' }),
+        etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Henri IV', code_commune: '75105' }),
+      ],
+      sources: { secteursParis: [secteur('ROBERT DOISNEAU', 'ROBERT DOISNEAU'), secteur('INCONNU', 'NOM INCONNU')] },
+    });
+
+  it('relie chaque secteur aux collèges publics parisiens, dans tous les arrondissements', () => {
+    const fc = assemblerDataset(e()).publication.secteursParis;
+    expect(fc.features.map((f) => [f.properties.libelle, f.properties.uais])).toEqual([
+      ['INCONNU', []],
+      ['ROBERT DOISNEAU', ['0750001A']],
+    ]);
+  });
+
+  it('le rapport liste les secteurs qui ne trouvent pas de collège', () => {
+    expect(assemblerDataset(e()).rapport.secteursParis.secteursSansCollege).toEqual([{ libelle: 'INCONNU', noms: ['NOM INCONNU'] }]);
+  });
+});

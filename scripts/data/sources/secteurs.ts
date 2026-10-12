@@ -36,7 +36,7 @@ export interface CollegeNom {
 
 export interface MatchNom {
   uai: string | null;
-  methode: 'exact' | 'inclusion' | 'adresse' | null;
+  methode: 'exact' | 'approchant' | 'inclusion' | 'adresse' | null;
   candidats: string[];
   adresseConcordante: boolean | null;
 }
@@ -47,9 +47,15 @@ function significatifs(n: string): string[] {
   return n.split(' ').filter((w) => w && !MOTS_NEUTRES.has(w));
 }
 
+/** « SELIGMAN » et « SELIGMANN » : la Ville et l'annuaire ne doublent pas toujours les mêmes lettres. */
+function sansLettresDoublees(n: string): string {
+  return n.replace(/([A-Z])\1+/g, '$1');
+}
+
 /**
  * Associe un nom publié (ex. « AUGUSTE RODIN », « ST EXUPERY ») à un collège :
- * égalité des noms normalisés, sinon inclusion des mots significatifs ; l'adresse départage.
+ * égalité des noms normalisés, puis égalité aux lettres doublées près, sinon inclusion
+ * des mots significatifs ; l'adresse départage.
  */
 export function matchNomCollege(nom: string, adresse: string | null, colleges: CollegeNom[]): MatchNom {
   const n = normalizeNom(nom);
@@ -57,6 +63,10 @@ export function matchNomCollege(nom: string, adresse: string | null, colleges: C
   const concord = (c: CollegeNom) => (adr && c.adresse ? normAdresse(c.adresse) === adr : null);
   const exact = colleges.filter((c) => normalizeNom(c.nom) === n);
   if (exact.length === 1) return { uai: exact[0].uai, methode: 'exact', candidats: [exact[0].uai], adresseConcordante: concord(exact[0]) };
+  if (exact.length === 0) {
+    const approchant = colleges.filter((c) => sansLettresDoublees(normalizeNom(c.nom)) === sansLettresDoublees(n));
+    if (approchant.length === 1) return { uai: approchant[0].uai, methode: 'approchant', candidats: [approchant[0].uai], adresseConcordante: concord(approchant[0]) };
+  }
   const ns = significatifs(n);
   const incl =
     exact.length > 1
@@ -79,6 +89,8 @@ export interface SecteursParisResult {
   geojson: FeatureCollection<SecteurParisProps>;
   /** Pour le rapport. */
   correspondances: { libelle: string; nom: string; match: MatchNom }[];
+  /** Secteurs dont aucun nom publié ne correspond à un collège public parisien (pour le rapport). */
+  secteursSansCollege: { libelle: string; noms: string[] }[];
   positionsAvant: number;
   positionsApres: number;
   polygonesAvant: number;
@@ -102,6 +114,7 @@ export function relierSecteursParis(
   opts: { tolerance: number; decimals: number; minHoleArea: number; minPolygonArea: number },
 ): SecteursParisResult {
   const correspondances: SecteursParisResult['correspondances'] = [];
+  const secteursSansCollege: SecteursParisResult['secteursSansCollege'] = [];
   const features: Feature<SecteurParisProps>[] = [];
   let positionsAvant = 0;
   let positionsApres = 0;
@@ -121,6 +134,7 @@ export function relierSecteursParis(
       correspondances.push({ libelle: p.libelle, nom, match });
       if (match.uai && !uais.includes(match.uai)) uais.push(match.uai);
     }
+    if (uais.length === 0) secteursSansCollege.push({ libelle: p.libelle, noms });
     if (!f.geometry) continue;
     positionsAvant += countPositions(f.geometry);
     polygonesAvant += nbPolygones(f.geometry);
@@ -131,7 +145,8 @@ export function relierSecteursParis(
     features.push({ type: 'Feature', properties: { libelle: p.libelle, uais: uais.sort(), noms }, geometry });
   }
   features.sort((a, b) => a.properties.libelle.localeCompare(b.properties.libelle));
-  return { geojson: { type: 'FeatureCollection', features }, correspondances, positionsAvant, positionsApres, polygonesAvant, polygonesApres };
+  secteursSansCollege.sort((a, b) => a.libelle.localeCompare(b.libelle));
+  return { geojson: { type: 'FeatureCollection', features }, correspondances, secteursSansCollege, positionsAvant, positionsApres, polygonesAvant, polygonesApres };
 }
 
 // --- Ivry / Vitry : plages d'adresses ---
