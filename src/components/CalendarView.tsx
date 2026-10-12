@@ -33,6 +33,7 @@ export function CalendarView({ onOpen }: { onOpen?: () => void }) {
     [events, types, masques, visiblesSet],
   );
   const territoires = useMemo(() => territoiresPresents(events.events), [events]);
+  const nbSuivis = useMemo(() => [...byUai.values()].filter((c) => c.suivi).length, [byUai]);
 
   const nomDe = (uai: string) => byUai.get(uai)?.nom ?? uai;
   const open = (e: CollegeEvent) => {
@@ -93,6 +94,10 @@ export function CalendarView({ onOpen }: { onOpen?: () => void }) {
         </div>
         <p className="text-xs text-zinc-500">
           {shown.length} événement{shown.length > 1 ? 's' : ''} pour les collèges filtrés · les filtres de la liste s’appliquent (ex. ★ favoris seulement).
+        </p>
+        <p className="text-xs text-zinc-500">
+          Le calendrier ne couvre que les {nbSuivis} collèges suivis : pour les autres, portes ouvertes et inscriptions ne sont pas relevées (voir le site du
+          collège).
         </p>
       </div>
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">

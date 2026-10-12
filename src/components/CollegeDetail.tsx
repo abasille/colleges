@@ -62,7 +62,7 @@ function Fiche({ resume, onClose }: { resume: CollegeResume; onClose: () => void
           <Profil c={c} />
           <Options c={c} />
           <Continuite c={c} />
-          <Evenements c={c} />
+          {c.suivi ? <Evenements c={c} /> : <PortesOuvertesNonRelevees c={c} />}
           <Notes uai={c.uai} />
           <Autres c={c} />
           <Sources c={c} />
@@ -311,15 +311,21 @@ function Continuite({ c }: { c: College }) {
           {!k.secondeGtSurPlace && <div className="mt-1 text-xs text-amber-800">Pas de 2nde générale et technologique dans ce lycée.</div>}
         </div>
       )}
-      <p
-        className={cx(
-          'mt-2 text-sm font-medium',
-          k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
-        )}
-      >
-        {PASSAGE_LABELS[k.passage]}
-      </p>
-      {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+      {c.suivi ? (
+        <>
+          <p
+            className={cx(
+              'mt-2 text-sm font-medium',
+              k.passage === 'garanti' ? 'text-green-700' : k.passage === 'sous_reserve' ? 'text-lime-700' : 'text-zinc-700',
+            )}
+          >
+            {PASSAGE_LABELS[k.passage]}
+          </p>
+          {k.passageTexte && <blockquote className="mt-1 border-l-2 border-zinc-300 pl-2 text-sm text-zinc-700">{k.passageTexte}</blockquote>}
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-medium text-zinc-700">Passage au lycée : non renseigné</p>
+      )}
       {k.sources.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-x-2 text-xs">
           {k.sources.map((s, i) => (
@@ -364,6 +370,17 @@ function LyceeSecteur({ c }: { c: College }) {
         <p className="text-sm text-zinc-500">Non disponible.</p>
       )}
     </div>
+  );
+}
+
+/** Collège non suivi : rien n'est relevé, ce qui ne veut pas dire qu'il n'y a pas de portes ouvertes. */
+function PortesOuvertesNonRelevees({ c }: { c: College }) {
+  return (
+    <Section title="Portes ouvertes et inscriptions">
+      <p className="text-sm text-zinc-700">
+        Portes ouvertes non relevées : {c.web ? <ExternalLink href={c.web}>voir le site du collège</ExternalLink> : 'voir le site du collège'}
+      </p>
+    </Section>
   );
 }
 
