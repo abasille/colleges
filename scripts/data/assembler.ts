@@ -9,6 +9,7 @@ import type {
   CollegeDetail,
   CollegeResume,
   CommunePresente,
+  ContourCommuneProps,
   Dataset,
   DetailDepartement,
   EventsFile,
@@ -23,9 +24,9 @@ import type {
 } from '../../src/types';
 import { stripAccents } from '../../src/lib/normalize';
 import { ACADEMIES } from '../../src/lib/territoires';
-import { ANNEE_AFFELNET, ANNEE_SECTEURS_PARIS, type Config } from './lib/config';
+import { ANNEE_AFFELNET, ANNEE_CONTOURS, ANNEE_SECTEURS_PARIS, type Config } from './lib/config';
 import { formatNombre, groupBy, niceCase, ratioOfSums, round, sortedObject, weightedMean } from './lib/util';
-import type { FeatureCollection } from './lib/geo';
+import type { Feature, FeatureCollection } from './lib/geo';
 import { flag, type Annuaire, type AnnuaireBrut, type AnnuaireRow } from './sources/annuaire';
 import type { IvacRow } from './sources/ivac';
 import type { DnbRow } from './sources/dnb';
@@ -46,6 +47,7 @@ import {
 import { compacterCarteScolaire, relierSecteursParis, type SecteurParisBrut } from './sources/secteurs';
 import type { AffelnetRow } from './sources/affelnet';
 import type { CoordonneesGeocodees } from './sources/geocodage';
+import type { ContourCommuneBrut } from './sources/contours';
 import { agregerIvac, INDICATEURS, raisonsManquantes, referencesIvac } from './indicateurs';
 import { classer, composantes, distribution, noteMaison, type Distributions } from './score';
 import { construireOptions, GROUPES, optionTags, type OptionLabel } from './options';
@@ -102,6 +104,8 @@ export interface SourcesChargees {
   secteursParis: SecteurParisBrut[];
   /** Lignes brutes de fr-en-carte-scolaire-colleges-publics. */
   carteScolaire: Record<string, unknown>[];
+  /** Contours Etalab des communes des départements du périmètre (Paris en entier et ses arrondissements). */
+  contours: ContourCommuneBrut[];
 }
 
 export interface EntreeAssemblage {
@@ -124,6 +128,13 @@ export interface Publication {
   secteursParis: FeatureCollection<SecteurParisProps>;
   /** carte-scolaire-94.json */
   carteScolaire: CarteScolaireRow[];
+  /** contours-<dép>.geojson : communes présentes, par département ayant au moins un contour, triés par code. */
+  contours: ContoursDepartement[];
+}
+
+export interface ContoursDepartement {
+  departement: string;
+  contours: FeatureCollection<ContourCommuneProps>;
 }
 
 /** Fichier prêt à écrire : chemin relatif à public/data/, contenu sérialisé. */
@@ -748,6 +759,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     { id: 'secteurs-paris', label: 'Secteurs scolaires des collèges (Ville de Paris)', url: 'https://opendata.paris.fr/explore/dataset/secteurs-scolaires-colleges/', licence: 'ODbL', millesime: ANNEE_SECTEURS_PARIS },
     { id: 'carte-scolaire', label: 'Carte scolaire des collèges publics (plages d’adresses)', url: ed('fr-en-carte-scolaire-colleges-publics'), licence: LO, millesime: `extraction du ${today}` },
     { id: 'affelnet', label: 'Affectation en 2nde : lycées de secteur (académie de Paris)', url: 'https://services9.arcgis.com/ekT8MJFiVh8nvlV5/arcgis/rest/services/Affectation_Lyc%C3%A9es/FeatureServer/0', licence: 'Données publiques de l’académie de Paris (licence non précisée)', millesime: `rentrée ${ANNEE_AFFELNET}` },
+    { id: 'contours', label: 'Contours des communes et arrondissements (Etalab, d’après Admin Express IGN)', url: 'https://www.data.gouv.fr/datasets/contours-administratifs', licence: 'ODbL', millesime: `${ANNEE_CONTOURS}, généralisés à 100 m` },
     { id: 'geocodage', label: 'Géocodage des adresses (Géoplateforme IGN, dans le navigateur)', url: 'https://data.geopf.fr/geocodage', licence: LO, millesime: 'en direct' },
   ];
 
@@ -774,18 +786,33 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const details: DetailDepartement[] = [...groupBy(decoupes, (x) => x.resume.departement).entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([departement, xs]) => ({ departement, colleges: xs.map((x) => x.detail) }));
+  // Contours des communes présentes, sous le libellé de l'application (« Paris 13e »).
+  const contourParCode = new Map(src.contours.map((f) => [f.properties.code, f]));
+  const contoursPublies: Feature<ContourCommuneProps>[] = [];
+  const contoursManquants: CommunePresente[] = [];
+  for (const c of communes) {
+    const f = contourParCode.get(c.code);
+    if (f) contoursPublies.push({ type: 'Feature', properties: { code: c.code, libelle: c.libelle }, geometry: f.geometry });
+    else contoursManquants.push(c);
+  }
+  const departementDe = new Map(communes.map((c) => [c.code, c.departement]));
+  const contours: ContoursDepartement[] = [...groupBy(contoursPublies, (f) => departementDe.get(f.properties.code)!).entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([departement, features]) => ({ departement, contours: { type: 'FeatureCollection', features } }));
   const publication: Publication = {
     dataset,
     details,
     evenements: events.file,
     secteursParis: secteursParis.geojson,
     carteScolaire: carte.rows,
+    contours,
   };
   const fichiers: FichierPublie[] = [
     { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset) + '\n' },
     ...publication.details.map((d) => ({ chemin: `colleges-${d.departement}.json`, contenu: JSON.stringify(d) + '\n' })),
     { chemin: 'secteurs-paris.geojson', contenu: jsonParLigne(publication.secteursParis.features, featureCollection) },
     { chemin: 'carte-scolaire-94.json', contenu: jsonParLigne(publication.carteScolaire) },
+    ...publication.contours.map((d) => ({ chemin: `contours-${d.departement}.geojson`, contenu: jsonParLigne(d.contours.features, featureCollection) })),
     { chemin: 'events.json', contenu: JSON.stringify(publication.evenements, null, 1) + '\n' },
   ];
 
@@ -813,6 +840,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     collegesParisPublics: collegesParisPublics.map((c) => c.identifiant_de_l_etablissement),
     carte: { rows: carte.rows, doublons: carte.doublons },
     affelnet: { lignes: affelnet.length },
+    contoursManquants: contoursManquants.map(({ code, libelle }) => ({ code, libelle })),
     events,
     indicateurs: INDICATEURS,
   };

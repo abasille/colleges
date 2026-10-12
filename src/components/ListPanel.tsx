@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { CollegeResume, IndicateurKey } from '../types';
 import { useData } from '../data';
 import { useStore } from '../store';
@@ -7,6 +8,7 @@ import { INDICATEURS, STATUT_COURT } from '../lib/indicateurs';
 import { formatDistance, formatIndicateur, nomCourt } from '../lib/format';
 import { libellePastille, lieuxChoisis, sansLieu, type Lieu } from '../lib/lieux';
 import { FilterPanel } from './FilterPanel';
+import { defilementPour, fenetre, positions } from '../lib/virtuel';
 import { CollegeTags, StarButton, StatutBadge, cx } from './ui';
 import { ScoreBadge } from './ScoreBadge';
 
@@ -138,35 +140,185 @@ export function ListPanel({ onOpen }: { onOpen?: () => void }) {
           <strong className="text-zinc-800">{visibles.length}</strong> / {dataset.colleges.length} collèges
         </div>
       </div>
-      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
-        {filtersOpen ? (
+      {filtersOpen ? (
+        <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
           <FilterPanel />
-        ) : visibles.length === 0 ? (
-          <p className="p-6 text-center text-sm text-zinc-500">Aucun collège ne correspond à ces filtres.</p>
-        ) : (
-          <ul>
-            {visibles.map((c) => (
-              <CollegeCard key={c.uai} c={c} sortKey={sort.key} distance={distances?.get(c.uai) ?? null} secteur={!!secteur?.uais.includes(c.uai)} onOpen={onOpen} />
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
+      ) : visibles.length === 0 ? (
+        <p className="p-6 text-center text-sm text-zinc-500">Aucun collège ne correspond à ces filtres.</p>
+      ) : (
+        <ListeColleges visibles={visibles} sortKey={sort.key} distances={distances} secteur={secteur?.uais ?? null} onOpen={onOpen} />
+      )}
     </div>
   );
 }
 
 const SHOWN: IndicateurKey[] = ['brevet', 'ips', 'vaTaux'];
 
-function CollegeCard({ c, sortKey, distance, secteur, onOpen }: { c: CollegeResume; sortKey: SortKey; distance: number | null; secteur: boolean; onOpen?: () => void }) {
-  const selected = useStore((s) => s.selected === c.uai);
+/** Hauteur d'une ligne avant sa première mesure (ligne sans retour à la ligne). */
+const HAUTEUR_ESTIMEE = 85.5;
+/** Lignes rendues en plus au-dessus et au-dessous de la vue. */
+const MARGE = 10;
+
+/**
+ * Liste virtualisée : seules les lignes visibles (plus une marge) sont dans le DOM. Chaque ligne est
+ * mesurée à son premier affichage ; les lignes jamais affichées comptent pour HAUTEUR_ESTIMEE.
+ */
+function ListeColleges({
+  visibles,
+  sortKey,
+  distances,
+  secteur,
+  onOpen,
+}: {
+  visibles: CollegeResume[];
+  sortKey: SortKey;
+  distances: Map<string, number> | null;
+  secteur: string[] | null;
+  onOpen?: () => void;
+}) {
+  const selected = useStore((s) => s.selected);
+  const vueRef = useRef<HTMLDivElement>(null);
+  const listeRef = useRef<HTMLUListElement>(null);
+  const [defilement, setDefilement] = useState(0);
+  const [hauteurVue, setHauteurVue] = useState(0);
+  const hauteurs = useRef(new Map<string, number>());
+  // Incrémenté quand `hauteurs` change, pour recalculer les positions.
+  const [mesures, setMesures] = useState(0);
+  /** Collège à amener à l'écran dès que la liste est affichée et mesurée. */
+  const aMontrer = useRef<string | null>(null);
+  const essais = useRef(0);
+
+  const pos = useMemo(() => positions(visibles.map((c) => hauteurs.current.get(c.uai) ?? HAUTEUR_ESTIMEE)), [visibles, mesures]);
+  const { debut, fin, avant, apres } = fenetre(pos, defilement, hauteurVue, MARGE);
+
+  const montrer = (uai: string | null) => {
+    aMontrer.current = uai;
+    essais.current = 0;
+  };
+
+  // Avant l'effet de mesure ci-dessous, qui défile vers ce collège.
+  useLayoutEffect(() => montrer(selected), [selected]);
+
+  // Taille de la vue ; la liste masquée (onglet mobile) mesure 0 et revient au collège sélectionné en réapparaissant.
+  useLayoutEffect(() => {
+    const vue = vueRef.current;
+    if (!vue) return;
+    let largeur = vue.clientWidth;
+    let hauteur = vue.clientHeight;
+    setHauteurVue(hauteur);
+    const ro = new ResizeObserver(() => {
+      if (vue.clientWidth !== largeur) {
+        largeur = vue.clientWidth;
+        hauteurs.current.clear();
+        setMesures((n) => n + 1);
+      }
+      if (hauteur === 0 && vue.clientHeight > 0) montrer(useStore.getState().selected);
+      hauteur = vue.clientHeight;
+      setHauteurVue(hauteur);
+    });
+    ro.observe(vue);
+    return () => ro.disconnect();
+  }, []);
+
+  // Après chaque rendu : mesure des lignes affichées, puis défilement vers le collège sélectionné.
+  useLayoutEffect(() => {
+    const vue = vueRef.current;
+    const liste = listeRef.current;
+    if (!vue || !liste) return;
+    let decalage = 0;
+    let change = false;
+    for (let i = 0; i < liste.children.length; i++) {
+      const index = debut + i;
+      const c = visibles[index];
+      if (!c) continue;
+      const h = liste.children[i].getBoundingClientRect().height;
+      const prevue = pos[index + 1] - pos[index];
+      if (Math.abs(h - prevue) < 0.5) continue;
+      hauteurs.current.set(c.uai, h);
+      change = true;
+      // Ligne au-dessus de la vue qui change de taille : on compense pour que le contenu affiché ne saute pas.
+      if (pos[index + 1] <= vue.scrollTop) decalage += h - prevue;
+    }
+    if (change) {
+      if (decalage) vue.scrollTop += decalage;
+      setMesures((n) => n + 1);
+      return;
+    }
+    const uai = aMontrer.current;
+    if (!uai || vue.clientHeight === 0) return;
+    const index = visibles.findIndex((c) => c.uai === uai);
+    if (index < 0 || essais.current++ > 20) {
+      aMontrer.current = null;
+      return;
+    }
+    const cible = defilementPour(pos, index, vue.scrollTop, vue.clientHeight);
+    const affichee = index >= debut && index < fin;
+    if (affichee) aMontrer.current = null;
+    if (cible === null) return;
+    if (affichee) {
+      vue.scrollTo({ top: cible, behavior: 'smooth' });
+    } else {
+      // Ligne loin de la vue : saut direct, puis ajustement au rendu suivant, une fois les lignes voisines mesurées.
+      vue.scrollTop = cible;
+      setDefilement(vue.scrollTop);
+    }
+  });
+
+  return (
+    <div
+      ref={vueRef}
+      onScroll={(e) => {
+        const haut = e.currentTarget.scrollTop;
+        const f = fenetre(pos, haut, hauteurVue, MARGE);
+        // Nouvelles lignes à afficher : rendu immédiat, avant que le navigateur ne peigne une zone vide.
+        if (f.debut !== debut || f.fin !== fin) flushSync(() => setDefilement(haut));
+        else setDefilement(haut);
+      }}
+      className="scroll-thin min-h-0 flex-1 overflow-y-auto [overflow-anchor:none]"
+    >
+      <ul ref={listeRef} style={{ paddingTop: avant, paddingBottom: apres }}>
+        {visibles.slice(debut, fin).map((c, i) => (
+          <CollegeCard
+            key={c.uai}
+            c={c}
+            position={debut + i + 1}
+            total={visibles.length}
+            selected={c.uai === selected}
+            sortKey={sortKey}
+            distance={distances?.get(c.uai) ?? null}
+            secteur={!!secteur?.includes(c.uai)}
+            onOpen={onOpen}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const CollegeCard = memo(function CollegeCard({
+  c,
+  position,
+  total,
+  selected,
+  sortKey,
+  distance,
+  secteur,
+  onOpen,
+}: {
+  c: CollegeResume;
+  position: number;
+  total: number;
+  selected: boolean;
+  sortKey: SortKey;
+  distance: number | null;
+  secteur: boolean;
+  onOpen?: () => void;
+}) {
   const select = useStore((s) => s.select);
-  const ref = useRef<HTMLLIElement>(null);
-  useEffect(() => {
-    if (selected) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [selected]);
   const extra = sortKey !== 'nom' && sortKey !== 'distance' && sortKey !== 'note' && !SHOWN.includes(sortKey) ? sortKey : null;
   return (
-    <li ref={ref}>
+    <li aria-posinset={position} aria-setsize={total}>
       <div
         role="button"
         tabIndex={0}
@@ -217,4 +369,4 @@ function CollegeCard({ c, sortKey, distance, secteur, onOpen }: { c: CollegeResu
       </div>
     </li>
   );
-}
+});

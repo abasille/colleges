@@ -44,7 +44,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 | Idéo-Structures d'enseignement secondaire, Idéo-Actions de dispositif | [ONISEP](https://opendata.onisep.fr) | ODbL |
 | Secteurs scolaires des collèges | [Ville de Paris](https://opendata.paris.fr) | ODbL |
 | Affectation en 2nde GT 2026 (lycées de secteur) | Académie de Paris | — |
-| Contours des communes et arrondissements | [geo.api.gouv.fr](https://geo.api.gouv.fr) | Licence Ouverte 2.0 |
+| Contours des communes et arrondissements (millésime 2026, généralisés à 100 m), d'après Admin Express (IGN) | Etalab, [Contours administratifs](https://www.data.gouv.fr/datasets/contours-administratifs) sur data.gouv.fr | ODbL |
 | Géocodage des adresses | Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Fond de carte | Plan IGN, Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Dates de portes ouvertes et d'inscription | Sites des établissements, relevés à la main (source citée pour chaque date) | — |

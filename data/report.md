@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T17:39:12.589Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T17:45:31.540Z par `npm run data` (mode hors ligne : cache uniquement) en 2 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -3077,9 +3077,9 @@ Autres lycées candidats non retenus :
 
 ## 11. Secteurs parisiens (jointure par nom)
 
-110 secteurs publiés, 113 noms de collèges. 112/114 collèges publics parisiens du périmètre associés à un secteur.
-Collèges publics parisiens du périmètre sans secteur : Collège Rognoni – École des enfants du spectacle (0750407K), Collège Françoise Seligmann (0755778Y) (Rognoni n'a pas de secteur : recrutement sur dossier).
-Secteurs sans collège du périmètre (autres arrondissements, conservés pour les adresses hors périmètre) : 1. Noms ambigus : 0.
+110 secteurs publiés, 113 noms de collèges. 113/114 collèges publics parisiens associés à un secteur.
+Collèges publics parisiens sans secteur : Collège Rognoni – École des enfants du spectacle (0750407K) (Rognoni n'a pas de secteur : recrutement sur dossier).
+Secteurs non reliés à un collège : aucun. Noms publiés sans collège : aucun. Noms ambigus : 0.
 
 | Secteur | Nom publié | Collège | Méthode | Adresse concordante |
 |---|---|---|---|---|
@@ -3185,6 +3185,7 @@ Secteurs sans collège du périmètre (autres arrondissements, conservés pour l
 | AUGUSTE RODIN | AUGUSTE RODIN | Collège Rodin | inclusion | oui |
 | CLAUDE MONET | CLAUDE MONET | Collège Claude Monet | exact | oui |
 | VICTOR DURUY | VICTOR DURUY | Collège Victor Duruy | exact | — |
+| FRANCOISE SELIGMAN | FRANCOISE SELIGMAN | Collège Françoise Seligmann | approchant | ⚠️ non |
 | VALMY | VALMY | Collège Valmy | exact | oui |
 | LOUISE MICHEL | LOUISE MICHEL | Collège Louise Michel | exact | oui |
 | CHARLEMAGNE | CHARLEMAGNE | Collège Charlemagne | exact | — |
@@ -3259,4 +3260,14 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 | public/data/colleges-95.json | 633 ko |
 | public/data/secteurs-paris.geojson | 962 ko |
 | public/data/carte-scolaire-94.json | 85 ko |
+| public/data/contours-75.geojson | 8 ko |
+| public/data/contours-77.geojson | 76 ko |
+| public/data/contours-78.geojson | 51 ko |
+| public/data/contours-91.geojson | 46 ko |
+| public/data/contours-92.geojson | 17 ko |
+| public/data/contours-93.geojson | 22 ko |
+| public/data/contours-94.geojson | 25 ko |
+| public/data/contours-95.geojson | 38 ko |
 | public/data/events.json | 33 ko |
+
+Contours : chaque commune présente a le sien (contours-<dép>.geojson).

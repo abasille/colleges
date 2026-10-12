@@ -17,14 +17,52 @@ export interface Adresse {
   housenumber: string | null;
 }
 
+/**
+ * Comment le collège de secteur a été trouvé (ADR 0002) : `polygone` à Paris (secteurs de la Ville),
+ * `adresse` par une plage d'adresses de la carte scolaire ; #14 ajoute `commune_entiere` (commune
+ * formant un seul secteur) et `deduit` (commune absente de la carte, avec un seul collège public).
+ */
+export type MethodeSecteur = 'polygone' | 'adresse' | 'commune_entiere' | 'deduit';
+
 export interface SecteurResult {
-  /** Collèges de secteur présents dans le périmètre. */
+  /** Collèges de secteur (plusieurs pour un secteur partagé), vide si introuvable. */
   uais: string[];
-  /** Noms publiés (utile quand le collège de secteur est hors périmètre). */
-  noms: string[];
-  /** Polygone du secteur (Paris uniquement). */
+  /** null quand aucun collège de secteur n'est trouvé. */
+  methode: MethodeSecteur | null;
+  /** Polygone du secteur (méthode `polygone` uniquement). */
   feature: SecteurFeature | null;
+  /** Explication quand aucun collège n'est trouvé. */
   message: string | null;
+}
+
+/**
+ * Fichier de sectorisation d'un département, téléchargé seulement après la saisie d'une adresse
+ * dans ce département : polygones à Paris, carte scolaire (plages d'adresses) ailleurs.
+ */
+export interface SourceSecteur {
+  /** Chemin dans public/data. */
+  fichier: string;
+  type: DonneesSecteur['type'];
+}
+
+/** Contenu d'un fichier de sectorisation, une fois téléchargé. */
+export type DonneesSecteur = { type: 'polygones'; features: SecteurFeature[] } | { type: 'carte'; rows: CarteScolaireRow[] };
+
+/** Communes couvertes par la carte scolaire publiée (provisoire : #14 publie une carte par département). */
+const COMMUNES_CARTE_SCOLAIRE = ['94041', '94081'];
+
+/** Fichier à télécharger pour trouver le collège de secteur d'une adresse ; null si aucun ne la couvre. */
+export function sourceSecteur(adresse: Pick<Adresse, 'citycode'>): SourceSecteur | null {
+  if (adresse.citycode.startsWith('751')) return { fichier: 'secteurs-paris.geojson', type: 'polygones' };
+  if (COMMUNES_CARTE_SCOLAIRE.includes(adresse.citycode)) return { fichier: 'carte-scolaire-94.json', type: 'carte' };
+  return null;
+}
+
+/** Lit le JSON d'un fichier de sectorisation. */
+export function lireDonneesSecteur(source: SourceSecteur, json: unknown): DonneesSecteur {
+  return source.type === 'polygones'
+    ? { type: 'polygones', features: (json as { features: SecteurFeature[] }).features }
+    : { type: 'carte', rows: json as CarteScolaireRow[] };
 }
 
 /** Au-delà, une adresse hors de tout îlot n'est pas rattachée au secteur le plus proche. */
@@ -74,24 +112,20 @@ export function findSecteur94(adresse: Pick<Adresse, 'citycode' | 'street' | 'ho
   return [...uais];
 }
 
-export function findSecteur(
-  adresse: Adresse,
-  parisFeatures: SecteurFeature[],
-  rows94: CarteScolaireRow[],
-): SecteurResult {
-  if (adresse.citycode.startsWith('751')) {
-    const f = findSecteurParis(adresse, parisFeatures);
-    if (!f) return { uais: [], noms: [], feature: null, message: 'Secteur introuvable pour cette adresse.' };
-    return { uais: f.properties.uais, noms: f.properties.noms, feature: f, message: null };
+const introuvable = (message: string): SecteurResult => ({ uais: [], methode: null, feature: null, message });
+
+/**
+ * Collège de secteur d'une adresse, à partir des données de sectorisation de son département
+ * (`donnees` : contenu du fichier indiqué par `sourceSecteur`, null si aucun fichier ne couvre l'adresse).
+ */
+export function findSecteur(adresse: Adresse, donnees: DonneesSecteur | null): SecteurResult {
+  if (!donnees) return introuvable('Sectorisation disponible seulement pour Paris, Ivry et Vitry.');
+  if (donnees.type === 'polygones') {
+    const f = findSecteurParis(adresse, donnees.features);
+    if (!f) return introuvable('Secteur introuvable pour cette adresse.');
+    if (!f.properties.uais.length) return introuvable(`Collège de secteur non identifié (${f.properties.noms.join(' ou ')}).`);
+    return { uais: f.properties.uais, methode: 'polygone', feature: f, message: null };
   }
-  if (adresse.citycode === '94041' || adresse.citycode === '94081') {
-    const uais = findSecteur94(adresse, rows94);
-    return {
-      uais,
-      noms: [],
-      feature: null,
-      message: uais.length ? null : 'Rue introuvable dans la carte scolaire du Val-de-Marne.',
-    };
-  }
-  return { uais: [], noms: [], feature: null, message: 'Sectorisation disponible seulement pour Paris, Ivry et Vitry.' };
+  const uais = findSecteur94(adresse, donnees.rows);
+  return uais.length ? { uais, methode: 'adresse', feature: null, message: null } : introuvable('Rue introuvable dans la carte scolaire du Val-de-Marne.');
 }
