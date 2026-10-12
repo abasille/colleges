@@ -28,11 +28,22 @@ export function StatutBadge({ statut, long = false }: { statut: Statut; long?: b
   );
 }
 
-/** Étiquettes secondaires d'un collège (REP, recrutement particulier, pas de 6e…). */
+export const TEXTE_SUIVI = 'Collège suivi : portes ouvertes, inscriptions et passage au lycée relevés à la main';
+
+export function SuiviBadge() {
+  return (
+    <Badge color="#1d4ed8" title={TEXTE_SUIVI}>
+      Suivi
+    </Badge>
+  );
+}
+
+/** Étiquettes secondaires d'un collège (suivi, REP, recrutement particulier, pas de 6e…). */
 export function CollegeTags({ c, secteur }: { c: CollegeResume; secteur?: boolean }) {
   return (
     <>
       {secteur && <Badge color="#16a34a" title="Collège de secteur de votre adresse">✓ Secteur</Badge>}
+      {c.suivi && <SuiviBadge />}
       {c.rep && <Badge color="#0f766e" title="Éducation prioritaire">{c.rep}</Badge>}
       {c.recrutementParticulier && (
         <Badge color="#be185d" title={c.recrutementParticulier}>

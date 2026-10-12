@@ -25,6 +25,7 @@ function college(uai: string, over: Partial<CollegeResume> = {}, ind: Partial<Co
     },
     manquants: {},
     optionTags: [],
+    suivi: false,
     score: null,
     continuite: { lien: 'aucun', secondeGtSurPlace: false, passage: 'non_garanti' },
     ...over,

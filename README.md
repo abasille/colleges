@@ -1,13 +1,15 @@
-# Collèges · Paris 5e, 6e, 13e, 14e, Ivry-sur-Seine, Vitry-sur-Seine
+# Collèges d'Île-de-France
 
-Carte et comparateur des 60 collèges publics et privés de ces six communes, construit à partir de données publiques.
+Carte et comparateur des collèges publics et privés des huit départements d'Île-de-France (environ 1 300 collèges), construit à partir de données publiques. C'est un outil personnel, partagé par lien ; la page n'est pas indexée par les moteurs de recherche.
+
+Les données publiques sont calculées pour tous les collèges. Le relevé à la main (portes ouvertes, inscriptions du privé, passage garanti au lycée, étiquettes) est réservé aux **collèges suivis** ([ADR 0001](docs/adr/0001-releve-manuel-reserve-aux-colleges-suivis.md)).
 
 **Site** : https://abasille.github.io/colleges/
 
-- Liste filtrable et triable, carte, et fiche détaillée de chaque collège : brevet, valeur ajoutée, IPS, effectifs, langues et options, continuité jusqu'au bac, lycées de secteur.
+- Liste filtrable et triable, carte, et fiche détaillée de chaque collège : brevet, valeur ajoutée, IPS, effectifs, langues et options, continuité jusqu'au bac, lycées de secteur à Paris.
 - Note « maison » sur 20, à la formule transparente : brevet, note à l'écrit et valeur ajoutée, comparés à tous les collèges de France.
 - Recherche d'adresse : distance à chaque collège et collège de secteur.
-- Calendrier des portes ouvertes et des inscriptions, avec export `.ics`.
+- Calendrier des portes ouvertes et des inscriptions des collèges suivis, avec export `.ics`.
 - Favoris et notes personnelles, enregistrés dans le navigateur et transférables par lien.
 
 La spécification complète est dans [SPEC.md](SPEC.md).
@@ -40,7 +42,7 @@ Chaque push sur `main` déploie le site sur GitHub Pages (`.github/workflows/dep
 | Idéo-Structures d'enseignement secondaire, Idéo-Actions de dispositif | [ONISEP](https://opendata.onisep.fr) | ODbL |
 | Secteurs scolaires des collèges | [Ville de Paris](https://opendata.paris.fr) | ODbL |
 | Affectation en 2nde GT 2026 (lycées de secteur) | Académie de Paris | — |
-| Contours des communes et arrondissements | [geo.api.gouv.fr](https://geo.api.gouv.fr) | Licence Ouverte 2.0 |
+| Contours des communes et arrondissements (millésime 2026, généralisés à 100 m), d'après Admin Express (IGN) | Etalab, [Contours administratifs](https://www.data.gouv.fr/datasets/contours-administratifs) sur data.gouv.fr | ODbL |
 | Géocodage des adresses | Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Fond de carte | Plan IGN, Géoplateforme (IGN) | Licence Ouverte 2.0 |
 | Dates de portes ouvertes et d'inscription | Sites des établissements, relevés à la main (source citée pour chaque date) | — |

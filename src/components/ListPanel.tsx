@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { countActive, DEFAULT_FILTERS, type Filters, type SortKey, type ValueKey } from '../lib/filters';
 import { INDICATEURS, STATUT_COURT } from '../lib/indicateurs';
 import { formatDistance, formatIndicateur, nomCourt } from '../lib/format';
+import { libellePastille, lieuxChoisis, sansLieu, type Lieu } from '../lib/lieux';
 import { FilterPanel } from './FilterPanel';
 import { CollegeTags, StarButton, StatutBadge, cx } from './ui';
 import { ScoreBadge } from './ScoreBadge';
@@ -28,20 +29,18 @@ interface Chip {
   patch: Partial<Filters>;
 }
 
-/** `labelCommune` rend null pour un code absent des données : ignoré au filtrage, il n'a pas de pastille. */
-function chips(f: Filters, labelOption: (t: string) => string, labelCommune: (code: string) => string | null): Chip[] {
+/** `lieux` : la sélection géographique connue des données (un code inconnu, ignoré au filtrage, n'a pas de pastille). */
+function chips(f: Filters, labelOption: (t: string) => string, lieux: Lieu[]): Chip[] {
   const out: Chip[] = [];
   for (const s of f.statuts) out.push({ id: `st-${s}`, label: STATUT_COURT[s], patch: { statuts: f.statuts.filter((x) => x !== s) } });
-  for (const code of f.communes) {
-    const label = labelCommune(code);
-    if (label) out.push({ id: `com-${code}`, label, patch: { communes: f.communes.filter((x) => x !== code) } });
-  }
+  for (const l of lieux) out.push({ id: `${l.type === 'commune' ? 'com' : 'dep'}-${l.code}`, label: libellePastille(l), patch: sansLieu(f, l) });
   if (f.rep !== 'tous') out.push({ id: 'rep', label: f.rep === 'rep' ? 'REP' : 'Hors REP', patch: { rep: 'tous' } });
   if (!f.accueilSixieme) out.push({ id: 's6', label: 'Y compris sans entrée en 6e', patch: { accueilSixieme: true } });
   if (f.masquerRecrutementParticulier) out.push({ id: 'rp', label: 'Sans recrutement particulier', patch: { masquerRecrutementParticulier: false } });
   if (f.lyceeGeneral) out.push({ id: 'ly', label: 'Lycée sur place', patch: { lyceeGeneral: false } });
   if (f.passageGaranti) out.push({ id: 'pg', label: 'Passage garanti', patch: { passageGaranti: false } });
   if (f.favoris) out.push({ id: 'fav', label: '★ Favoris', patch: { favoris: false } });
+  if (f.suivis) out.push({ id: 'sv', label: 'Collèges suivis', patch: { suivis: false } });
   for (const o of f.options) out.push({ id: `o-${o}`, label: labelOption(o), patch: { options: f.options.filter((x) => x !== o) } });
   for (const [k, r] of Object.entries(f.ranges) as [ValueKey, [number, number]][]) {
     const fmt = (v: number) => (k === 'distance' ? formatDistance(v) : formatIndicateur(k, v));
@@ -62,8 +61,7 @@ export function ListPanel({ onOpen }: { onOpen?: () => void }) {
   const filtersOpen = useStore((s) => s.filtersOpen);
   const setFiltersOpen = useStore((s) => s.setFiltersOpen);
   const nActive = countActive(filters);
-  const labelCommune = (code: string) => dataset.communes.find((x) => x.code === code)?.libelle ?? null;
-  const activeChips = chips(filters, (t) => dataset.optionLabels[t]?.label ?? t, labelCommune);
+  const activeChips = chips(filters, (t) => dataset.optionLabels[t]?.label ?? t, lieuxChoisis(filters, dataset.communes));
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">

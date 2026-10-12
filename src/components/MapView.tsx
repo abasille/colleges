@@ -9,6 +9,8 @@ import { CADRAGE_ILE_DE_FRANCE, domaineDeCouleur, emprise, pointsDeLaCarte, type
 import { INDICATEURS, STATUT_LABELS } from '../lib/indicateurs';
 import { formatIndicateur, nomCourt } from '../lib/format';
 import type { ColorBy } from '../lib/url';
+import { TEXTE_SUIVI } from './ui';
+import { ContoursCommunes } from './ContoursCommunes';
 import { CouchePoints, type RappelsPoints } from './pointsColleges';
 
 const COLOR_OPTIONS: { key: ColorBy; label: string }[] = [
@@ -99,7 +101,7 @@ function InvalidateOnResize() {
 }
 
 export function MapView({ onOpen }: { onOpen?: () => void }) {
-  const { dataset, contours, visibles, visiblesSet, byUai, secteur } = useData();
+  const { dataset, visibles, visiblesSet, byUai, secteur } = useData();
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
   const favoris = useStore((s) => s.favoris);
@@ -125,6 +127,14 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
       if (!c) return el;
       const nom = el.appendChild(document.createElement('strong'));
       nom.textContent = nomCourt(c.nom);
+      if (c.suivi) {
+        // Même rendu que SuiviBadge (ui.tsx) : la bulle est construite hors de React.
+        const badge = el.appendChild(document.createElement('span'));
+        badge.className = 'ml-1 inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium';
+        badge.style.cssText = 'background-color:#1d4ed81a;color:#1d4ed8';
+        badge.title = TEXTE_SUIVI;
+        badge.textContent = 'Suivi';
+      }
       if (colorBy !== 'statut') el.append(` · ${formatIndicateur(colorBy, c.indicateurs[colorBy])}`);
       return el;
     },
@@ -144,13 +154,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
         <InvalidateOnResize />
         <CadrageSurRetenus retenus={visibles} />
         <FlyToSelected college={selectedCollege} />
-        {contours.features.length > 0 && (
-          <GeoJSON
-            key="contours"
-            data={contours as GeoJSON.FeatureCollection}
-            style={{ color: '#52525b', weight: 1.5, dashArray: '4 4', fill: false, interactive: false } as L.PathOptions}
-          />
-        )}
+        <ContoursCommunes />
         {secteur?.feature && (
           <GeoJSON
             key={secteur.feature.properties.libelle}
