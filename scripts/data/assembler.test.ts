@@ -71,9 +71,8 @@ describe('assemblerDataset : doublons d’UAI', () => {
       ],
     });
     const a = assemblerDataset(e);
-    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.communeLibelle, c.adresse])).toEqual([
-      ['0951509Z', 'Collège La Salle - Saint-Rosaire', 'Sarcelles', '53 rue Pierre Brossolette'],
-    ]);
+    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.nom, c.communeLibelle])).toEqual([['0951509Z', 'Collège La Salle - Saint-Rosaire', 'Sarcelles']]);
+    expect(a.publication.details.flatMap((d) => d.colleges.map((c) => c.adresse))).toEqual(['53 rue Pierre Brossolette']);
     expect(uaisDuPerimetre(e.config, e.sources.annuaire)).toEqual(['0951509Z']);
   });
 });
@@ -162,7 +161,7 @@ describe('assemblerDataset : lycée sur place', () => {
         },
       }),
     );
-    expect(a.publication.dataset.colleges.map((c) => [c.uai, c.continuite.lien, c.continuite.lycee?.nom ?? null])).toEqual([
+    expect(a.publication.details.flatMap((d) => d.colleges.map((c) => [c.uai, c.continuite.lien, c.continuite.lycee?.nom ?? null]))).toEqual([
       ['0920001A', 'cite_scolaire', 'Lycée A'],
       ['0920002B', 'meme_etablissement_prive', 'Lycée B'],
       ['0920003C', 'aucun', null], // public à la même adresse qu'un lycée, sans cité scolaire
@@ -250,7 +249,7 @@ describe('assemblerDataset : corrections manuelles', () => {
     );
     const c = a.publication.dataset.colleges[0];
     expect(c.nom).toBe('Collège Auguste-Rodin');
-    expect(c.demiPension).toBe(true); // 0 demi-pensionnaire selon la source
+    expect(a.publication.details[0].colleges[0].demiPension).toBe(true); // 0 demi-pensionnaire selon la source
     expect(c.niveaux).toEqual(['5e', '4e', '3e']);
     expect(c.accueilSixieme).toBe(false);
   });
@@ -263,17 +262,66 @@ describe('assemblerDataset : corrections manuelles', () => {
       }),
     );
     const c = a.publication.dataset.colleges[0];
-    expect([c.nom, c.demiPension, c.niveaux, c.accueilSixieme]).toEqual(['COLLEGE RODIN', false, ['6e', '5e', '4e', '3e'], true]);
+    const demiPension = a.publication.details[0].colleges[0].demiPension;
+    expect([c.nom, demiPension, c.niveaux, c.accueilSixieme]).toEqual(['COLLEGE RODIN', false, ['6e', '5e', '4e', '3e'], true]);
   });
 });
 
 describe('assemblerDataset : fichiers publiés', () => {
   it('sérialise la publication dans public/data, horodatée par l’horloge injectée', () => {
     const a = assemblerDataset(entree({ colleges: [etab({ identifiant_de_l_etablissement: '0750001A' })] }));
-    expect(a.fichiers.map((f) => f.chemin)).toEqual(['colleges.json', 'secteurs-paris.geojson', 'carte-scolaire-94.json', 'events.json']);
+    expect(a.fichiers.map((f) => f.chemin)).toEqual(['colleges.json', 'colleges-75.json', 'secteurs-paris.geojson', 'carte-scolaire-94.json', 'events.json']);
     const colleges = JSON.parse(a.fichiers[0].contenu) as { generatedAt: string; colleges: { uai: string }[] };
     expect(colleges.generatedAt).toBe('2026-10-12T08:00:00.000Z');
     expect(colleges.colleges.map((c) => c.uai)).toEqual(['0750001A']);
     expect(a.publication.dataset.sources.find((s) => s.id === 'annuaire')?.millesime).toBe('extraction du 2026-10-12');
+  });
+});
+
+describe('assemblerDataset : fichier léger et détails par département', () => {
+  const deuxDepartements = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', nom_etablissement: 'Collège Rodin' }),
+        etab({ identifiant_de_l_etablissement: '0750002B', nom_etablissement: 'Collège Lavoisier' }),
+        etab({
+          identifiant_de_l_etablissement: '0940003C',
+          code_commune: '94041',
+          nom_commune: 'Ivry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+      ],
+      sources: { ivac: [ligneIvac({ uai: '0750001A', candidats: 100, taux: 92, noteEcrit: 13 })] },
+    });
+
+  it('le fichier léger garde ce dont la liste, la carte et les filtres ont besoin, sans les historiques ni la continuité détaillée', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const c = a.publication.dataset.colleges.find((x) => x.uai === '0750001A')!;
+    expect(c.nom).toBe('Collège Rodin');
+    expect(c.indicateurs.brevet).toBe(92);
+    expect(c.score && Object.keys(c.score).sort()).toEqual(['lettre', 'note', 'partielle', 'rang', 'sur']);
+    expect(Object.keys(c.continuite).sort()).toEqual(['lien', 'passage', 'secondeGtSurPlace']);
+    for (const champ of ['brevet', 'ips', 'effectifs', 'affelnetSecteur1', 'personnel', 'pix', 'labels', 'adresse']) {
+      expect(c, champ).not.toHaveProperty(champ);
+    }
+  });
+
+  it('chaque collège figure dans le fichier de son département, avec le détail de sa fiche', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const parDepartement = Object.fromEntries(a.publication.details.map((d) => [d.departement, d.colleges.map((c) => c.uai)]));
+    expect(parDepartement).toEqual({ '75': ['0750001A', '0750002B'], '94': ['0940003C'] });
+    const rodin = a.publication.details[0].colleges[0];
+    expect(rodin.brevet.map((b) => [b.session, b.taux])).toEqual([[2025, 92]]);
+    expect(rodin).toHaveProperty('continuite.passageTexte');
+    expect(rodin.composantes?.brevet).not.toBeNull();
+  });
+
+  it('publie le fichier léger minifié et un fichier de détail par département', () => {
+    const a = assemblerDataset(deuxDepartements());
+    const fichier = (chemin: string) => a.fichiers.find((f) => f.chemin === chemin)!.contenu;
+    expect(fichier('colleges.json').trim()).not.toContain('\n');
+    expect(JSON.parse(fichier('colleges.json')).colleges).toEqual(a.publication.dataset.colleges);
+    expect(JSON.parse(fichier('colleges-94.json'))).toEqual({ departement: '94', colleges: [expect.objectContaining({ uai: '0940003C' })] });
   });
 });

@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T16:20:21.350Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T16:22:22.308Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -3248,7 +3248,15 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 
 | Fichier | Taille |
 |---|---|
-| public/data/colleges.json | 9333 ko |
+| public/data/colleges.json | 1179 ko |
+| public/data/colleges-75.json | 862 ko |
+| public/data/colleges-77.json | 680 ko |
+| public/data/colleges-78.json | 654 ko |
+| public/data/colleges-91.json | 555 ko |
+| public/data/colleges-92.json | 621 ko |
+| public/data/colleges-93.json | 718 ko |
+| public/data/colleges-94.json | 601 ko |
+| public/data/colleges-95.json | 633 ko |
 | public/data/secteurs-paris.geojson | 962 ko |
 | public/data/carte-scolaire-94.json | 85 ko |
 | public/data/events.json | 33 ko |

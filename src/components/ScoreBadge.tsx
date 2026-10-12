@@ -1,4 +1,4 @@
-import type { ScoreMaison } from '../types';
+import type { CollegeResume, ScoreMaison } from '../types';
 import { formatNombre } from '../lib/format';
 import { cx } from './ui';
 
@@ -10,7 +10,7 @@ export const LETTRE_COLORS: Record<ScoreMaison['lettre'], string> = {
   E: '#dc2626',
 };
 
-export function ScoreBadge({ score, small = false }: { score: ScoreMaison | null; small?: boolean }) {
+export function ScoreBadge({ score, small = false }: { score: CollegeResume['score']; small?: boolean }) {
   if (!score) {
     return (
       <span

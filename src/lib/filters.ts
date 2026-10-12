@@ -1,4 +1,4 @@
-import type { College, IndicateurKey, Statut } from '../types';
+import type { CollegeResume, IndicateurKey, Statut } from '../types';
 import { nomCourt } from './format';
 
 export type ValueKey = IndicateurKey | 'distance';
@@ -47,7 +47,7 @@ export interface FilterContext {
   distances: ReadonlyMap<string, number> | null;
 }
 
-export function getValue(c: College, key: ValueKey, ctx: Pick<FilterContext, 'distances'>): number | null {
+export function getValue(c: CollegeResume, key: ValueKey, ctx: Pick<FilterContext, 'distances'>): number | null {
   if (key === 'distance') return ctx.distances?.get(c.uai) ?? null;
   return c.indicateurs[key];
 }
@@ -60,11 +60,11 @@ export function fold(s: string): string {
     .toLowerCase();
 }
 
-export function hasLyceeGeneral(c: College): boolean {
+export function hasLyceeGeneral(c: CollegeResume): boolean {
   return c.continuite.lien !== 'aucun' && c.continuite.secondeGtSurPlace;
 }
 
-export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
+export function matches(c: CollegeResume, f: Filters, ctx: FilterContext): boolean {
   if (f.q.trim()) {
     const words = fold(f.q).split(/\s+/).filter(Boolean);
     const hay = fold(`${c.nom} ${c.communeLibelle}`);
@@ -93,7 +93,7 @@ export function matches(c: College, f: Filters, ctx: FilterContext): boolean {
 }
 
 /** Les codes de commune absents des collèges donnés (lien ancien ou erroné) sont ignorés. */
-export function applyFilters(colleges: College[], f: Filters, ctx: FilterContext): College[] {
+export function applyFilters(colleges: CollegeResume[], f: Filters, ctx: FilterContext): CollegeResume[] {
   const presentes = new Set(colleges.map((c) => c.commune));
   const effectif = { ...f, communes: f.communes.filter((code) => presentes.has(code)) };
   return colleges.filter((c) => matches(c, effectif, ctx));
@@ -102,8 +102,8 @@ export function applyFilters(colleges: College[], f: Filters, ctx: FilterContext
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 
 /** Tri stable ; les valeurs manquantes sont toujours en dernier, quel que soit le sens. */
-export function sortColleges(colleges: College[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): College[] {
-  const byName = (a: College, b: College) => collator.compare(nomCourt(a.nom), nomCourt(b.nom));
+export function sortColleges(colleges: CollegeResume[], sort: Sort, ctx: Pick<FilterContext, 'distances'>): CollegeResume[] {
+  const byName = (a: CollegeResume, b: CollegeResume) => collator.compare(nomCourt(a.nom), nomCourt(b.nom));
   const out = [...colleges];
   if (sort.key === 'nom') {
     out.sort((a, b) => (sort.dir === 'asc' ? byName(a, b) : byName(b, a)));
@@ -123,7 +123,7 @@ export function sortColleges(colleges: College[], sort: Sort, ctx: Pick<FilterCo
 }
 
 /** Bornes [min, max] observées d'un indicateur, pour initialiser les curseurs. */
-export function domainOf(colleges: College[], key: ValueKey, ctx: Pick<FilterContext, 'distances'>): [number, number] | null {
+export function domainOf(colleges: CollegeResume[], key: ValueKey, ctx: Pick<FilterContext, 'distances'>): [number, number] | null {
   let min = Infinity;
   let max = -Infinity;
   for (const c of colleges) {

@@ -6,8 +6,11 @@ import type {
   BrevetSession,
   CarteScolaireRow,
   College,
+  CollegeDetail,
+  CollegeResume,
   CommunePresente,
   Dataset,
+  DetailDepartement,
   EventsFile,
   IndicateurKey,
   Indicateurs,
@@ -19,6 +22,7 @@ import type {
   Statut,
 } from '../../src/types';
 import { stripAccents } from '../../src/lib/normalize';
+import { ACADEMIES } from '../../src/lib/territoires';
 import { ANNEE_AFFELNET, ANNEE_SECTEURS_PARIS, type Config } from './lib/config';
 import { formatNombre, groupBy, niceCase, ratioOfSums, round, sortedObject, weightedMean } from './lib/util';
 import type { FeatureCollection } from './lib/geo';
@@ -108,8 +112,10 @@ export interface EntreeAssemblage {
 
 /** Contenu des fichiers publiés (public/data/), avant sérialisation. */
 export interface Publication {
-  /** colleges.json */
+  /** colleges.json : fichier léger, chargé au démarrage. */
   dataset: Dataset;
+  /** colleges-<dép>.json : un par département, triés par code. */
+  details: DetailDepartement[];
   /** events.json */
   evenements: EventsFile;
   /** secteurs-paris.geojson */
@@ -144,7 +150,6 @@ export interface Assemblage {
 /** Tolérance Douglas–Peucker des secteurs parisiens (degrés, ≈ 5,5 m) : fichier < 1 Mo. */
 const TOLERANCE_SECTEURS = 0.00005;
 const NIVEAUX: Niveau[] = ['6e', '5e', '4e', '3e'];
-const ACADEMIES: Academie[] = ['Paris', 'Créteil', 'Versailles'];
 
 /** Académie d'après son libellé, quelle que soit la casse (« PARIS », « Créteil », « VERSAILLES »). */
 function academieDe(s: string | null | undefined): Academie | null {
@@ -230,6 +235,53 @@ function jsonParLigne(items: unknown[], wrap?: (body: string) => string): string
 
 const featureCollection = (b: string) => `{"type":"FeatureCollection","features":${b}}`;
 
+/** Sépare un collège entre le fichier léger et le fichier de détail de son département. */
+function decouper(c: College): { resume: CollegeResume; detail: CollegeDetail } {
+  const {
+    uai,
+    nom,
+    statut,
+    contrat,
+    commune,
+    communeLibelle,
+    departement,
+    academie,
+    lat,
+    lon,
+    rep,
+    recrutementParticulier,
+    niveaux,
+    accueilSixieme,
+    indicateurs,
+    manquants,
+    optionTags,
+    score,
+    ...reste
+  } = c;
+  const resume: CollegeResume = {
+    uai,
+    nom,
+    statut,
+    contrat,
+    commune,
+    communeLibelle,
+    departement,
+    academie,
+    lat,
+    lon,
+    rep,
+    recrutementParticulier,
+    niveaux,
+    accueilSixieme,
+    indicateurs,
+    manquants,
+    score: score && { note: score.note, lettre: score.lettre, rang: score.rang, sur: score.sur, partielle: score.partielle },
+    continuite: { lien: c.continuite.lien, secondeGtSurPlace: c.continuite.secondeGtSurPlace, passage: c.continuite.passage },
+    optionTags,
+  };
+  return { resume, detail: { uai, ...reste, composantes: score?.composantes ?? null } };
+}
+
 // ---------------------------------------------------------------- sélection et plan de chargement
 
 /** Ligne du site principal parmi les lignes d'un même UAI : l'annexe passe après (puis ordre stable par nom et adresse). */
@@ -251,7 +303,7 @@ function sitePrincipal(lignes: AnnuaireRow[]): AnnuaireRow {
  * index de tous les établissements.
  */
 function selectionnerAnnuaire(config: Config, brut: AnnuaireBrut): Annuaire {
-  const departements = new Set(config.departements);
+  const departements = new Set<string>(config.departements);
   const natures = new Set(config.codesNature);
   const exclure = new Set(config.exclure);
   const parUai = groupBy(
@@ -703,6 +755,7 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
   const communes = [...new Map(colleges.map((c) => [c.commune, { code: c.commune, libelle: c.communeLibelle, departement: c.departement }])).values()].sort(
     (a, b) => a.code.localeCompare(b.code),
   );
+  const decoupes = colleges.map(decouper);
   const dataset: Dataset = {
     generatedAt: maintenant.toISOString(),
     sessions: { brevet: sessionsRef, ips: derniereIps, effectifs: derniersEffectifs },
@@ -710,16 +763,21 @@ export function assemblerDataset({ config: cfg, corrections, sources: src, maint
     references,
     optionLabels: optionLabelsObj,
     sources: sourcesPubliees,
-    colleges,
+    colleges: decoupes.map((x) => x.resume),
   };
+  const details: DetailDepartement[] = [...groupBy(decoupes, (x) => x.resume.departement).entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([departement, xs]) => ({ departement, colleges: xs.map((x) => x.detail) }));
   const publication: Publication = {
     dataset,
+    details,
     evenements: events.file,
     secteursParis: secteursParis.geojson,
     carteScolaire: carte.rows,
   };
   const fichiers: FichierPublie[] = [
-    { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset, null, 1) + '\n' },
+    { chemin: 'colleges.json', contenu: JSON.stringify(publication.dataset) + '\n' },
+    ...publication.details.map((d) => ({ chemin: `colleges-${d.departement}.json`, contenu: JSON.stringify(d) + '\n' })),
     { chemin: 'secteurs-paris.geojson', contenu: jsonParLigne(publication.secteursParis.features, featureCollection) },
     { chemin: 'carte-scolaire-94.json', contenu: jsonParLigne(publication.carteScolaire) },
     { chemin: 'events.json', contenu: JSON.stringify(publication.evenements, null, 1) + '\n' },

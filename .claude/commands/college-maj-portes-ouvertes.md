@@ -5,19 +5,20 @@ argument-hint: "[UAI ou nom de collège…] (facultatif : tous par défaut)"
 
 # Mise à jour des portes ouvertes
 
-Périmètre : $ARGUMENTS (vide = tous les collèges de `data/overrides/watch.json`).
+Collèges : $ARGUMENTS (vide = tous les collèges suivis, ceux de `data/overrides/watch.json`).
 
 ## 1. Contexte
 
-- Lire SPEC.md §7, `src/types.ts` (`CollegeEvent`, `EventsFile`), `data/overrides/events.json`, `data/overrides/watch.json`, `data/config.json` (`saisonCourante`, `exclure`).
+- Lire SPEC.md §12, `src/types.ts` (`CollegeEvent`, `EventsFile`, `Territoire`), `data/overrides/events.json`, `data/overrides/watch.json`, `data/config.json` (`saisonCourante`, `exclure`).
+- Territoires des collèges suivis (ceux de `watch.json`) : leur `academie` et leur `departement` dans `public/data/colleges.json`.
 - `gh issue list --label portes-ouvertes --state open`, puis `gh issue view <n> --comments` : les pages signalées par la surveillance hebdomadaire passent en premier.
 - Lancer d'abord `npm run watch-pages` en local : depuis GitHub Actions, pia.ac-paris.fr et les sites Skolengo (moncollege.valdemarne.fr) coupent la connexion (ECONNRESET), donc seule une exécution locale couvre les collèges publics. Committer ensuite `data/watch-state.json` avec le reste.
 - `npm run watch-pages -- --dry-run --only <UAI>` montre l'état d'une page sans rien écrire.
 
 ## 2. Collecte
 
-- Pages de `watch.json`, puis les sources `discovery` : recherches plein texte de pia.ac-paris.fr (articles récents de tous les collèges parisiens : ne garder que ceux du périmètre et ouvrir l'article) et flux RSS Skolengo d'Ivry et Vitry.
-- Lire le robots.txt de chaque hôte avant d'y accéder et ne jamais demander un chemin interdit par le groupe `*` ou par le groupe de l'agent utilisé (WebFetch = `Claude-User`). En particulier, `https://pia.ac-paris.fr/serail/upload/` (affiches, PDF) est interdit : s'en tenir au texte de l'article. Un site qui exclut les agents d'Anthropic au-delà du robot d'indexation ClaudeBot (`Claude-User`, `Claude-Web`, `anthropic-ai` : cas de Notre-Dame de Sion, SPEC §9) n'est pas consulté. Un collège dont l'information n'est accessible que par un chemin interdit est noté « à vérifier à la main », avec ce qu'en dit le ticket de surveillance.
+- Pages de `watch.json`, puis les sources `discovery` : recherches plein texte de pia.ac-paris.fr (articles récents de tous les collèges parisiens : ne garder que ceux des collèges suivis et ouvrir l'article) et flux RSS Skolengo.
+- Lire le robots.txt de chaque hôte avant d'y accéder et ne jamais demander un chemin interdit par le groupe `*` ou par le groupe de l'agent utilisé (WebFetch = `Claude-User`). En particulier, `https://pia.ac-paris.fr/serail/upload/` (affiches, PDF) est interdit : s'en tenir au texte de l'article. Un site qui exclut les agents d'Anthropic au-delà du robot d'indexation ClaudeBot (`Claude-User`, `Claude-Web`, `anthropic-ai` : cas de Notre-Dame de Sion, SPEC §15) n'est pas consulté. Un collège dont l'information n'est accessible que par un chemin interdit est noté « à vérifier à la main », avec ce qu'en dit le ticket de surveillance.
 - Une requête à la fois par site, sans rafale (Skolengo : Crawl-delay 5 s). Avec curl, s'identifier par `-A "colleges-watch (+https://github.com/abasille/colleges)"` ; les règles applicables restent celles de `*` et de `Claude-User`. Pas d'extension de navigateur.
 - ac-paris.fr répond 403 aux scripts : pour les dates officielles, recherche web puis copies officielles (cdn.paris.fr, dsden94.ac-creteil.fr, demarche.numerique.gouv.fr).
 
@@ -30,10 +31,12 @@ Périmètre : $ARGUMENTS (vide = tous les collèges de `data/overrides/watch.jso
 
 ## 4. Mise à jour de `data/overrides/events.json`
 
-- Format `EventsFile` exact. `id` = `${uai}-${date}-${type}` (officiel : `paris-…` ou `creteil-…`), suffixe court en cas de doublon. Titre français court. `dateFin` pour une période, heures `HH:MM`, `inscriptionRequise` true / false / null, `source` = URL lue, `academie` null sauf pour `officiel`.
+- Format `EventsFile` exact. `id` = `${uai}-${date}-${type}` (officiel : `${territoire}-${date}-officiel`, territoire en minuscules sans accent, ex. `paris-…`, `versailles-…`, `94-…`), suffixe court en cas de doublon. Ne jamais renommer l'`id` d'un événement existant : il sert d'identifiant dans l'export .ics (les dates du Val-de-Marne déjà saisies gardent leur `creteil-…`). Titre français court. `dateFin` pour une période, heures `HH:MM`, `inscriptionRequise` true / false / null, `source` = URL lue, `territoire` null sauf pour `officiel`.
 - `verifieLe` = date du jour pour chaque événement revu. Corriger un événement existant plutôt que d'en créer un doublon. Garder les événements des saisons passées (affichés à titre indicatif). Ne supprimer qu'un événement annulé, et le signaler.
 - `inscriptions` (privé) : `ouvertes` / `closes` / `a_venir` / `inconnu`, `constateLe` = date du jour, `detail` en une ou deux phrases, `source`.
-- Dates officielles (`officiel`, `uai` null, académie Paris ou Créteil) : candidatures en cursus spécifiques (DAFNE), dérogations, résultats d'affectation, inscription au collège. Vérifier si le calendrier de la saison courante est publié (en général à partir de janvier).
+- Dates officielles (`officiel`, `uai` null) : candidatures en cursus spécifiques (DAFNE), dérogations, résultats d'affectation, inscription au collège. Vérifier si le calendrier de la saison courante est publié (en général à partir de janvier).
+- `territoire` d'une date officielle, selon qui la publie : l'académie (`"Paris"`, `"Créteil"`, `"Versailles"`) pour une date du rectorat, le département (`"77"`, `"78"`, `"91"`, `"92"`, `"93"`, `"94"`, `"95"`) pour une date de la direction départementale (DSDEN). À Paris, rectorat et direction départementale ne font qu'un : `"Paris"`. Les dates du Val-de-Marne (dsden94.ac-creteil.fr) portent `"94"`.
+- On ne saisit des dates officielles que pour les territoires des collèges suivis : l'académie et le département d'au moins un collège de `watch.json`. Un territoire sans collège suivi n'a pas de dates ; signaler dans le compte rendu un territoire de collège suivi pour lequel aucune date de la saison courante n'est encore publiée.
 - Page surveillée déplacée ou vide : corriger `watch.json` (1 à 3 pages par collège). Jamais d'UAI de `exclure`.
 
 ## 5. Vérification et restitution

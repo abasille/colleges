@@ -6,7 +6,8 @@ import { haversineKm, pointInGeometry } from './geo';
 import { findSecteur94, findSecteurParis, parseNumero } from './secteur';
 import { buildIcs, foldLine } from './ics';
 import { decodeShare, encodeShare, mergeShare } from './share';
-import { calendarEvents, isUrgent, statutInscriptions, upcomingForFavoris } from './events';
+import { calendarEvents, isUrgent, statutInscriptions, territoiresPresents, upcomingForFavoris } from './events';
+import { libelleTerritoire } from './territoires';
 import { formatIndicateur, nomCourt } from './format';
 
 function college(uai: string, over: Partial<College> = {}, ind: Partial<College['indicateurs']> = {}): College {
@@ -198,7 +199,7 @@ function ev(over: Partial<CollegeEvent>): CollegeEvent {
   return {
     id: over.id ?? Math.random().toString(36),
     uai: '0000001A',
-    academie: null,
+    territoire: null,
     type: 'portes_ouvertes',
     date: '2026-11-21',
     dateFin: null,
@@ -219,18 +220,54 @@ describe('événements', () => {
     ev({ id: 'a', date: '2026-11-21' }),
     ev({ id: 'b', date: '2026-10-20', type: 'inscription', dateFin: '2026-10-25' }),
     ev({ id: 'c', date: '2026-01-17', saison: '2025-26' }),
-    ev({ id: 'd', uai: null, academie: 'Paris', type: 'officiel', date: '2027-03-10' }),
+    ev({ id: 'd', uai: null, territoire: 'Paris', type: 'officiel', date: '2027-03-10' }),
     ev({ id: 'e', uai: '0000009Z', date: '2026-12-01' }),
+    ev({ id: 'f', uai: null, territoire: '94', type: 'officiel', date: '2027-03-27' }),
   ];
 
-  it('ne garde que la saison courante, les collèges filtrés et les académies cochées', () => {
+  it('ne garde que la saison courante, les collèges filtrés et les territoires cochés', () => {
     const out = calendarEvents(events, {
       saison: '2026-27',
       types: new Set(['portes_ouvertes', 'inscription', 'officiel']),
-      academies: new Set(['Paris']),
+      territoiresMasques: new Set(['94']),
       colleges: new Set(['0000001A']),
     });
     expect(out.map((e) => e.id)).toEqual(['b', 'a', 'd']);
+  });
+
+  it('montre les dates de tous les territoires quand aucun n’est décoché', () => {
+    const out = calendarEvents(events, { saison: '2026-27', types: new Set(['officiel']), territoiresMasques: new Set(), colleges: new Set() });
+    expect(out.map((e) => e.id)).toEqual(['d', 'f']);
+  });
+
+  it('ignore un territoire décoché inconnu (ancien réglage « Créteil » pour le Val-de-Marne)', () => {
+    const out = calendarEvents(events, {
+      saison: '2026-27',
+      types: new Set(['officiel']),
+      territoiresMasques: new Set(['Créteil']),
+      colleges: new Set(),
+    });
+    expect(out.map((e) => e.id)).toEqual(['d', 'f']);
+  });
+
+  it('liste les territoires présents dans les données : académies puis départements, sans doublon', () => {
+    const t = territoiresPresents([
+      ev({ uai: null, territoire: '94', type: 'officiel' }),
+      ev({ uai: null, territoire: 'Paris', type: 'officiel', saison: '2025-26' }),
+      ev({ uai: null, territoire: '94', type: 'officiel' }),
+      ev({ uai: null, territoire: '78', type: 'officiel' }),
+      ev({ uai: null, territoire: 'Versailles', type: 'officiel' }),
+      ev({}),
+    ]);
+    expect(t).toEqual(['Paris', 'Versailles', '78', '94']);
+    expect(territoiresPresents([ev({})])).toEqual([]);
+  });
+
+  it('nomme les territoires', () => {
+    expect(libelleTerritoire('Paris')).toBe('Académie de Paris');
+    expect(libelleTerritoire('Créteil')).toBe('Académie de Créteil');
+    expect(libelleTerritoire('94')).toBe('Val-de-Marne');
+    expect(libelleTerritoire('95')).toBe('Val-d’Oise');
   });
 
   it('met en tête les échéances urgentes des favoris', () => {
@@ -250,6 +287,12 @@ describe('événements', () => {
     expect(statutInscriptions(file, '0000001A', '2026-10-22')?.statut).toBe('ouvertes');
     expect(statutInscriptions(file, '0000001A', '2026-11-02')?.statut).toBe('closes');
     expect(statutInscriptions(file, '0000009Z', '2026-11-02')).toBeNull();
+  });
+
+  it('nomme le territoire d’une date officielle dans le .ics', () => {
+    const ics = buildIcs([events[5]], () => 'Collège Test', new Date('2026-10-08T10:00:00Z'));
+    expect(ics).toContain('SUMMARY:Portes ouvertes – Val-de-Marne');
+    expect(ics).not.toContain('Académie');
   });
 
   it('produit un .ics valide', () => {

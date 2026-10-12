@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
+import type { Departement } from '../../../src/types';
 
 export interface Config {
   /** Départements du périmètre, sur deux caractères (« 75 », « 92 »…). */
-  departements: string[];
+  departements: Departement[];
   codesNature: number[];
   exclure: string[];
   saisonCourante: string;

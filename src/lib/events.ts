@@ -1,5 +1,6 @@
-import type { Academie, CollegeEvent, EventType, EventsFile, StatutInscriptions } from '../types';
+import type { CollegeEvent, EventType, EventsFile, StatutInscriptions, Territoire } from '../types';
 import { parseISODate } from './format';
+import { TERRITOIRES } from './territoires';
 
 export const URGENCE_JOURS = 14;
 
@@ -31,7 +32,8 @@ export function isUrgent(e: CollegeEvent, today: string): boolean {
 export interface CalendarOptions {
   saison: string;
   types: ReadonlySet<EventType>;
-  academies: ReadonlySet<Academie>;
+  /** Territoires décochés : leurs dates officielles sont masquées (tout territoire présent est coché par défaut). */
+  territoiresMasques: ReadonlySet<Territoire>;
   /** UAI des collèges retenus par les filtres de la liste. */
   colleges: ReadonlySet<string>;
 }
@@ -41,10 +43,16 @@ export function calendarEvents(events: CollegeEvent[], o: CalendarOptions): Coll
   return events
     .filter((e) => {
       if (e.saison !== o.saison || !o.types.has(e.type)) return false;
-      if (e.uai === null) return e.academie !== null && o.academies.has(e.academie);
+      if (e.uai === null) return e.territoire !== null && !o.territoiresMasques.has(e.territoire);
       return o.colleges.has(e.uai);
     })
     .sort(byDate);
+}
+
+/** Territoires qui ont au moins une date officielle, dans l'ordre d'affichage (académies puis départements). */
+export function territoiresPresents(events: CollegeEvent[]): Territoire[] {
+  const presents = new Set(events.map((e) => e.territoire));
+  return TERRITOIRES.filter((t) => presents.has(t));
 }
 
 /** Prochains événements des favoris (à venir ou en cours), échéances urgentes en tête. */

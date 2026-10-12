@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import type { College, Statut } from '../types';
+import type { CollegeResume, Statut } from '../types';
 import { STATUT_COLORS } from '../lib/colors';
 import { STATUT_COURT, STATUT_LABELS } from '../lib/indicateurs';
 import { useStore } from '../store';
@@ -29,7 +29,7 @@ export function StatutBadge({ statut, long = false }: { statut: Statut; long?: b
 }
 
 /** Étiquettes secondaires d'un collège (REP, recrutement particulier, pas de 6e…). */
-export function CollegeTags({ c, secteur }: { c: College; secteur?: boolean }) {
+export function CollegeTags({ c, secteur }: { c: CollegeResume; secteur?: boolean }) {
   return (
     <>
       {secteur && <Badge color="#16a34a" title="Collège de secteur de votre adresse">✓ Secteur</Badge>}

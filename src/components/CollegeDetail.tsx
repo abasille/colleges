@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { College, Niveau } from '../types';
-import { useData } from '../data';
+import type { College, CollegeResume, Niveau } from '../types';
+import { useData, useFiche } from '../data';
 import { useStore } from '../store';
 import { formatDistance, formatHeures, formatNombre, formatPeriode, todayISO } from '../lib/format';
 import { EVENT_LABELS, INSCRIPTIONS_LABELS, LIEN_LABELS, PASSAGE_LABELS } from '../lib/indicateurs';
@@ -13,7 +13,7 @@ import { Badge, CollegeTags, ExternalLink, InfoTip, Modal, StarButton, StatutBad
 import { IndicRow, KV, Section, TagList } from './detail/common';
 
 export function CollegeDetail({ onClose }: { onClose: () => void }) {
-  const { byUai, distances, secteur } = useData();
+  const { byUai } = useData();
   const selected = useStore((s) => s.selected);
   const scroller = useRef<HTMLDivElement>(null);
   const c = selected ? byUai.get(selected) : undefined;
@@ -21,26 +21,69 @@ export function CollegeDetail({ onClose }: { onClose: () => void }) {
     scroller.current?.scrollTo({ top: 0 });
   }, [selected]);
   if (!c) return null;
-  const distance = distances?.get(c.uai) ?? null;
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div ref={scroller} className="scroll-thin min-h-0 flex-1 overflow-y-auto">
-        <Header c={c} distance={distance} secteur={!!secteur?.uais.includes(c.uai)} onClose={onClose} />
-        <Score c={c} />
-        <Resultats c={c} />
-        <Profil c={c} />
-        <Options c={c} />
-        <Continuite c={c} />
-        <Evenements c={c} />
-        <Notes uai={c.uai} />
-        <Autres c={c} />
-        <Sources c={c} />
+        <Fiche resume={c} onClose={onClose} />
       </div>
     </div>
   );
 }
 
-function Header({ c, distance, secteur, onClose }: { c: College; distance: number | null; secteur: boolean; onClose: () => void }) {
+/** Le haut de la fiche vient du fichier léger ; le reste attend le détail du département. */
+function Fiche({ resume, onClose }: { resume: CollegeResume; onClose: () => void }) {
+  const { distances, secteur } = useData();
+  const fiche = useFiche(resume);
+  const distance = distances?.get(resume.uai) ?? null;
+  const c = fiche.etat === 'prete' ? fiche.college : null;
+  return (
+    <>
+      <Header c={resume} fiche={c} distance={distance} secteur={!!secteur?.uais.includes(resume.uai)} onClose={onClose} />
+      {fiche.etat === 'chargement' && (
+        <p className="border-t border-zinc-200 px-4 py-6 text-center text-sm text-zinc-500" role="status">
+          Chargement de la fiche…
+        </p>
+      )}
+      {fiche.etat === 'erreur' && (
+        <div className="border-t border-zinc-200 px-4 py-4 text-sm" role="alert">
+          <p className="text-red-700" title={fiche.message}>
+            Le détail de ce collège n’a pas pu être chargé. Vérifiez votre connexion, puis réessayez.
+          </p>
+          <button type="button" onClick={fiche.reessayer} className="mt-2 rounded border border-zinc-300 px-2 py-1 text-zinc-700 hover:bg-zinc-50">
+            Réessayer
+          </button>
+        </div>
+      )}
+      {c && (
+        <>
+          <Score c={c} />
+          <Resultats c={c} />
+          <Profil c={c} />
+          <Options c={c} />
+          <Continuite c={c} />
+          <Evenements c={c} />
+          <Notes uai={c.uai} />
+          <Autres c={c} />
+          <Sources c={c} />
+        </>
+      )}
+    </>
+  );
+}
+
+function Header({
+  c,
+  fiche,
+  distance,
+  secteur,
+  onClose,
+}: {
+  c: CollegeResume;
+  fiche: College | null;
+  distance: number | null;
+  secteur: boolean;
+  onClose: () => void;
+}) {
   const niveauxComplets = c.niveaux.length === 4;
   return (
     <header className="px-4 pb-3 pt-3">
@@ -65,22 +108,24 @@ function Header({ c, distance, secteur, onClose }: { c: College; distance: numbe
       )}
       {c.recrutementParticulier && <p className="mt-2 rounded bg-pink-50 px-2 py-1 text-xs text-pink-900">{c.recrutementParticulier}</p>}
       {!niveauxComplets && <p className="mt-2 text-xs text-zinc-600">Classes : {c.niveaux.join(', ') || 'non précisé'}</p>}
-      {c.remarques.map((r) => (
+      {fiche?.remarques.map((r) => (
         <p key={r} className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">
           {r}
         </p>
       ))}
       <div className="mt-2 space-y-0.5 text-sm text-zinc-700">
         <div>
-          {c.adresse}, {c.codePostal} {c.departement === '75' ? 'Paris' : c.communeLibelle}
+          {fiche ? `${fiche.adresse}, ${fiche.codePostal} ${c.departement === '75' ? 'Paris' : c.communeLibelle}` : c.communeLibelle}
           {distance !== null && <span className="text-zinc-500"> · à {formatDistance(distance)} de votre adresse</span>}
         </div>
-        <div className="flex flex-wrap gap-x-3">
-          {c.web && <ExternalLink href={c.web}>Site web</ExternalLink>}
-          {c.telephone && <a href={`tel:${c.telephone.replace(/\s/g, '')}`}>{c.telephone}</a>}
-          {c.mail && <a href={`mailto:${c.mail}`} className="text-blue-700 hover:underline">E-mail</a>}
-          {c.ficheOnisep && <ExternalLink href={c.ficheOnisep}>Fiche ONISEP</ExternalLink>}
-        </div>
+        {fiche && (
+          <div className="flex flex-wrap gap-x-3">
+            {fiche.web && <ExternalLink href={fiche.web}>Site web</ExternalLink>}
+            {fiche.telephone && <a href={`tel:${fiche.telephone.replace(/\s/g, '')}`}>{fiche.telephone}</a>}
+            {fiche.mail && <a href={`mailto:${fiche.mail}`} className="text-blue-700 hover:underline">E-mail</a>}
+            {fiche.ficheOnisep && <ExternalLink href={fiche.ficheOnisep}>Fiche ONISEP</ExternalLink>}
+          </div>
+        )}
         {secteur && <div className="font-medium text-green-700">✓ Collège de secteur de votre adresse</div>}
       </div>
     </header>
