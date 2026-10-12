@@ -10,6 +10,7 @@ import { INDICATEURS, STATUT_LABELS } from '../lib/indicateurs';
 import { formatIndicateur, nomCourt } from '../lib/format';
 import type { ColorBy } from '../lib/url';
 import { SuiviBadge } from './ui';
+import { ContoursCommunes } from './ContoursCommunes';
 
 const COLOR_OPTIONS: { key: ColorBy; label: string }[] = [
   { key: 'statut', label: 'Statut' },
@@ -66,7 +67,7 @@ function InvalidateOnResize() {
 }
 
 export function MapView({ onOpen }: { onOpen?: () => void }) {
-  const { dataset, contours, visiblesSet, byUai, secteur } = useData();
+  const { dataset, visiblesSet, byUai, secteur } = useData();
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
   const favoris = useStore((s) => s.favoris);
@@ -101,13 +102,7 @@ export function MapView({ onOpen }: { onOpen?: () => void }) {
         <InvalidateOnResize />
         <FitOnLoad colleges={colleges} />
         <FlyToSelected college={selectedCollege} />
-        {contours.features.length > 0 && (
-          <GeoJSON
-            key="contours"
-            data={contours as GeoJSON.FeatureCollection}
-            style={{ color: '#52525b', weight: 1.5, dashArray: '4 4', fill: false, interactive: false } as L.PathOptions}
-          />
-        )}
+        <ContoursCommunes />
         {secteur?.feature && (
           <GeoJSON
             key={secteur.feature.properties.libelle}

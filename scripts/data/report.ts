@@ -46,6 +46,8 @@ export interface ReportData {
   verifVoies: VerifVoie[];
   verifSecteurs: VerifSecteur[];
   affelnet: { lignes: number };
+  /** Communes présentes absentes du fichier de contours d'Etalab. */
+  contoursManquants: { code: string; libelle: string }[];
   events: EventsResult;
   tailles: Record<string, number>;
   indicateurs: IndicateurKey[];
@@ -438,6 +440,12 @@ export function renderReport(d: ReportData): string {
   // Fichiers
   L.push('', '## 16. Fichiers produits', '');
   L.push(table(['Fichier', 'Taille'], Object.entries(d.tailles).map(([p, t]) => [p, `${(t / 1024).toFixed(0)} ko`])));
+  L.push(
+    '',
+    d.contoursManquants.length
+      ? `Communes sans contour (contours-<dép>.geojson) : ${d.contoursManquants.map((c) => `${c.libelle} (${c.code})`).join(', ')}.`
+      : 'Contours : chaque commune présente a le sien (contours-<dép>.geojson).',
+  );
   L.push('');
   return L.join('\n');
 }

@@ -1,6 +1,6 @@
 # Rapport de la mise à jour des données
 
-Généré le 2026-10-12T17:39:12.589Z par `npm run data` (mode hors ligne : cache uniquement) en 1 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
+Généré le 2026-10-12T17:43:18.711Z par `npm run data` (mode hors ligne : cache uniquement) en 2 s. Fichier régénéré à chaque exécution : ne pas éditer à la main.
 
 ## 1. Périmètre
 
@@ -3259,4 +3259,14 @@ Plages « toute la voie » (1–9999) : 744/887 ; `debut`/`fin` sont publiés te
 | public/data/colleges-95.json | 633 ko |
 | public/data/secteurs-paris.geojson | 962 ko |
 | public/data/carte-scolaire-94.json | 85 ko |
+| public/data/contours-75.geojson | 8 ko |
+| public/data/contours-77.geojson | 76 ko |
+| public/data/contours-78.geojson | 51 ko |
+| public/data/contours-91.geojson | 46 ko |
+| public/data/contours-92.geojson | 17 ko |
+| public/data/contours-93.geojson | 22 ko |
+| public/data/contours-94.geojson | 25 ko |
+| public/data/contours-95.geojson | 38 ko |
 | public/data/events.json | 33 ko |
+
+Contours : chaque commune présente a le sien (contours-<dép>.geojson).

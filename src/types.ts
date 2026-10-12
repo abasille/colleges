@@ -4,7 +4,8 @@
 //   colleges-<dép>.json      -> DetailDepartement (un par département, chargé à l'ouverture
 //                               de la première fiche du département ; ex. colleges-75.json)
 //   events.json              -> EventsFile
-//   contours.geojson         -> (plus publié pour l’instant ; l’application le tolère absent)
+//   contours-<dép>.geojson   -> FeatureCollection, properties: ContourCommuneProps (un par département,
+//                               chargé quand une commune du département est choisie dans le filtre)
 //   secteurs-paris.geojson   -> FeatureCollection, properties: SecteurParisProps
 //   carte-scolaire-94.json   -> CarteScolaireRow[]
 
@@ -202,6 +203,13 @@ export type CollegeDetail = { uai: string } & Omit<College, ChampResume | 'score
 export interface DetailDepartement {
   departement: string;
   colleges: CollegeDetail[];
+}
+
+/** contours-<dép>.geojson : une entité par commune présente (à Paris, par arrondissement). */
+export interface ContourCommuneProps {
+  /** Code INSEE, celui de `College.commune`. */
+  code: string;
+  libelle: string;
 }
 
 export interface Source {

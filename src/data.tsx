@@ -7,16 +7,9 @@ import { applyFilters, sortColleges } from './lib/filters';
 import { fusionner } from './lib/fiche';
 import { useStore } from './store';
 
-export interface ContourFeature {
-  type: 'Feature';
-  geometry: GeoJSON.Geometry;
-  properties: { code: string; libelle: string };
-}
-
 interface RawData {
   dataset: Dataset;
   events: EventsFile;
-  contours: { type: 'FeatureCollection'; features: ContourFeature[] };
   secteursParis: SecteurFeature[];
   carte94: CarteScolaireRow[];
 }
@@ -45,14 +38,13 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 async function loadAll(): Promise<RawData> {
-  const [dataset, events, contours, secteurs, carte94] = await Promise.all([
+  const [dataset, events, secteurs, carte94] = await Promise.all([
     getJson<Dataset>('colleges.json'),
     getJson<EventsFile>('events.json').catch(() => ({ saisonCourante: '2026-27', events: [], inscriptions: {} }) as EventsFile),
-    getJson<RawData['contours']>('contours.geojson').catch(() => ({ type: 'FeatureCollection' as const, features: [] })),
     getJson<{ features: SecteurFeature[] }>('secteurs-paris.geojson').catch(() => ({ features: [] })),
     getJson<CarteScolaireRow[]>('carte-scolaire-94.json').catch(() => []),
   ]);
-  return { dataset, events, contours, secteursParis: secteurs.features, carte94 };
+  return { dataset, events, secteursParis: secteurs.features, carte94 };
 }
 
 // ---------------------------------------------------------------- détail par département

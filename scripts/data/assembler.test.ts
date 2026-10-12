@@ -341,3 +341,82 @@ describe('assemblerDataset : fichier léger et détails par département', () =>
     expect(JSON.parse(fichier('colleges-94.json'))).toEqual({ departement: '94', colleges: [expect.objectContaining({ uai: '0940003C' })] });
   });
 });
+
+describe('assemblerDataset : contours des communes', () => {
+  const carre = (lon: number, lat: number) => ({
+    type: 'Polygon' as const,
+    coordinates: [
+      [
+        [lon, lat],
+        [lon + 0.01, lat],
+        [lon + 0.01, lat + 0.01],
+        [lon, lat + 0.01],
+        [lon, lat],
+      ] as [number, number][],
+    ],
+  });
+  const contour = (code: string, nom: string, departement: string) => ({
+    type: 'Feature' as const,
+    properties: { code, nom, departement },
+    geometry: carre(2.3, 48.8),
+  });
+  const avecContours = () =>
+    entree({
+      colleges: [
+        etab({ identifiant_de_l_etablissement: '0750001A', code_commune: '75113', nom_commune: 'Paris 13e  Arrondissement' }),
+        etab({
+          identifiant_de_l_etablissement: '0940002B',
+          code_commune: '94041',
+          nom_commune: 'Ivry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+        etab({
+          identifiant_de_l_etablissement: '0940003C',
+          code_commune: '94081',
+          nom_commune: 'Vitry-sur-Seine',
+          code_departement: '094',
+          libelle_academie: 'Créteil',
+        }),
+      ],
+      sources: {
+        contours: [
+          contour('75056', 'Paris', '75'),
+          contour('75113', 'Paris 13e Arrondissement', '75'),
+          contour('75114', 'Paris 14e Arrondissement', '75'),
+          contour('94041', 'Ivry-sur-Seine', '94'),
+        ],
+      },
+    });
+
+  it('publie, par département, le contour de chaque commune ou arrondissement où il y a un collège, sous le libellé de l’application', () => {
+    const a = assemblerDataset(avecContours());
+    const parDepartement = Object.fromEntries(
+      a.publication.contours.map((d) => [d.departement, d.contours.features.map((f) => [f.properties.code, f.properties.libelle])]),
+    );
+    expect(parDepartement).toEqual({ '75': [['75113', 'Paris 13e']], '94': [['94041', 'Ivry-sur-Seine']] });
+    expect(a.publication.contours[0].contours.features[0].geometry).toEqual(carre(2.3, 48.8));
+  });
+
+  it('écrit un fichier de contours par département, une commune par ligne', () => {
+    const a = assemblerDataset(avecContours());
+    const fichier = a.fichiers.find((f) => f.chemin === 'contours-94.geojson')!.contenu;
+    expect(JSON.parse(fichier)).toEqual({
+      type: 'FeatureCollection',
+      features: [expect.objectContaining({ properties: { code: '94041', libelle: 'Ivry-sur-Seine' } })],
+    });
+    expect(fichier.trim().split('\n')).toHaveLength(3);
+  });
+
+  it('signale au rapport les communes sans contour', () => {
+    const a = assemblerDataset(avecContours());
+    expect(a.rapport.contoursManquants).toEqual([{ code: '94081', libelle: 'Vitry-sur-Seine' }]);
+  });
+
+  it('cite Etalab et la licence ODbL parmi les sources', () => {
+    const a = assemblerDataset(avecContours());
+    expect(a.publication.dataset.sources.find((s) => s.id === 'contours')).toEqual(
+      expect.objectContaining({ licence: 'ODbL', url: 'https://www.data.gouv.fr/datasets/contours-administratifs' }),
+    );
+  });
+});

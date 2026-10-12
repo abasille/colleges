@@ -19,6 +19,9 @@ export const NATURES_LYCEE = [300, 301, 302, 306, 312, 315, 320, 335];
 /** Année scolaire des secteurs parisiens (opendata.paris.fr). */
 export const ANNEE_SECTEURS_PARIS = '2026-2027';
 
+/** Millésime des contours de communes d'Etalab (contours-administratifs). */
+export const ANNEE_CONTOURS = 2026;
+
 /** Millésime de la carte Affelnet (lycées de secteur). */
 export const ANNEE_AFFELNET = 2026;
 
