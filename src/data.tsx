@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { College, CollegeDetail, CollegeResume, Dataset, DetailDepartement, EventsFile } from './types';
 import type { Adresse, DonneesSecteur, SecteurResult, SourceSecteur } from './lib/secteur';
 import { findSecteur, lireDonneesSecteur, sourceSecteur } from './lib/secteur';
@@ -173,15 +173,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadAll().then(setRaw, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
+  // Distances et collège de secteur (useSecteur) ne dépendent que de l'adresse : ils ne sont pas
+  // recalculés quand un filtre ou le tri change.
+  const distances = useMemo(
+    () => (raw && adresse ? new Map(raw.dataset.colleges.map((c) => [c.uai, haversineKm(adresse.lat, adresse.lon, c.lat, c.lon)])) : null),
+    [raw, adresse],
+  );
+  const byUai = useMemo(() => new Map(raw?.dataset.colleges.map((c) => [c.uai, c])), [raw]);
+  // La recherche est mise à jour tout de suite ; la liste, la carte et le calendrier suivent sans bloquer la frappe.
+  const filtresDiffere = useDeferredValue(filters);
+  const triDiffere = useDeferredValue(sort);
+  const visibles = useMemo(() => {
+    if (!raw) return [];
+    const ctx = { favoris: new Set(favorisList), distances };
+    return sortColleges(applyFilters(raw.dataset.colleges, filtresDiffere, ctx), triDiffere, ctx);
+  }, [raw, filtresDiffere, triDiffere, favorisList, distances]);
+  // Même ensemble tant que la liste ne change pas : les points de la carte et le calendrier ne sont pas recalculés pour rien.
+  const visiblesSet = useMemo(() => new Set(visibles.map((c) => c.uai)), [visibles]);
+
   const value = useMemo<AppData | null>(() => {
     if (!raw) return null;
-    const colleges = raw.dataset.colleges;
-    const byUai = new Map(colleges.map((c) => [c.uai, c]));
-    const distances = adresse ? new Map(colleges.map((c) => [c.uai, haversineKm(adresse.lat, adresse.lon, c.lat, c.lon)])) : null;
-    const ctx = { favoris: new Set(favorisList), distances };
-    const visibles = sortColleges(applyFilters(colleges, filters, ctx), sort, ctx);
-    return { ...raw, byUai, distances, secteur, visibles, visiblesSet: new Set(visibles.map((c) => c.uai)) };
-  }, [raw, filters, sort, favorisList, adresse, secteur]);
+    return { ...raw, byUai, distances, secteur, visibles, visiblesSet };
+  }, [raw, byUai, distances, secteur, visibles, visiblesSet]);
 
   if (error) {
     return (
