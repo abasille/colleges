@@ -33,7 +33,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "adm-zip": "^0.6.1",
-    "fast-xml-parser": "^5.11.2",
+    "fast-xml-parser": "^5.12.0",
     "papaparse": "^5.7.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
